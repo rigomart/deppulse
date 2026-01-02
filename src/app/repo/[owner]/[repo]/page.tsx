@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   Calendar,
   Clock,
+  ExternalLink,
   GitCommitHorizontal,
   GitPullRequest,
   Tag,
@@ -11,20 +12,16 @@ import type { Metadata, ResolvingMetadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getCachedAssessment } from "@/lib/data";
+import { formatAge, formatNumber } from "@/lib/utils";
 
 type Props = {
   params: Promise<{ owner: string; repo: string }>;
 };
 
-/**
- * Builds page metadata for a repository route based on its cached assessment.
- *
- * @param params - A promise resolving to route parameters containing `owner` and `repo`
- * @returns A Metadata object for the repository page. If no assessment exists, returns a metadata object with `title` set to "Repository Not Found". If an assessment exists, returns metadata with a title and description reflecting the repository's full name, risk category, and score, plus a canonical alternate, Open Graph fields (`title`, `description`, `type: "website"`), and Twitter card settings (`summary_large_image`, `title`, `description`).
- */
 export async function generateMetadata(
   { params }: Props,
   _parent: ResolvingMetadata,
@@ -72,107 +69,163 @@ export default async function RepoPage({ params }: Props) {
   }
 
   return (
-    <main className="container max-w-5xl mx-auto py-6 px-4 space-y-6">
+    <main className="container max-w-5xl mx-auto py-4 px-3 sm:px-4 sm:py-6 space-y-8">
       {/* Header Section */}
-      <div className="space-y-4">
+      <section className="space-y-4 bg-card px-4 py-3">
         <Link
           href="/"
           className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors w-fit"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="size-4" />
           Back to search
         </Link>
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+
+        <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
               {assessment.fullName}
             </h1>
             {assessment.description && (
-              <p className="text-lg text-muted-foreground max-w-2xl">
+              <p className="text-base sm:text-lg text-muted-foreground max-w-2xl">
                 {assessment.description}
               </p>
             )}
           </div>
-          <div className="flex items-center gap-4 bg-card border p-3 rounded-lg shadow-sm">
-            <div className="text-left">
-              <div className="text-xs text-muted-foreground uppercase font-semibold">
-                Risk Level
+
+          <div className="flex flex-col items-start sm:items-end gap-2">
+            {assessment.htmlUrl && (
+              <Button variant="outline" size="sm" asChild>
+                <a
+                  href={assessment.htmlUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  GitHub
+                  <ExternalLink className="size-3 ml-2" />
+                </a>
+              </Button>
+            )}
+            {assessment.repositoryCreatedAt && (
+              <div className="text-xs text-muted-foreground">
+                Created {formatAge(new Date(assessment.repositoryCreatedAt))}
               </div>
-              <div className="flex items-center justify-end gap-2">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Score: {assessment.riskScore}/100
-                </span>
-              </div>
-            </div>
-            <Badge variant="secondary" className="text-sm capitalize">
-              {assessment.riskCategory}
-            </Badge>
+            )}
           </div>
         </div>
-      </div>
 
-      <Separator />
+        {/* Risk Assessment and Repository Info*/}
+        <div className="flex flex-col md:flex-row gap-4 justify-between">
+          <div className="space-y-3">
+            <h2 className="sr-only">Repository Info</h2>
+            <div className="flex gap-x-4 gap-y-2 text-sm">
+              <div>
+                <span className="text-muted-foreground">Stars</span>
+                <p className="font-medium">
+                  {formatNumber(assessment.stars ?? 0)}
+                </p>
+              </div>
+              <Separator orientation="vertical" />
+              <div>
+                <span className="text-muted-foreground">Forks</span>
+                <p className="font-medium">
+                  {formatNumber(assessment.forks ?? 0)}
+                </p>
+              </div>
+              <Separator orientation="vertical" />
+              <div>
+                <span className="text-muted-foreground">Language</span>
+                <p className="font-medium">{assessment.language ?? "N/A"}</p>
+              </div>
+              <Separator orientation="vertical" />
+              <div>
+                <span className="text-muted-foreground">License</span>
+                <p className="font-medium">{assessment.license ?? "N/A"}</p>
+              </div>
+            </div>
+          </div>
+          <Card className="bg-muted/40">
+            <CardContent>
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                    Risk Assessment
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Score: {assessment.riskScore}/100 (lower is better)
+                  </p>
+                </div>
+                <Badge variant="secondary" className="capitalize text-sm">
+                  {assessment.riskCategory}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <MetricCard
-          title="Last Commit"
-          value={
-            assessment.daysSinceLastCommit !== null
-              ? `${assessment.daysSinceLastCommit} days ago`
-              : "N/A"
-          }
-          icon={<Calendar className="w-4 h-4 text-muted-foreground" />}
-          description="Days since most recent commit"
-        />
-        <MetricCard
-          title="Commits (90d)"
-          value={assessment.commitsLast90Days ?? "N/A"}
-          icon={
-            <GitCommitHorizontal className="w-4 h-4 text-muted-foreground" />
-          }
-          description="Activity level"
-        />
-        <MetricCard
-          title="Last Release"
-          value={
-            assessment.daysSinceLastRelease !== null
-              ? `${assessment.daysSinceLastRelease} days ago`
-              : "N/A"
-          }
-          icon={<Tag className="w-4 h-4 text-muted-foreground" />}
-          description="Release cadence"
-        />
-        <MetricCard
-          title="Open Issues"
-          value={
-            assessment.openIssuesPercent !== null
-              ? `${assessment.openIssuesPercent}%`
-              : "N/A"
-          }
-          icon={<AlertCircle className="w-4 h-4 text-muted-foreground" />}
-          description="Ratio of open issues"
-        />
-        <MetricCard
-          title="Resolution Time"
-          value={
-            assessment.medianIssueResolutionDays !== null
-              ? `${assessment.medianIssueResolutionDays} days`
-              : "N/A"
-          }
-          icon={<Clock className="w-4 h-4 text-muted-foreground" />}
-          description="Median time to close issues"
-        />
-        <MetricCard
-          title="Open PRs"
-          value={assessment.openPrsCount ?? "N/A"}
-          icon={<GitPullRequest className="w-4 h-4 text-muted-foreground" />}
-          description="Pending contributions"
-        />
-      </div>
+      {/* Maintenance Health */}
+      <section className="space-y-4">
+        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          Maintenance Health
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <MetricCard
+            title="Last Commit"
+            value={
+              assessment.daysSinceLastCommit !== null
+                ? `${assessment.daysSinceLastCommit}d ago`
+                : "N/A"
+            }
+            icon={<Calendar className={iconClass} />}
+            description="Days since most recent commit"
+          />
+          <MetricCard
+            title="Commits (90d)"
+            value={assessment.commitsLast90Days ?? "N/A"}
+            icon={<GitCommitHorizontal className={iconClass} />}
+            description="Recent activity level"
+          />
+          <MetricCard
+            title="Last Release"
+            value={
+              assessment.daysSinceLastRelease !== null
+                ? `${assessment.daysSinceLastRelease}d ago`
+                : "N/A"
+            }
+            icon={<Tag className={iconClass} />}
+            description="Release cadence"
+          />
+          <MetricCard
+            title="Open Issues"
+            value={
+              assessment.openIssuesPercent !== null
+                ? `${assessment.openIssuesPercent}%`
+                : "N/A"
+            }
+            icon={<AlertCircle className={iconClass} />}
+            description="Ratio of open to total issues"
+          />
+          <MetricCard
+            title="Resolution Time"
+            value={
+              assessment.medianIssueResolutionDays !== null
+                ? `${assessment.medianIssueResolutionDays}d`
+                : "N/A"
+            }
+            icon={<Clock className={iconClass} />}
+            description="Median days to close issues"
+          />
+          <MetricCard
+            title="Open PRs"
+            value={assessment.openPrsCount ?? "N/A"}
+            icon={<GitPullRequest className={iconClass} />}
+            description="Pending contributions"
+          />
+        </div>
+      </section>
 
-      {/* Footer / Actions */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground p-4 bg-card rounded-xl border">
+      {/* Footer */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground pt-4 border-t">
         <Clock className="w-4 h-4" />
         <span>
           Last analyzed: {new Date(assessment.analyzedAt).toLocaleString()}
@@ -181,6 +234,8 @@ export default async function RepoPage({ params }: Props) {
     </main>
   );
 }
+
+const iconClass = "w-4 h-4 text-muted-foreground";
 
 function MetricCard({
   title,
@@ -191,17 +246,19 @@ function MetricCard({
   title: string;
   value: string | number;
   icon: React.ReactNode;
-  description: string;
+  description?: string;
 }) {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         {icon}
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
+        {description && (
+          <p className="text-xs text-muted-foreground">{description}</p>
+        )}
       </CardContent>
     </Card>
   );

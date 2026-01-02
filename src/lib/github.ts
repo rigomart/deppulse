@@ -13,6 +13,9 @@ export interface RepoMetrics {
   forks: number;
   avatarUrl: string | null;
   htmlUrl: string;
+  license: string | null;
+  language: string | null;
+  repositoryCreatedAt: Date;
   daysSinceLastCommit: number | null;
   commitsLast90Days: number;
   daysSinceLastRelease: number | null;
@@ -129,6 +132,9 @@ export async function fetchRepoMetrics(
     forks: repoInfo.data.forks_count,
     avatarUrl: repoInfo.data.owner.avatar_url,
     htmlUrl: repoInfo.data.html_url,
+    license: repoInfo.data.license?.spdx_id ?? null,
+    language: repoInfo.data.language ?? null,
+    repositoryCreatedAt: new Date(repoInfo.data.created_at),
     daysSinceLastCommit,
     commitsLast90Days,
     daysSinceLastRelease,
