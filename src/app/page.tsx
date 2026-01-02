@@ -14,13 +14,6 @@ export const metadata: Metadata = {
   },
 };
 
-/**
- * Render the Deppulse homepage with a search form and recent analyses.
- *
- * Fetches up to 10 recent assessments and renders a centered hero (title, subtitle, and SearchForm). If there are any assessments, displays a responsive grid of linked cards showing each repository's full name and its risk category.
- *
- * @returns The homepage React element containing the hero and, when available, the "Recent Analyses" grid.
- */
 export default async function Home() {
   const recentAssessments = await getRecentAssessments(10);
 

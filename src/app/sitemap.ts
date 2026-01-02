@@ -1,9 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo";
 
-/**
- * Build sitemap entries for the site root and each repository.
- */
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {

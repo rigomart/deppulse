@@ -58,15 +58,6 @@ export const metadata: Metadata = {
   },
 };
 
-/**
- * Root layout component that applies global fonts, page-level attributes, and site chrome.
- *
- * Renders an <html> element with language "en" and font CSS variables applied, a <body> with layout classes,
- * the provided `children` inside a flexible container, and the site Footer.
- *
- * @param children - The page content to render inside the layout.
- * @returns The root HTML structure for a page, including fonts, layout wrappers, and the Footer component.
- */
 export default function RootLayout({
   children,
 }: Readonly<{
