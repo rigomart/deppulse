@@ -8,21 +8,6 @@ import { type Assessment, assessments } from "@/db/schema";
 // Cache duration: 24 hours (in seconds for unstable_cache)
 const CACHE_REVALIDATE = 86400;
 
-export const getAssessment = unstable_cache(
-  async (owner: string, repo: string): Promise<Assessment | null> => {
-    const fullName = `${owner}/${repo}`;
-    const assessment = await db.query.assessments.findFirst({
-      where: eq(assessments.fullName, fullName),
-    });
-    return assessment ?? null;
-  },
-  ["assessment"],
-  {
-    revalidate: CACHE_REVALIDATE,
-    tags: ["assessments"],
-  },
-);
-
 // Helper to create a tag for a specific repo
 export function getRepoTag(owner: string, repo: string): string {
   return `repo:${owner}/${repo}`;
@@ -46,16 +31,20 @@ export function getCachedAssessment(owner: string, repo: string) {
   )();
 }
 
-export const getRecentAssessments = unstable_cache(
-  async (limit: number = 10): Promise<Assessment[]> => {
-    return db.query.assessments.findMany({
-      orderBy: [desc(assessments.analyzedAt)],
-      limit,
-    });
-  },
-  ["recent-assessments"],
-  {
-    revalidate: CACHE_REVALIDATE,
-    tags: ["assessments"],
-  },
-);
+export function getRecentAssessments(
+  limit: number = 10,
+): Promise<Assessment[]> {
+  return unstable_cache(
+    async (): Promise<Assessment[]> => {
+      return db.query.assessments.findMany({
+        orderBy: [desc(assessments.analyzedAt)],
+        limit,
+      });
+    },
+    [`recent-assessments-${limit}`],
+    {
+      revalidate: CACHE_REVALIDATE,
+      tags: ["assessments"],
+    },
+  )();
+}
