@@ -6,6 +6,7 @@ import {
   serial,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import type { RiskCategory } from "@/lib/risk";
 
@@ -33,7 +34,7 @@ export const assessments = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [
-    index("assessments_full_name_idx").on(table.fullName),
+    uniqueIndex("assessments_full_name_idx").on(table.fullName),
     index("assessments_analyzed_at_idx").on(table.analyzedAt),
   ],
 );
