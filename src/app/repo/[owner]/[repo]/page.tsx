@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { RefreshButton } from "@/components/refresh-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -27,15 +26,6 @@ export default async function RepoPage({ params }: Props) {
   if (!assessment) {
     notFound();
   }
-
-  const riskVariant =
-    assessment.riskCategory === "HIGH"
-      ? "destructive"
-      : assessment.riskCategory === "MODERATE"
-        ? "secondary"
-        : assessment.riskCategory === "LOW"
-          ? "default"
-          : "outline";
 
   return (
     <main className="container max-w-5xl mx-auto py-6 px-4 space-y-6">
@@ -59,8 +49,8 @@ export default async function RepoPage({ params }: Props) {
               </p>
             )}
           </div>
-          <div className="flex items-center gap-3 bg-card border p-3 rounded-lg shadow-sm">
-            <div className="text-right">
+          <div className="flex items-center gap-4 bg-card border p-3 rounded-lg shadow-sm">
+            <div className="text-left">
               <div className="text-xs text-muted-foreground uppercase font-semibold">
                 Risk Level
               </div>
@@ -70,7 +60,7 @@ export default async function RepoPage({ params }: Props) {
                 </span>
               </div>
             </div>
-            <Badge variant={riskVariant} className="text-base px-4 py-1">
+            <Badge variant="secondary" className="text-sm capitalize">
               {assessment.riskCategory}
             </Badge>
           </div>
@@ -82,7 +72,7 @@ export default async function RepoPage({ params }: Props) {
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <MetricCard
-          title="Last Commit"
+          title="Last Commit (6 months)"
           value={
             assessment.daysSinceLastCommit !== null
               ? `${assessment.daysSinceLastCommit} days ago`
@@ -138,14 +128,11 @@ export default async function RepoPage({ params }: Props) {
       </div>
 
       {/* Footer / Actions */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-muted/40 rounded-xl border">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Clock className="w-4 h-4" />
-          <span>
-            Last analyzed: {new Date(assessment.analyzedAt).toLocaleString()}
-          </span>
-        </div>
-        <RefreshButton owner={owner} repo={repo} />
+      <div className="flex items-center gap-2 text-sm text-muted-foreground p-4 bg-card rounded-xl border">
+        <Clock className="w-4 h-4" />
+        <span>
+          Last analyzed: {new Date(assessment.analyzedAt).toLocaleString()}
+        </span>
       </div>
     </main>
   );
@@ -164,7 +151,7 @@ function MetricCard({
 }) {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         {icon}
       </CardHeader>
