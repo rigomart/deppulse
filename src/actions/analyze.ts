@@ -7,6 +7,13 @@ import { getRepoTag } from "@/lib/data";
 import { fetchRepoMetrics } from "@/lib/github";
 import { calculateRisk } from "@/lib/risk";
 
+/**
+ * Analyze a GitHub repository, compute its risk profile, persist the assessment, and invalidate related caches.
+ *
+ * @param owner - Repository owner (username or organization)
+ * @param repo - Repository name
+ * @returns The persisted `Assessment` record including repository metrics, `riskCategory`, `riskScore`, and `analyzedAt`
+ */
 export async function analyze(
   owner: string,
   repo: string,

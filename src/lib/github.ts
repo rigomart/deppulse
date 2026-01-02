@@ -36,6 +36,19 @@ const getMedian = (numbers: number[]): number | null => {
     : (sorted[mid - 1] + sorted[mid]) / 2;
 };
 
+/**
+ * Fetches repository metadata and computed metrics from GitHub for the specified owner and repository.
+ *
+ * @param owner - GitHub repository owner (user or organization)
+ * @param repo - Repository name
+ * @returns A `RepoMetrics` object containing repository metadata (fullName, description, stars, forks, avatarUrl, htmlUrl) and computed metrics:
+ * - `daysSinceLastCommit`: number | null
+ * - `commitsLast90Days`: number
+ * - `daysSinceLastRelease`: number | null
+ * - `openIssuesPercent`: number | null (percentage, rounded to one decimal)
+ * - `medianIssueResolutionDays`: number | null
+ * - `openPrsCount`: number
+ */
 export async function fetchRepoMetrics(
   owner: string,
   repo: string,

@@ -25,6 +25,13 @@ const badgeVariants = cva(
   },
 );
 
+/**
+ * Renders a styled badge element with selectable visual variants.
+ *
+ * @param variant - Visual style to apply; one of the variants defined in `badgeVariants` (e.g., "default", "secondary", "destructive", "outline").
+ * @param asChild - When true, renders a Radix `Slot` so the badge styles are applied to a child element; when false, renders a `span`.
+ * @returns A React element (either `span` or `Slot`) with badge styling and the provided props.
+ */
 function Badge({
   className,
   variant,

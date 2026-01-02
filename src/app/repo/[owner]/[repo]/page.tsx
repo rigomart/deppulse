@@ -19,6 +19,12 @@ type Props = {
   params: Promise<{ owner: string; repo: string }>;
 };
 
+/**
+ * Builds page metadata for a repository route based on its cached assessment.
+ *
+ * @param params - A promise resolving to route parameters containing `owner` and `repo`
+ * @returns A Metadata object for the repository page. If no assessment exists, returns a metadata object with `title` set to "Repository Not Found". If an assessment exists, returns metadata with a title and description reflecting the repository's full name, risk category, and score, plus a canonical alternate, Open Graph fields (`title`, `description`, `type: "website"`), and Twitter card settings (`summary_large_image`, `title`, `description`).
+ */
 export async function generateMetadata(
   { params }: Props,
   _parent: ResolvingMetadata,
@@ -56,6 +62,14 @@ export async function generateMetadata(
   };
 }
 
+/**
+ * Render the repository risk assessment page for a given owner and repository.
+ *
+ * Renders a detailed view with repository title and description, a risk panel showing score and category, a responsive grid of six metric cards (last commit, commits in 90 days, last release, open issues percentage, median issue resolution time, open PRs), and a footer showing when the assessment was last analyzed. If no assessment is found the route resolves to a 404 page.
+ *
+ * @param params - A Promise resolving to an object with `owner` and `repo` string properties identifying the repository to render
+ * @returns The JSX element for the repository assessment page
+ */
 export default async function RepoPage({ params }: Props) {
   const { owner, repo } = await params;
 
@@ -176,6 +190,15 @@ export default async function RepoPage({ params }: Props) {
   );
 }
 
+/**
+ * Render a compact metric card showing a title, prominent value, an icon, and a short description.
+ *
+ * @param title - Metric title displayed in the card header
+ * @param value - Primary metric value shown prominently
+ * @param icon - Icon node displayed in the header alongside the title
+ * @param description - Short explanatory text displayed beneath the value
+ * @returns A Card element containing the metric UI
+ */
 function MetricCard({
   title,
   value,
