@@ -6,6 +6,7 @@ const ibmPlexSans = IBM_Plex_Sans({
   variable: "--font-ibm-plex-sans",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
+  preload: true,
 });
 
 const dmMono = DM_Mono({
@@ -25,12 +26,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${ibmPlexSans.variable} ${dmMono.variable} antialiased dark`}
-      >
-        {children}
-      </body>
+    <html
+      lang="en"
+      className={`${ibmPlexSans.variable} ${dmMono.variable} antialiased dark`}
+    >
+      <body>{children}</body>
     </html>
   );
 }

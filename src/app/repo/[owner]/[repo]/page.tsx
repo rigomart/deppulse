@@ -38,7 +38,7 @@ export default async function RepoPage({ params }: Props) {
           : "outline";
 
   return (
-    <main className="container max-w-5xl mx-auto py-10 px-4 space-y-8">
+    <main className="container max-w-5xl mx-auto py-6 px-4 space-y-6">
       {/* Header Section */}
       <div className="space-y-4">
         <Link

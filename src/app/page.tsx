@@ -1,16 +1,16 @@
 import Link from "next/link";
 import { SearchForm } from "@/components/search-form";
-import { getRecentAssessments } from "@/lib/data";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { getRecentAssessments } from "@/lib/data";
 
 export default async function Home() {
   const recentAssessments = await getRecentAssessments(10);
 
   return (
-    <main className="container max-w-5xl mx-auto py-16 px-4 space-y-16">
+    <main className="container max-w-5xl mx-auto py-8 px-4 space-y-8">
       <div className="flex flex-col items-center text-center space-y-4">
-        <h1 className="text-4xl font-extrabold tracking-tight lg:text-6xl">
+        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
           Deppulse
         </h1>
         <p className="text-xl text-muted-foreground max-w-[600px]">
@@ -33,27 +33,17 @@ export default async function Home() {
                 href={`/repo/${assessment.owner}/${assessment.repo}`}
                 className="block group"
               >
-                <Card className="h-full transition-all hover:bg-muted/50 hover:shadow-sm">
-                  <CardHeader>
+                <Card className="h-full transition-all hover:bg-muted/50">
+                  <CardContent>
                     <div className="flex items-center justify-between gap-2">
-                      <CardTitle className="text-lg truncate">
+                      <div className="text-base truncate">
                         {assessment.fullName}
-                      </CardTitle>
-                      <Badge
-                        variant={
-                          assessment.riskCategory === "HIGH"
-                            ? "destructive"
-                            : assessment.riskCategory === "MODERATE"
-                              ? "secondary"
-                              : assessment.riskCategory === "LOW"
-                                ? "default"
-                                : "outline"
-                        }
-                      >
+                      </div>
+                      <Badge variant="secondary" className="capitalize">
                         {assessment.riskCategory}
                       </Badge>
                     </div>
-                  </CardHeader>
+                  </CardContent>
                 </Card>
               </Link>
             ))}
