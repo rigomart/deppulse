@@ -110,14 +110,14 @@ export default async function RepoPage({ params }: Props) {
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <MetricCard
-          title="Last Commit (6 months)"
+          title="Last Commit"
           value={
             assessment.daysSinceLastCommit !== null
               ? `${assessment.daysSinceLastCommit} days ago`
               : "N/A"
           }
           icon={<Calendar className="w-4 h-4 text-muted-foreground" />}
-          description="Freshness of code"
+          description="Days since most recent commit"
         />
         <MetricCard
           title="Commits (90d)"
