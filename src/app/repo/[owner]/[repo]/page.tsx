@@ -7,6 +7,7 @@ import {
   GitPullRequest,
   Tag,
 } from "lucide-react";
+import type { Metadata, ResolvingMetadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,43 @@ import { getCachedAssessment } from "@/lib/data";
 type Props = {
   params: Promise<{ owner: string; repo: string }>;
 };
+
+export async function generateMetadata(
+  { params }: Props,
+  _parent: ResolvingMetadata,
+): Promise<Metadata> {
+  const { owner, repo } = await params;
+  const assessment = await getCachedAssessment(owner, repo);
+
+  if (!assessment) {
+    return {
+      title: "Repository Not Found",
+    };
+  }
+
+  const title = `${assessment.fullName} - ${assessment.riskCategory}`;
+  const description = assessment.description
+    ? `${assessment.description} Risk score: ${assessment.riskScore}/100. Last analyzed: ${new Date(assessment.analyzedAt).toLocaleDateString()}.`
+    : `Maintenance assessment for ${assessment.fullName}. Risk score: ${assessment.riskScore}/100. Category: ${assessment.riskCategory}.`;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `/repo/${owner}/${repo}`,
+    },
+    openGraph: {
+      title: `Deppulse: ${title}`,
+      description,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
 
 export default async function RepoPage({ params }: Props) {
   const { owner, repo } = await params;

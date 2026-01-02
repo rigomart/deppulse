@@ -54,3 +54,7 @@ Required in `.env.local`:
 - Biome for linting/formatting
 - Vitest for testing
 - Tailwind CSS v4 + Radix UI components
+
+### Instructions
+- Assume the user is already running the dev environment, don't run it yourself
+- Avoid using `any` or explicit type assertions

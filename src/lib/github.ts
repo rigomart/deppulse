@@ -1,3 +1,5 @@
+import "server-only";
+
 import { Octokit } from "octokit";
 
 const octokit = new Octokit({

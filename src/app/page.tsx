@@ -1,8 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { SearchForm } from "@/components/search-form";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getRecentAssessments } from "@/lib/data";
+
+export const metadata: Metadata = {
+  title: "Deppulse - Open Source Maintenance Checker",
+  description:
+    "Analyze GitHub repositories and get a clear maintenance status - Active, Stable, At-Risk, or Abandoned. Paste a repo URL, get an answer in seconds.",
+  alternates: {
+    canonical: "/",
+  },
+};
 
 export default async function Home() {
   const recentAssessments = await getRecentAssessments(10);
