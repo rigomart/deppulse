@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
-import { Open_Sans } from "next/font/google";
+import { DM_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 
-const openSans = Open_Sans({
-  variable: "--font-open-sans",
+const ibmPlexSans = IBM_Plex_Sans({
+  variable: "--font-ibm-plex-sans",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
+});
+
+const dmMono = DM_Mono({
+  variable: "--font-dm-mono",
+  subsets: ["latin"],
+  weight: ["300"],
 });
 
 export const metadata: Metadata = {
@@ -20,7 +26,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${openSans.variable} antialiased`}>{children}</body>
+      <body
+        className={`${ibmPlexSans.variable} ${dmMono.variable} antialiased dark`}
+      >
+        {children}
+      </body>
     </html>
   );
 }

@@ -1,8 +1,11 @@
 "use client";
 
+import { Loader2, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { analyze } from "@/actions/analyze";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { parseRepo } from "@/lib/parse-repo";
 
 export function SearchForm() {
@@ -36,21 +39,27 @@ export function SearchForm() {
   };
 
   return (
-    <div>
-      <form onSubmit={handleSubmit}>
-        <input
+    <div className="w-full max-w-sm space-y-2">
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <Input
           type="text"
           name="query"
           placeholder="owner/repo or GitHub URL"
           disabled={isPending}
           required
+          className="flex-1"
         />
-        <button type="submit" disabled={isPending}>
-          {isPending ? "Analyzing..." : "Analyze"}
-        </button>
+        <Button type="submit" disabled={isPending}>
+          {isPending ? <Loader2 className="animate-spin" /> : <Search />}
+          <span className="sr-only">Analyze</span>
+        </Button>
       </form>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      {isPending && <p>Fetching data from GitHub, please wait...</p>}
+      {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+      {isPending && (
+        <p className="text-sm text-muted-foreground">
+          Fetching data from GitHub, please wait...
+        </p>
+      )}
     </div>
   );
 }
