@@ -1,0 +1,65 @@
+"use client";
+
+import { Loader2, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { analyze } from "@/actions/analyze";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { parseRepo } from "@/lib/parse-repo";
+
+export function SearchForm() {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const query = formData.get("query") as string;
+
+    const parsed = parseRepo(query);
+    if (!parsed) {
+      setError("Invalid format. Use 'owner/repo' or GitHub URL.");
+      return;
+    }
+
+    const { owner, repo } = parsed;
+
+    startTransition(async () => {
+      try {
+        await analyze(owner, repo);
+        router.push(`/repo/${owner}/${repo}`);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Analysis failed");
+      }
+    });
+  };
+
+  return (
+    <div className="w-full max-w-sm space-y-2">
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <Input
+          type="text"
+          name="query"
+          placeholder="owner/repo or GitHub URL"
+          disabled={isPending}
+          required
+          className="flex-1"
+        />
+        <Button type="submit" disabled={isPending}>
+          {isPending ? <Loader2 className="animate-spin" /> : <Search />}
+          <span className="sr-only">Analyze</span>
+        </Button>
+      </form>
+      {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+      {isPending && (
+        <p className="text-sm text-muted-foreground">
+          Fetching data from GitHub, please wait...
+        </p>
+      )}
+    </div>
+  );
+}
