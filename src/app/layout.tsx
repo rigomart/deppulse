@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
-import { Footer } from "@/components/footer";
+import { Header } from "@/components/header";
 
 const ibmPlexSans = IBM_Plex_Sans({
   variable: "--font-ibm-plex-sans",
@@ -69,8 +69,8 @@ export default function RootLayout({
       className={`${ibmPlexSans.variable} ${dmMono.variable} antialiased dark`}
     >
       <body className="flex min-h-screen flex-col">
+        <Header />
         <div className="flex-1">{children}</div>
-        <Footer />
       </body>
     </html>
   );

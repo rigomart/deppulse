@@ -1,6 +1,5 @@
 import {
   AlertCircle,
-  ArrowLeft,
   Calendar,
   Clock,
   ExternalLink,
@@ -72,14 +71,6 @@ export default async function RepoPage({ params }: Props) {
     <main className="container max-w-5xl mx-auto py-4 px-3 sm:px-4 sm:py-6 space-y-8">
       {/* Header Section */}
       <section className="space-y-2 bg-surface-2 px-4 py-3">
-        <Link
-          href="/"
-          className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors w-fit"
-        >
-          <ArrowLeft className="size-4" />
-          Back to search
-        </Link>
-
         <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
           <div className="space-y-2">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">

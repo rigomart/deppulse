@@ -1,4 +1,4 @@
-import { Star } from "lucide-react";
+import { Activity, Star } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SearchForm } from "@/app/_components/search-form";
@@ -22,10 +22,13 @@ export default async function Home() {
   return (
     <main className="container max-w-5xl mx-auto py-8 px-4 space-y-8">
       <div className="flex flex-col items-center text-center space-y-4">
-        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
-          Deppulse
-        </h1>
-        <p className="text-xl text-muted-foreground max-w-[600px]">
+        <div className="flex flex-col items-center space-y-4">
+          <Activity className="size-12" />
+          <h1 className="text-2xl font-extrabold tracking-tight lg:text-4xl">
+            Maintenance Checker
+          </h1>
+        </div>
+        <p className="text-lg text-muted-foreground max-w-[600px]">
           Quickly assess whether an open-source project is actively maintained.
         </p>
         <div className="w-full pt-6 flex justify-center">
