@@ -1,3 +1,12 @@
+/**
+ * Parse a GitHub repository identifier from a string into its owner and repo components.
+ *
+ * Supports "owner/repo" shorthand and full GitHub URLs (e.g. "https://github.com/owner/repo").
+ * The repository segment will have a trailing ".git" and trailing slash removed before returning.
+ *
+ * @param input - The repository reference string to parse.
+ * @returns An object with `owner` and `repo` when parsing succeeds, `null` otherwise.
+ */
 export function parseRepo(
   input: string,
 ): { owner: string; repo: string } | null {

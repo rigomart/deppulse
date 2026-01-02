@@ -8,6 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { parseRepo } from "@/lib/parse-repo";
 
+/**
+ * Render a search form for analyzing a GitHub repository.
+ *
+ * Validates an "owner/repo" string or GitHub URL, starts an analysis action for the parsed repository,
+ * navigates to the repository results page on success, and displays loading and error states.
+ *
+ * @returns The JSX element for the search form UI.
+ */
 export function SearchForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);

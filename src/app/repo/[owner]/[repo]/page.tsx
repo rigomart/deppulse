@@ -19,6 +19,12 @@ type Props = {
   params: Promise<{ owner: string; repo: string }>;
 };
 
+/**
+ * Builds page metadata for a repository route based on its cached assessment.
+ *
+ * @param params - A promise resolving to route parameters containing `owner` and `repo`
+ * @returns A Metadata object for the repository page. If no assessment exists, returns a metadata object with `title` set to "Repository Not Found". If an assessment exists, returns metadata with a title and description reflecting the repository's full name, risk category, and score, plus a canonical alternate, Open Graph fields (`title`, `description`, `type: "website"`), and Twitter card settings (`summary_large_image`, `title`, `description`).
+ */
 export async function generateMetadata(
   { params }: Props,
   _parent: ResolvingMetadata,

@@ -1,3 +1,8 @@
+/**
+ * Renders the page footer containing a centered link to the project's GitHub repository.
+ *
+ * @returns The footer JSX element with a full-width top border, padded area, and a centered "View on GitHub" anchor that opens the repository in a new tab.
+ */
 export function Footer() {
   return (
     <footer className="w-full border-t py-6 mt-12">
