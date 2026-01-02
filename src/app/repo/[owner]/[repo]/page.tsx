@@ -71,7 +71,7 @@ export default async function RepoPage({ params }: Props) {
   return (
     <main className="container max-w-5xl mx-auto py-4 px-3 sm:px-4 sm:py-6 space-y-8">
       {/* Header Section */}
-      <section className="space-y-4 bg-card px-4 py-3">
+      <section className="space-y-2 bg-surface-2 px-4 py-3">
         <Link
           href="/"
           className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors w-fit"
@@ -117,7 +117,7 @@ export default async function RepoPage({ params }: Props) {
         <div className="flex flex-col md:flex-row gap-4 justify-between">
           <div className="space-y-3">
             <h2 className="sr-only">Repository Info</h2>
-            <div className="flex gap-x-4 gap-y-2 text-sm">
+            <div className="flex gap-x-2 sm:gap-x-4 text-sm">
               <div>
                 <span className="text-muted-foreground">Stars</span>
                 <p className="font-medium">

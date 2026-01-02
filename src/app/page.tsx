@@ -1,7 +1,7 @@
 import { Star } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SearchForm } from "@/components/search-form";
+import { SearchForm } from "@/app/_components/search-form";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getRecentAssessments } from "@/lib/data";

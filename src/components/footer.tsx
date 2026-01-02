@@ -7,7 +7,7 @@ import { ExternalLink } from "lucide-react";
  */
 export function Footer() {
   return (
-    <footer className="w-full border-t py-3 mt-8 bg-background">
+    <footer className="w-full border-t py-3 mt-8 bg-surface-1">
       <div className="container max-w-5xl mx-auto px-4 text-left text-sm text-muted-foreground">
         <a
           href="https://github.com/rigomart/deppulse"

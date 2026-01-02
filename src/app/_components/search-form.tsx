@@ -52,22 +52,18 @@ export function SearchForm() {
         <Input
           type="text"
           name="query"
-          placeholder="owner/repo or GitHub URL"
+          placeholder="GitHub URL or owner/repo"
           disabled={isPending}
           required
           className="flex-1"
+          autoComplete="off"
         />
         <Button type="submit" disabled={isPending}>
           {isPending ? <Loader2 className="animate-spin" /> : <Search />}
-          <span className="sr-only">Analyze</span>
+          {isPending ? "Analyzing..." : "Analyze"}
         </Button>
       </form>
       {error && <p className="text-sm text-destructive font-medium">{error}</p>}
-      {isPending && (
-        <p className="text-sm text-muted-foreground">
-          Fetching data from GitHub, please wait...
-        </p>
-      )}
     </div>
   );
 }
