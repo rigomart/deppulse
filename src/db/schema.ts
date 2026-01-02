@@ -1,8 +1,43 @@
-import { boolean, pgTable, serial, text } from "drizzle-orm/pg-core";
+import {
+  index,
+  integer,
+  pgTable,
+  real,
+  serial,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
+import type { RiskCategory } from "@/lib/risk";
 
-// Simple test schema
-export const todos = pgTable("todos", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  completed: boolean("completed").notNull().default(false),
-});
+export const assessments = pgTable(
+  "assessments",
+  {
+    id: serial("id").primaryKey(),
+    owner: text("owner").notNull(),
+    repo: text("repo").notNull(),
+    fullName: text("full_name").notNull(),
+    description: text("description"),
+    stars: integer("stars").default(0),
+    forks: integer("forks").default(0),
+    avatarUrl: text("avatar_url"),
+    htmlUrl: text("html_url"),
+    daysSinceLastCommit: integer("days_since_last_commit"),
+    commitsLast90Days: integer("commits_last_90_days"),
+    daysSinceLastRelease: integer("days_since_last_release"),
+    openIssuesPercent: real("open_issues_percent"),
+    medianIssueResolutionDays: real("median_issue_resolution_days"),
+    openPrsCount: integer("open_prs_count"),
+    riskCategory: text("risk_category").notNull(),
+    riskScore: integer("risk_score"),
+    analyzedAt: timestamp("analyzed_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("assessments_full_name_idx").on(table.fullName),
+    index("assessments_analyzed_at_idx").on(table.analyzedAt),
+  ],
+);
+
+export type Assessment = typeof assessments.$inferSelect;
+export type NewAssessment = typeof assessments.$inferInsert;
+export type { RiskCategory };
