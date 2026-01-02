@@ -1,13 +1,12 @@
 import type { MetadataRoute } from "next";
 import { db } from "@/db/drizzle";
 import { assessments } from "@/db/schema";
+import { SITE_URL } from "@/lib/seo";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = "https://deppulse.rigos.dev";
-
   const staticUrls = [
     {
-      url: baseUrl,
+      url: SITE_URL,
       lastModified: new Date(),
       changeFrequency: "yearly" as const,
       priority: 1,
@@ -22,7 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .from(assessments);
 
   const repoUrls = repos.map((repo) => ({
-    url: `${baseUrl}/repo/${repo.fullName}`,
+    url: `${SITE_URL}/repo/${repo.fullName}`,
     lastModified: repo.analyzedAt,
     changeFrequency: "weekly" as const,
     priority: 0.8,
