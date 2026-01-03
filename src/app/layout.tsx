@@ -6,7 +6,7 @@ import { Header } from "@/components/header";
 const ibmPlexSans = IBM_Plex_Sans({
   variable: "--font-ibm-plex-sans",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   preload: true,
 });
 
@@ -66,7 +66,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${ibmPlexSans.variable} ${dmMono.variable} antialiased dark`}
+      className={`${ibmPlexSans.variable} ${dmMono.variable} antialiased`}
     >
       <body className="flex min-h-screen flex-col">
         <Header />
