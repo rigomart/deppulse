@@ -1,5 +1,6 @@
 import "server-only";
 
+import { subDays } from "date-fns";
 import { Octokit } from "octokit";
 
 const octokit = new Octokit({
@@ -13,6 +14,9 @@ export interface RepoMetrics {
   forks: number;
   avatarUrl: string | null;
   htmlUrl: string;
+  license: string | null;
+  language: string | null;
+  repositoryCreatedAt: Date;
   daysSinceLastCommit: number | null;
   commitsLast90Days: number;
   daysSinceLastRelease: number | null;
@@ -53,9 +57,7 @@ export async function fetchRepoMetrics(
   owner: string,
   repo: string,
 ): Promise<RepoMetrics> {
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-  const ninetyDaysAgoIso = ninetyDaysAgo.toISOString();
+  const ninetyDaysAgoIso = subDays(new Date(), 90).toISOString();
 
   const [repoInfo, commits, release, closedIssues, openIssues, pulls] =
     await Promise.all([
@@ -129,6 +131,9 @@ export async function fetchRepoMetrics(
     forks: repoInfo.data.forks_count,
     avatarUrl: repoInfo.data.owner.avatar_url,
     htmlUrl: repoInfo.data.html_url,
+    license: repoInfo.data.license?.spdx_id ?? null,
+    language: repoInfo.data.language ?? null,
+    repositoryCreatedAt: new Date(repoInfo.data.created_at),
     daysSinceLastCommit,
     commitsLast90Days,
     daysSinceLastRelease,

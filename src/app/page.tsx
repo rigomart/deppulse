@@ -1,9 +1,11 @@
+import { Activity, Star } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SearchForm } from "@/components/search-form";
+import { SearchForm } from "@/app/_components/search-form";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getRecentAssessments } from "@/lib/data";
+import { formatNumber } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Deppulse - Open Source Maintenance Checker",
@@ -20,10 +22,13 @@ export default async function Home() {
   return (
     <main className="container max-w-5xl mx-auto py-8 px-4 space-y-8">
       <div className="flex flex-col items-center text-center space-y-4">
-        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
-          Deppulse
-        </h1>
-        <p className="text-xl text-muted-foreground max-w-[600px]">
+        <div className="flex flex-col items-center space-y-4">
+          <Activity className="size-12" />
+          <h1 className="text-2xl font-extrabold tracking-tight lg:text-4xl">
+            Maintenance Checker
+          </h1>
+        </div>
+        <p className="text-lg text-muted-foreground max-w-[600px]">
           Quickly assess whether an open-source project is actively maintained.
         </p>
         <div className="w-full pt-6 flex justify-center">
@@ -44,14 +49,26 @@ export default async function Home() {
                 className="block group"
               >
                 <Card className="h-full transition-all hover:bg-muted/50">
-                  <CardContent>
+                  <CardContent className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-base truncate">
+                      <div className="text-base font-medium truncate">
                         {assessment.fullName}
                       </div>
-                      <Badge variant="secondary" className="capitalize">
+                      <Badge
+                        variant="secondary"
+                        className="capitalize shrink-0"
+                      >
                         {assessment.riskCategory}
                       </Badge>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Star className="w-3.5 h-3.5" />
+                        {formatNumber(assessment.stars ?? 0)}
+                      </span>
+                      {assessment.language && (
+                        <span>{assessment.language}</span>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
