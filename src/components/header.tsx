@@ -5,8 +5,11 @@ export function Header() {
   return (
     <header className="w-full border-b">
       <div className="container max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 text-xl font-bold">
-          <Activity className="size-5" />
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-lg font-semibold"
+        >
+          <Activity className="size-4" />
           Deppulse
         </Link>
         <a
