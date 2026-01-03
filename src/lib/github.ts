@@ -1,5 +1,6 @@
 import "server-only";
 
+import { subDays } from "date-fns";
 import { Octokit } from "octokit";
 
 const octokit = new Octokit({
@@ -56,9 +57,7 @@ export async function fetchRepoMetrics(
   owner: string,
   repo: string,
 ): Promise<RepoMetrics> {
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-  const ninetyDaysAgoIso = ninetyDaysAgo.toISOString();
+  const ninetyDaysAgoIso = subDays(new Date(), 90).toISOString();
 
   const [repoInfo, commits, release, closedIssues, openIssues, pulls] =
     await Promise.all([

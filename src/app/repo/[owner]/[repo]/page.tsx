@@ -1,3 +1,4 @@
+import { formatDistanceToNow } from "date-fns";
 import {
   AlertCircle,
   Calendar,
@@ -8,14 +9,13 @@ import {
   Tag,
 } from "lucide-react";
 import type { Metadata, ResolvingMetadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getCachedAssessment } from "@/lib/data";
-import { formatAge, formatNumber } from "@/lib/utils";
+import { formatNumber } from "@/lib/utils";
 
 type Props = {
   params: Promise<{ owner: string; repo: string }>;
@@ -97,8 +97,11 @@ export default async function RepoPage({ params }: Props) {
               </Button>
             )}
             {assessment.repositoryCreatedAt && (
-              <div className="text-xs text-muted-foreground">
-                Created {formatAge(new Date(assessment.repositoryCreatedAt))}
+              <div className="text-sm text-muted-foreground">
+                Created{" "}
+                {formatDistanceToNow(new Date(assessment.repositoryCreatedAt), {
+                  addSuffix: true,
+                })}
               </div>
             )}
           </div>
