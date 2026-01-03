@@ -2,9 +2,7 @@ import type { Metadata, ResolvingMetadata } from "next";
 import { notFound } from "next/navigation";
 import { getCachedAssessment } from "@/lib/data";
 import { MaintenanceHealth } from "./_components/maintenance-health";
-import { RepoFooter } from "./_components/repo-footer";
 import { RepoHeader } from "./_components/repo-header";
-import { RiskAndInfoSection } from "./_components/risk-and-info";
 
 type Props = {
   params: Promise<{ owner: string; repo: string }>;
@@ -59,9 +57,7 @@ export default async function RepoPage({ params }: Props) {
   return (
     <main className="space-y-6">
       <RepoHeader assessment={assessment} />
-      <RiskAndInfoSection assessment={assessment} />
       <MaintenanceHealth assessment={assessment} />
-      <RepoFooter assessment={assessment} />
     </main>
   );
 }

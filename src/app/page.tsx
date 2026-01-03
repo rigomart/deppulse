@@ -1,11 +1,7 @@
-import { Activity, Star } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
-import { SearchForm } from "@/app/_components/search-form";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { getRecentAssessments } from "@/lib/data";
-import { formatNumber } from "@/lib/utils";
+import { Hero } from "@/app/_components/hero";
+import { HowItWorks } from "@/app/_components/how-it-works";
+import { RecentAnalyses } from "@/app/_components/recent-analyses";
 
 export const metadata: Metadata = {
   title: "Deppulse - Open Source Maintenance Checker",
@@ -17,66 +13,11 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const recentAssessments = await getRecentAssessments(10);
-
   return (
     <main className="container max-w-5xl mx-auto py-8 px-4 space-y-8">
-      <div className="flex flex-col items-center text-center space-y-4">
-        <div className="flex flex-col items-center space-y-4">
-          <Activity className="size-12" />
-          <h1 className="text-2xl font-extrabold tracking-tight lg:text-4xl">
-            Maintenance Checker
-          </h1>
-        </div>
-        <p className="text-lg text-muted-foreground max-w-[600px]">
-          Quickly assess whether an open-source project is actively maintained.
-        </p>
-        <div className="w-full pt-6 flex justify-center">
-          <SearchForm />
-        </div>
-      </div>
-
-      {recentAssessments.length > 0 && (
-        <section className="space-y-6">
-          <h2 className="text-2xl font-semibold tracking-tight">
-            Recent Analyses
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {recentAssessments.map((assessment) => (
-              <Link
-                key={assessment.id}
-                href={`/repo/${assessment.owner}/${assessment.repo}`}
-                className="block group"
-              >
-                <Card className="h-full transition-all hover:bg-muted/50">
-                  <CardContent className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-base font-medium truncate">
-                        {assessment.fullName}
-                      </div>
-                      <Badge
-                        variant="secondary"
-                        className="capitalize shrink-0"
-                      >
-                        {assessment.riskCategory}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Star className="w-3.5 h-3.5" />
-                        {formatNumber(assessment.stars ?? 0)}
-                      </span>
-                      {assessment.language && (
-                        <span>{assessment.language}</span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+      <Hero />
+      <RecentAnalyses />
+      <HowItWorks />
     </main>
   );
 }
