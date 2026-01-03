@@ -6,9 +6,9 @@ import {
   GitPullRequest,
   Tag,
 } from "lucide-react";
+import { Container } from "@/components/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Assessment } from "@/db/schema";
-import { RepoContainer } from "./repo-container";
 
 const iconClass = "w-4 h-4 text-muted-foreground";
 
@@ -65,7 +65,7 @@ export function MaintenanceHealth({ assessment }: { assessment: Assessment }) {
   ];
 
   return (
-    <RepoContainer>
+    <Container>
       <section className="space-y-4">
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
           Maintenance Health
@@ -91,6 +91,6 @@ export function MaintenanceHealth({ assessment }: { assessment: Assessment }) {
           ))}
         </div>
       </section>
-    </RepoContainer>
+    </Container>
   );
 }

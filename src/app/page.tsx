@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default async function Home() {
   return (
-    <main className="container max-w-5xl mx-auto py-8 px-4 space-y-8">
+    <main className="space-y-8 py-6">
       <Hero />
       <RecentAnalyses />
       <HowItWorks />

@@ -8,13 +8,13 @@ import {
   Scale,
   Star,
 } from "lucide-react";
+import { Container } from "@/components/container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { Assessment } from "@/db/schema";
 import { formatNumber } from "@/lib/utils";
-import { RepoContainer } from "./repo-container";
 
 export function RepoHeader({ assessment }: { assessment: Assessment }) {
   const stats = [
@@ -30,7 +30,7 @@ export function RepoHeader({ assessment }: { assessment: Assessment }) {
 
   return (
     <section className="bg-surface-2">
-      <RepoContainer className="py-6">
+      <Container className="py-6">
         <div className="flex gap-4 justify-between">
           <div className="space-y-4">
             <div className="flex items-start justify-between gap-4">
@@ -123,7 +123,7 @@ export function RepoHeader({ assessment }: { assessment: Assessment }) {
             </Card>
           </div>
         </div>
-      </RepoContainer>
+      </Container>
     </section>
   );
 }
