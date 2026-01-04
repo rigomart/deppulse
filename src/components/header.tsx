@@ -1,5 +1,6 @@
-import { Activity, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { DeppulseIcon } from "./deppulse-logo";
 
 export function Header() {
   return (
@@ -9,7 +10,7 @@ export function Header() {
           href="/"
           className="flex items-center gap-2 text-lg font-semibold"
         >
-          <Activity className="size-4" />
+          <DeppulseIcon className="size-8" />
           Deppulse
         </Link>
         <a
