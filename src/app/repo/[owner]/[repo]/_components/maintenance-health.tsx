@@ -12,14 +12,15 @@ import type { Assessment } from "@/db/schema";
 
 const iconClass = "w-4 h-4 text-muted-foreground";
 
+/** Formats a nullable metric value with a suffix, or returns "N/A" if null. */
+const fmt = (val: number | null, suffix: string): string =>
+  val !== null ? `${val}${suffix}` : "N/A";
+
 export function MaintenanceHealth({ assessment }: { assessment: Assessment }) {
   const metrics = [
     {
       title: "Last Commit",
-      value:
-        assessment.daysSinceLastCommit !== null
-          ? `${assessment.daysSinceLastCommit}d ago`
-          : "N/A",
+      value: fmt(assessment.daysSinceLastCommit, "d ago"),
       icon: <Calendar className={iconClass} />,
       description: "Days since most recent commit",
     },
@@ -31,28 +32,19 @@ export function MaintenanceHealth({ assessment }: { assessment: Assessment }) {
     },
     {
       title: "Last Release",
-      value:
-        assessment.daysSinceLastRelease !== null
-          ? `${assessment.daysSinceLastRelease}d ago`
-          : "N/A",
+      value: fmt(assessment.daysSinceLastRelease, "d ago"),
       icon: <Tag className={iconClass} />,
       description: "Release cadence",
     },
     {
       title: "Open Issues",
-      value:
-        assessment.openIssuesPercent !== null
-          ? `${assessment.openIssuesPercent}%`
-          : "N/A",
+      value: fmt(assessment.openIssuesPercent, "%"),
       icon: <AlertCircle className={iconClass} />,
       description: "Ratio of open to total issues",
     },
     {
       title: "Resolution Time",
-      value:
-        assessment.medianIssueResolutionDays !== null
-          ? `${assessment.medianIssueResolutionDays}d`
-          : "N/A",
+      value: fmt(assessment.medianIssueResolutionDays, "d"),
       icon: <Clock className={iconClass} />,
       description: "Median days to close issues",
     },

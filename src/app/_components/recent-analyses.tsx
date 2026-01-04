@@ -1,4 +1,5 @@
 import { Star } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@/components/container";
 import { Badge } from "@/components/ui/badge";
@@ -28,8 +29,19 @@ export async function RecentAnalyses() {
               <Card className="h-full transition-all hover:bg-surface-3">
                 <CardContent className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="text-base font-medium truncate">
-                      {assessment.fullName}
+                    <div className="flex items-center gap-2 min-w-0">
+                      {assessment.avatarUrl && (
+                        <Image
+                          src={assessment.avatarUrl}
+                          alt={`${assessment.owner} avatar`}
+                          width={24}
+                          height={24}
+                          className="rounded-full shrink-0"
+                        />
+                      )}
+                      <div className="text-base font-medium truncate">
+                        {assessment.fullName}
+                      </div>
                     </div>
                     <Badge variant="secondary" className="capitalize shrink-0">
                       {assessment.riskCategory}

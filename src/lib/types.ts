@@ -3,7 +3,7 @@
  * These fields are computed from GitHub API data and used across multiple modules.
  */
 export type MetricsPayload = {
-  daysSinceLastCommit: number;
+  daysSinceLastCommit: number | null;
   commitsLast90Days: number;
   daysSinceLastRelease: number | null;
   openIssuesPercent: number | null;

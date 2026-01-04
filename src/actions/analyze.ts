@@ -4,8 +4,23 @@ import { updateTag } from "next/cache";
 import { db } from "@/db/drizzle";
 import { type Assessment, assessments } from "@/db/schema";
 import { getRepoTag } from "@/lib/data";
-import { fetchRepoMetrics } from "@/lib/github";
+import { type RepoMetrics, fetchRepoMetrics } from "@/lib/github";
 import { calculateRisk } from "@/lib/risk";
+import type { MetricsPayload } from "@/lib/types";
+
+/**
+ * Extracts the metrics payload from RepoMetrics for risk calculation and DB storage.
+ */
+function extractMetrics(m: RepoMetrics): MetricsPayload {
+  return {
+    daysSinceLastCommit: m.daysSinceLastCommit,
+    commitsLast90Days: m.commitsLast90Days,
+    daysSinceLastRelease: m.daysSinceLastRelease,
+    openIssuesPercent: m.openIssuesPercent,
+    medianIssueResolutionDays: m.medianIssueResolutionDays,
+    openPrsCount: m.openPrsCount,
+  };
+}
 
 /**
  * Analyze a GitHub repository, compute its risk profile, persist the assessment, and invalidate related caches.
@@ -21,14 +36,8 @@ export async function analyze(
   const fullName = `${owner}/${repo}`;
 
   const metrics = await fetchRepoMetrics(owner, repo);
-  const risk = calculateRisk({
-    daysSinceLastCommit: metrics.daysSinceLastCommit,
-    commitsLast90Days: metrics.commitsLast90Days,
-    daysSinceLastRelease: metrics.daysSinceLastRelease,
-    openIssuesPercent: metrics.openIssuesPercent,
-    medianIssueResolutionDays: metrics.medianIssueResolutionDays,
-    openPrsCount: metrics.openPrsCount,
-  });
+  const metricsPayload = extractMetrics(metrics);
+  const risk = calculateRisk(metricsPayload);
 
   const [result] = await db
     .insert(assessments)
@@ -44,12 +53,7 @@ export async function analyze(
       license: metrics.license,
       language: metrics.language,
       repositoryCreatedAt: metrics.repositoryCreatedAt,
-      daysSinceLastCommit: metrics.daysSinceLastCommit,
-      commitsLast90Days: metrics.commitsLast90Days,
-      daysSinceLastRelease: metrics.daysSinceLastRelease,
-      openIssuesPercent: metrics.openIssuesPercent,
-      medianIssueResolutionDays: metrics.medianIssueResolutionDays,
-      openPrsCount: metrics.openPrsCount,
+      ...metricsPayload,
       riskCategory: risk.category,
       riskScore: risk.score,
       analyzedAt: new Date(),
@@ -62,12 +66,7 @@ export async function analyze(
         forks: metrics.forks,
         avatarUrl: metrics.avatarUrl,
         htmlUrl: metrics.htmlUrl,
-        daysSinceLastCommit: metrics.daysSinceLastCommit,
-        commitsLast90Days: metrics.commitsLast90Days,
-        daysSinceLastRelease: metrics.daysSinceLastRelease,
-        openIssuesPercent: metrics.openIssuesPercent,
-        medianIssueResolutionDays: metrics.medianIssueResolutionDays,
-        openPrsCount: metrics.openPrsCount,
+        ...metricsPayload,
         riskCategory: risk.category,
         riskScore: risk.score,
         analyzedAt: new Date(),
@@ -75,9 +74,8 @@ export async function analyze(
     })
     .returning();
 
-  // Invalidate cached data for this specific repo and the recent list
+  // Invalidate cached data for this specific repo (recent list refreshes via TTL)
   updateTag(getRepoTag(owner, repo));
-  updateTag("assessments");
 
   return result;
 }

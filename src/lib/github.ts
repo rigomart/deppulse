@@ -12,7 +12,7 @@ export interface RepoMetrics {
   description: string | null;
   stars: number;
   forks: number;
-  avatarUrl: string | null;
+  avatarUrl: string;
   htmlUrl: string;
   license: string | null;
   language: string | null;

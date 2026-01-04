@@ -8,6 +8,7 @@ import {
   Scale,
   Star,
 } from "lucide-react";
+import Image from "next/image";
 import { Container } from "@/components/container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,16 @@ export function RepoHeader({ assessment }: { assessment: Assessment }) {
       <Container className="py-6">
         <div className="flex gap-4 justify-between">
           <div className="space-y-4">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {assessment.avatarUrl && (
+                <Image
+                  src={assessment.avatarUrl}
+                  alt={`${assessment.owner} avatar`}
+                  width={40}
+                  height={40}
+                  className="rounded-full"
+                />
+              )}
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 {assessment.fullName}
               </h1>

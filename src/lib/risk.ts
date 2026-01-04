@@ -1,13 +1,8 @@
+import type { MetricsPayload } from "./types";
+
 export type RiskCategory = "active" | "stable" | "at-risk" | "abandoned";
 
-export interface RiskInput {
-  daysSinceLastCommit: number | null;
-  commitsLast90Days: number;
-  daysSinceLastRelease: number | null;
-  openIssuesPercent: number | null;
-  medianIssueResolutionDays: number | null;
-  openPrsCount: number;
-}
+export type RiskInput = MetricsPayload;
 
 export interface RiskResult {
   category: RiskCategory;
