@@ -1,10 +1,12 @@
 import "server-only";
 
+import { graphql } from "@octokit/graphql";
 import { subDays } from "date-fns";
-import { Octokit } from "octokit";
 
-const octokit = new Octokit({
-  auth: process.env.GITHUB_PAT,
+const graphqlWithAuth = graphql.defaults({
+  headers: {
+    authorization: `token ${process.env.GITHUB_PAT}`,
+  },
 });
 
 export interface RepoMetrics {
@@ -27,6 +29,84 @@ export interface RepoMetrics {
   issuesCreatedLast90Days: number;
 }
 
+// GraphQL query to fetch all repository metrics in a single request
+const REPO_METRICS_QUERY = `
+  query RepoMetrics($owner: String!, $repo: String!, $since90Days: GitTimestamp!) {
+    repository(owner: $owner, name: $repo) {
+      nameWithOwner
+      description
+      stargazerCount
+      forkCount
+      url
+      isArchived
+      createdAt
+      licenseInfo { spdxId }
+      primaryLanguage { name }
+      owner { avatarUrl }
+
+      defaultBranchRef {
+        target {
+          ... on Commit {
+            history(first: 1) {
+              nodes { committedDate }
+            }
+            recentHistory: history(since: $since90Days) {
+              totalCount
+            }
+          }
+        }
+      }
+
+      latestRelease { publishedAt }
+
+      openIssues: issues(states: OPEN) { totalCount }
+      closedIssues: issues(states: CLOSED) { totalCount }
+
+      openPRs: pullRequests(states: OPEN) { totalCount }
+
+      recentIssues: issues(first: 100, orderBy: {field: CREATED_AT, direction: DESC}) {
+        nodes {
+          createdAt
+          closedAt
+          state
+        }
+      }
+    }
+  }
+`;
+
+interface RepoMetricsGraphQLResponse {
+  repository: {
+    nameWithOwner: string;
+    description: string | null;
+    stargazerCount: number;
+    forkCount: number;
+    url: string;
+    isArchived: boolean;
+    createdAt: string;
+    licenseInfo: { spdxId: string } | null;
+    primaryLanguage: { name: string } | null;
+    owner: { avatarUrl: string };
+    defaultBranchRef: {
+      target: {
+        history: { nodes: Array<{ committedDate: string }> };
+        recentHistory: { totalCount: number };
+      };
+    } | null;
+    latestRelease: { publishedAt: string } | null;
+    openIssues: { totalCount: number };
+    closedIssues: { totalCount: number };
+    openPRs: { totalCount: number };
+    recentIssues: {
+      nodes: Array<{
+        createdAt: string;
+        closedAt: string | null;
+        state: "OPEN" | "CLOSED";
+      }>;
+    };
+  } | null;
+}
+
 const getDaysSince = (dateString: string): number => {
   return Math.floor(
     (Date.now() - new Date(dateString).getTime()) / (1000 * 60 * 60 * 24),
@@ -43,7 +123,7 @@ const getMedian = (numbers: number[]): number | null => {
 };
 
 /**
- * Fetches repository metadata and computed metrics from GitHub for the specified owner and repository.
+ * Fetches repository metadata and computed metrics from GitHub using GraphQL.
  *
  * @param owner - GitHub repository owner (user or organization)
  * @param repo - Repository name
@@ -53,124 +133,86 @@ export async function fetchRepoMetrics(
   owner: string,
   repo: string,
 ): Promise<RepoMetrics> {
-  const ninetyDaysAgoIso = subDays(new Date(), 90).toISOString();
+  const since90Days = subDays(new Date(), 90).toISOString();
 
-  const [
-    repoInfo,
-    commits,
-    latestCommit,
-    release,
-    closedIssues,
-    openIssues,
-    pulls,
-    recentIssues,
-  ] = await Promise.all([
-    octokit.rest.repos.get({ owner, repo }),
-    octokit.rest.repos.listCommits({
-      owner,
-      repo,
-      since: ninetyDaysAgoIso,
-      per_page: 100,
-    }),
-    // Fetch the latest commit separately to get actual last commit date
-    octokit.rest.repos.listCommits({
-      owner,
-      repo,
-      per_page: 1,
-    }),
-    octokit.rest.repos.getLatestRelease({ owner, repo }).catch(() => null),
-    octokit.rest.issues.listForRepo({
-      owner,
-      repo,
-      state: "closed",
-      per_page: 100,
-    }),
-    octokit.rest.issues.listForRepo({
-      owner,
-      repo,
-      state: "open",
-      per_page: 100,
-    }),
-    octokit.rest.pulls.list({
-      owner,
-      repo,
-      state: "open",
-      per_page: 100,
-    }),
-    // Fetch issues created in the last 90 days (for issue velocity metric)
-    octokit.rest.issues.listForRepo({
-      owner,
-      repo,
-      state: "all",
-      since: ninetyDaysAgoIso,
-      per_page: 100,
-    }),
-  ]);
+  const data = await graphqlWithAuth<RepoMetricsGraphQLResponse>(
+    REPO_METRICS_QUERY,
+    { owner, repo, since90Days },
+  );
 
-  const commitsLast90Days = commits.data.length;
-  // Use the latest commit (not just from last 90 days) to get actual last commit date
-  const daysSinceLastCommit =
-    latestCommit.data.length > 0 && latestCommit.data[0].commit.committer?.date
-      ? getDaysSince(latestCommit.data[0].commit.committer.date)
-      : null;
+  if (!data.repository) {
+    throw new Error(`Repository ${owner}/${repo} not found`);
+  }
 
-  const daysSinceLastRelease = release?.data.published_at
-    ? getDaysSince(release.data.published_at)
+  const r = data.repository;
+
+  // Extract latest commit date
+  const latestCommitDate =
+    r.defaultBranchRef?.target?.history?.nodes?.[0]?.committedDate;
+  const daysSinceLastCommit = latestCommitDate
+    ? getDaysSince(latestCommitDate)
     : null;
 
-  const openIssuesCount = openIssues.data.filter(
-    (issue) => !issue.pull_request,
-  ).length;
-  const closedIssuesCount = closedIssues.data.filter(
-    (issue) => !issue.pull_request,
-  ).length;
-  const totalIssues = openIssuesCount + closedIssuesCount;
+  // Commits in last 90 days (exact count via totalCount)
+  const commitsLast90Days =
+    r.defaultBranchRef?.target?.recentHistory?.totalCount ?? 0;
 
+  // Latest release
+  const daysSinceLastRelease = r.latestRelease?.publishedAt
+    ? getDaysSince(r.latestRelease.publishedAt)
+    : null;
+
+  // Open issues percentage (exact counts)
+  const openIssuesCount = r.openIssues.totalCount;
+  const closedIssuesCount = r.closedIssues.totalCount;
+  const totalIssues = openIssuesCount + closedIssuesCount;
   const openIssuesPercent =
     totalIssues > 0
       ? Math.round((openIssuesCount / totalIssues) * 100 * 10) / 10
       : null;
 
-  // Only consider issues closed in the last 180 days for resolution time
-  // Historic resolution times from abandoned projects are misleading
+  // Open PRs (exact count)
+  const openPrsCount = r.openPRs.totalCount;
+
+  // Process recent issues for resolution time and velocity
+  const ninetyDaysAgo = subDays(new Date(), 90);
   const sixMonthsAgo = subDays(new Date(), 180);
   const closedIssueResolutionDays: number[] = [];
-  for (const issue of closedIssues.data) {
-    if (!issue.pull_request && issue.closed_at && issue.created_at) {
-      const closedDate = new Date(issue.closed_at);
-      // Only count recently closed issues
-      if (closedDate >= sixMonthsAgo) {
-        const created = new Date(issue.created_at).getTime();
-        const closed = closedDate.getTime();
-        closedIssueResolutionDays.push(
-          Math.floor((closed - created) / (1000 * 60 * 60 * 24)),
+  let issuesCreatedLast90Days = 0;
+
+  for (const issue of r.recentIssues.nodes) {
+    const createdAt = new Date(issue.createdAt);
+
+    // Count issues created in last 90 days
+    if (createdAt >= ninetyDaysAgo) {
+      issuesCreatedLast90Days++;
+    }
+
+    // Calculate resolution time for recently closed issues
+    if (issue.state === "CLOSED" && issue.closedAt) {
+      const closedAt = new Date(issue.closedAt);
+      if (closedAt >= sixMonthsAgo) {
+        const resolutionDays = Math.floor(
+          (closedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24),
         );
+        closedIssueResolutionDays.push(resolutionDays);
       }
     }
   }
+
   const medianIssueResolutionDays = getMedian(closedIssueResolutionDays);
 
-  const openPrsCount = pulls.data.length;
-
-  // Count issues created in the last 90 days (excluding PRs)
-  // Note: The `since` parameter filters by updated_at, so we need to check created_at
-  const ninetyDaysAgo = subDays(new Date(), 90);
-  const issuesCreatedLast90Days = recentIssues.data.filter(
-    (issue) =>
-      !issue.pull_request && new Date(issue.created_at) >= ninetyDaysAgo,
-  ).length;
-
   return {
-    fullName: repoInfo.data.full_name,
-    description: repoInfo.data.description,
-    stars: repoInfo.data.stargazers_count,
-    forks: repoInfo.data.forks_count,
-    avatarUrl: repoInfo.data.owner.avatar_url,
-    htmlUrl: repoInfo.data.html_url,
-    license: repoInfo.data.license?.spdx_id ?? null,
-    language: repoInfo.data.language ?? null,
-    repositoryCreatedAt: new Date(repoInfo.data.created_at),
-    isArchived: repoInfo.data.archived,
+    fullName: r.nameWithOwner,
+    description: r.description,
+    stars: r.stargazerCount,
+    forks: r.forkCount,
+    avatarUrl: r.owner.avatarUrl,
+    htmlUrl: r.url,
+    license: r.licenseInfo?.spdxId ?? null,
+    language: r.primaryLanguage?.name ?? null,
+    repositoryCreatedAt: new Date(r.createdAt),
+    isArchived: r.isArchived,
     daysSinceLastCommit,
     commitsLast90Days,
     daysSinceLastRelease,
