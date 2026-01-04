@@ -115,8 +115,10 @@ export async function fetchRepoMetrics(
   const closedIssueResolutionDays: number[] = [];
   for (const issue of closedIssues.data) {
     if (!issue.pull_request && issue.closed_at && issue.created_at) {
+      const created = new Date(issue.created_at).getTime();
+      const closed = new Date(issue.closed_at).getTime();
       closedIssueResolutionDays.push(
-        getDaysSince(issue.created_at) - getDaysSince(issue.closed_at),
+        Math.floor((closed - created) / (1000 * 60 * 60 * 24)),
       );
     }
   }
