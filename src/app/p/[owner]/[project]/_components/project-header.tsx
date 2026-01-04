@@ -14,8 +14,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import type { Assessment } from "@/db/schema";
+import type { Assessment, MaintenanceCategory } from "@/db/schema";
 import { formatNumber } from "@/lib/utils";
+
+const categoryColors: Record<MaintenanceCategory, string> = {
+  excellent: "bg-green-500/15 text-green-400 border-green-500/30",
+  good: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  fair: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+  poor: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+  critical: "bg-red-500/15 text-red-400 border-red-500/30",
+};
 
 export function ProjectHeader({ assessment }: { assessment: Assessment }) {
   const stats = [
@@ -110,17 +118,16 @@ export function ProjectHeader({ assessment }: { assessment: Assessment }) {
                 <div className="flex items-center justify-between gap-6">
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-muted-foreground">
-                      Risk Assessment
+                      Maintenance Score
                     </p>
                     <p className="text-base font-medium text-foreground">
-                      Score: {assessment.riskScore ?? 0}/100
+                      {assessment.maintenanceScore ?? 0}/100
                     </p>
                   </div>
                   <Badge
-                    variant="secondary"
-                    className="capitalize text-sm px-2.5 py-0.5"
+                    className={`capitalize text-sm px-2.5 py-0.5 border ${categoryColors[assessment.maintenanceCategory as MaintenanceCategory]}`}
                   >
-                    {assessment.riskCategory}
+                    {assessment.maintenanceCategory}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground pt-3 border-t border-border/50">

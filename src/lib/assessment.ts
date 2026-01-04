@@ -3,24 +3,32 @@ import "server-only";
 import { db } from "@/db/drizzle";
 import { type Assessment, assessments } from "@/db/schema";
 import { fetchRepoMetrics, type RepoMetrics } from "@/lib/github";
-import { calculateRisk, type MetricsPayload } from "@/lib/risk";
+import {
+  calculateMaintenanceScore,
+  type MaintenanceInput,
+} from "@/lib/maintenance";
 
 /**
- * Extracts the metrics payload from RepoMetrics for risk calculation and DB storage.
+ * Extracts the maintenance input from RepoMetrics for score calculation.
  */
-function extractMetrics(m: RepoMetrics): MetricsPayload {
+function extractMaintenanceInput(m: RepoMetrics): MaintenanceInput {
   return {
     daysSinceLastCommit: m.daysSinceLastCommit,
     commitsLast90Days: m.commitsLast90Days,
-    daysSinceLastRelease: m.daysSinceLastRelease,
     openIssuesPercent: m.openIssuesPercent,
     medianIssueResolutionDays: m.medianIssueResolutionDays,
+    issuesCreatedLast90Days: m.issuesCreatedLast90Days,
+    daysSinceLastRelease: m.daysSinceLastRelease,
+    repositoryCreatedAt: m.repositoryCreatedAt,
     openPrsCount: m.openPrsCount,
+    stars: m.stars,
+    forks: m.forks,
+    isArchived: m.isArchived,
   };
 }
 
 /**
- * Fetches fresh data from GitHub, computes risk, and persists the assessment.
+ * Fetches fresh data from GitHub, computes maintenance score, and persists the assessment.
  *
  * This function does NOT invalidate caches - use the `analyze()` server action
  * when you need cache invalidation (e.g., user-triggered refresh).
@@ -37,8 +45,8 @@ export async function fetchFreshAssessment(
   const fullName = `${owner}/${project}`;
 
   const metrics = await fetchRepoMetrics(owner, project);
-  const metricsPayload = extractMetrics(metrics);
-  const risk = calculateRisk(metricsPayload);
+  const maintenanceInput = extractMaintenanceInput(metrics);
+  const maintenance = calculateMaintenanceScore(maintenanceInput);
 
   const [result] = await db
     .insert(assessments)
@@ -54,9 +62,17 @@ export async function fetchFreshAssessment(
       license: metrics.license,
       language: metrics.language,
       repositoryCreatedAt: metrics.repositoryCreatedAt,
-      ...metricsPayload,
-      riskCategory: risk.category,
-      riskScore: risk.score,
+      isArchived: metrics.isArchived,
+      daysSinceLastCommit: metrics.daysSinceLastCommit,
+      commitsLast90Days: metrics.commitsLast90Days,
+      daysSinceLastRelease: metrics.daysSinceLastRelease,
+      openIssuesPercent: metrics.openIssuesPercent,
+      medianIssueResolutionDays: metrics.medianIssueResolutionDays,
+      openPrsCount: metrics.openPrsCount,
+      issuesCreatedLast90Days: metrics.issuesCreatedLast90Days,
+      maintenanceCategory: maintenance.category,
+      maintenanceScore: maintenance.score,
+      maturityTier: maintenance.maturityTier,
       analyzedAt: new Date(),
     })
     .onConflictDoUpdate({
@@ -67,9 +83,17 @@ export async function fetchFreshAssessment(
         forks: metrics.forks,
         avatarUrl: metrics.avatarUrl,
         htmlUrl: metrics.htmlUrl,
-        ...metricsPayload,
-        riskCategory: risk.category,
-        riskScore: risk.score,
+        isArchived: metrics.isArchived,
+        daysSinceLastCommit: metrics.daysSinceLastCommit,
+        commitsLast90Days: metrics.commitsLast90Days,
+        daysSinceLastRelease: metrics.daysSinceLastRelease,
+        openIssuesPercent: metrics.openIssuesPercent,
+        medianIssueResolutionDays: metrics.medianIssueResolutionDays,
+        openPrsCount: metrics.openPrsCount,
+        issuesCreatedLast90Days: metrics.issuesCreatedLast90Days,
+        maintenanceCategory: maintenance.category,
+        maintenanceScore: maintenance.score,
+        maturityTier: maintenance.maturityTier,
         analyzedAt: new Date(),
       },
     })

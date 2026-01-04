@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   integer,
   pgTable,
@@ -8,7 +9,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import type { RiskCategory } from "@/lib/risk";
+import type { MaintenanceCategory, MaturityTier } from "@/lib/maintenance";
 
 export const assessments = pgTable(
   "assessments",
@@ -31,8 +32,11 @@ export const assessments = pgTable(
     openIssuesPercent: real("open_issues_percent"),
     medianIssueResolutionDays: real("median_issue_resolution_days"),
     openPrsCount: integer("open_prs_count"),
-    riskCategory: text("risk_category").notNull(),
-    riskScore: integer("risk_score"),
+    issuesCreatedLast90Days: integer("issues_created_last_90_days"),
+    isArchived: boolean("is_archived").default(false),
+    maintenanceCategory: text("maintenance_category").notNull(),
+    maintenanceScore: integer("maintenance_score"),
+    maturityTier: text("maturity_tier"),
     analyzedAt: timestamp("analyzed_at").notNull().defaultNow(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
@@ -44,4 +48,4 @@ export const assessments = pgTable(
 
 export type Assessment = typeof assessments.$inferSelect;
 export type NewAssessment = typeof assessments.$inferInsert;
-export type { RiskCategory };
+export type { MaintenanceCategory, MaturityTier };

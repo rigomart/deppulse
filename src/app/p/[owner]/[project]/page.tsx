@@ -3,8 +3,8 @@ import { getCachedAssessment, getOrAnalyzeProject } from "@/db/queries";
 import { MaintenanceHealth } from "./_components/maintenance-health";
 import { ProjectHeader } from "./_components/project-header";
 
-// Cache rendered pages for 1 hour
-export const revalidate = 3600;
+// Cache rendered pages for 24 hours (matches data freshness threshold)
+export const revalidate = 86400;
 
 type Props = {
   params: Promise<{ owner: string; project: string }>;
@@ -26,10 +26,10 @@ export async function generateMetadata(
     };
   }
 
-  const title = `${assessment.fullName} - ${assessment.riskCategory}`;
+  const title = `${assessment.fullName} - ${assessment.maintenanceCategory}`;
   const description = assessment.description
-    ? `${assessment.description} Risk score: ${assessment.riskScore}/100. Last analyzed: ${new Date(assessment.analyzedAt).toLocaleDateString()}.`
-    : `Maintenance assessment for ${assessment.fullName}. Risk score: ${assessment.riskScore}/100. Category: ${assessment.riskCategory}.`;
+    ? `${assessment.description} Maintenance score: ${assessment.maintenanceScore}/100. Last analyzed: ${new Date(assessment.analyzedAt).toLocaleDateString()}.`
+    : `Maintenance assessment for ${assessment.fullName}. Score: ${assessment.maintenanceScore}/100. Category: ${assessment.maintenanceCategory}.`;
 
   return {
     title,

@@ -17,12 +17,14 @@ export interface RepoMetrics {
   license: string | null;
   language: string | null;
   repositoryCreatedAt: Date;
+  isArchived: boolean;
   daysSinceLastCommit: number | null;
   commitsLast90Days: number;
   daysSinceLastRelease: number | null;
   openIssuesPercent: number | null;
   medianIssueResolutionDays: number | null;
   openPrsCount: number;
+  issuesCreatedLast90Days: number;
 }
 
 const getDaysSince = (dateString: string): number => {
@@ -45,13 +47,7 @@ const getMedian = (numbers: number[]): number | null => {
  *
  * @param owner - GitHub repository owner (user or organization)
  * @param repo - Repository name
- * @returns A `RepoMetrics` object containing repository metadata (fullName, description, stars, forks, avatarUrl, htmlUrl) and computed metrics:
- * - `daysSinceLastCommit`: number | null
- * - `commitsLast90Days`: number
- * - `daysSinceLastRelease`: number | null
- * - `openIssuesPercent`: number | null (percentage, rounded to one decimal)
- * - `medianIssueResolutionDays`: number | null
- * - `openPrsCount`: number
+ * @returns A `RepoMetrics` object containing repository metadata and computed metrics for maintenance scoring
  */
 export async function fetchRepoMetrics(
   owner: string,
@@ -59,35 +55,50 @@ export async function fetchRepoMetrics(
 ): Promise<RepoMetrics> {
   const ninetyDaysAgoIso = subDays(new Date(), 90).toISOString();
 
-  const [repoInfo, commits, release, closedIssues, openIssues, pulls] =
-    await Promise.all([
-      octokit.rest.repos.get({ owner, repo }),
-      octokit.rest.repos.listCommits({
-        owner,
-        repo,
-        since: ninetyDaysAgoIso,
-        per_page: 100,
-      }),
-      octokit.rest.repos.getLatestRelease({ owner, repo }).catch(() => null),
-      octokit.rest.issues.listForRepo({
-        owner,
-        repo,
-        state: "closed",
-        per_page: 100,
-      }),
-      octokit.rest.issues.listForRepo({
-        owner,
-        repo,
-        state: "open",
-        per_page: 100,
-      }),
-      octokit.rest.pulls.list({
-        owner,
-        repo,
-        state: "open",
-        per_page: 100,
-      }),
-    ]);
+  const [
+    repoInfo,
+    commits,
+    release,
+    closedIssues,
+    openIssues,
+    pulls,
+    recentIssues,
+  ] = await Promise.all([
+    octokit.rest.repos.get({ owner, repo }),
+    octokit.rest.repos.listCommits({
+      owner,
+      repo,
+      since: ninetyDaysAgoIso,
+      per_page: 100,
+    }),
+    octokit.rest.repos.getLatestRelease({ owner, repo }).catch(() => null),
+    octokit.rest.issues.listForRepo({
+      owner,
+      repo,
+      state: "closed",
+      per_page: 100,
+    }),
+    octokit.rest.issues.listForRepo({
+      owner,
+      repo,
+      state: "open",
+      per_page: 100,
+    }),
+    octokit.rest.pulls.list({
+      owner,
+      repo,
+      state: "open",
+      per_page: 100,
+    }),
+    // Fetch issues created in the last 90 days (for issue velocity metric)
+    octokit.rest.issues.listForRepo({
+      owner,
+      repo,
+      state: "all",
+      since: ninetyDaysAgoIso,
+      per_page: 100,
+    }),
+  ]);
 
   const commitsLast90Days = commits.data.length;
   const daysSinceLastCommit =
@@ -126,6 +137,14 @@ export async function fetchRepoMetrics(
 
   const openPrsCount = pulls.data.length;
 
+  // Count issues created in the last 90 days (excluding PRs)
+  // Note: The `since` parameter filters by updated_at, so we need to check created_at
+  const ninetyDaysAgo = subDays(new Date(), 90);
+  const issuesCreatedLast90Days = recentIssues.data.filter(
+    (issue) =>
+      !issue.pull_request && new Date(issue.created_at) >= ninetyDaysAgo,
+  ).length;
+
   return {
     fullName: repoInfo.data.full_name,
     description: repoInfo.data.description,
@@ -136,11 +155,13 @@ export async function fetchRepoMetrics(
     license: repoInfo.data.license?.spdx_id ?? null,
     language: repoInfo.data.language ?? null,
     repositoryCreatedAt: new Date(repoInfo.data.created_at),
+    isArchived: repoInfo.data.archived,
     daysSinceLastCommit,
     commitsLast90Days,
     daysSinceLastRelease,
     openIssuesPercent,
     medianIssueResolutionDays,
     openPrsCount,
+    issuesCreatedLast90Days,
   };
 }

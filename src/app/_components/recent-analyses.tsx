@@ -5,7 +5,16 @@ import { Container } from "@/components/container";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getRecentAssessments } from "@/db/queries";
+import type { MaintenanceCategory } from "@/db/schema";
 import { formatNumber } from "@/lib/utils";
+
+const categoryColors: Record<MaintenanceCategory, string> = {
+  excellent: "bg-green-500/15 text-green-400 border-green-500/30",
+  good: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  fair: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+  poor: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+  critical: "bg-red-500/15 text-red-400 border-red-500/30",
+};
 
 export async function RecentAnalyses() {
   const recentAssessments = await getRecentAssessments(12);
@@ -43,8 +52,10 @@ export async function RecentAnalyses() {
                         {assessment.fullName}
                       </div>
                     </div>
-                    <Badge variant="secondary" className="capitalize shrink-0">
-                      {assessment.riskCategory}
+                    <Badge
+                      className={`capitalize shrink-0 border ${categoryColors[assessment.maintenanceCategory as MaintenanceCategory]}`}
+                    >
+                      {assessment.maintenanceCategory}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">

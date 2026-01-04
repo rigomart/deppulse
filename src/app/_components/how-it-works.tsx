@@ -7,6 +7,14 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 
+const categoryColors = {
+  excellent: "bg-green-500/15 text-green-400 border-green-500/30",
+  good: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  fair: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+  poor: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+  critical: "bg-red-500/15 text-red-400 border-red-500/30",
+};
+
 export function HowItWorks() {
   return (
     <Container>
@@ -19,40 +27,60 @@ export function HowItWorks() {
             <AccordionContent>
               <div className="space-y-3">
                 <p className="text-muted-foreground">
-                  Repositories receive a risk score from 0-100 based on 6
-                  weighted metrics. Lower scores indicate healthier maintenance.
+                  Repositories receive a maintenance score from 0-100 based on
+                  activity, responsiveness, stability, and community signals.
+                  Higher scores indicate healthier maintenance.
                 </p>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
-                    <Badge variant="secondary" className="capitalize shrink-0">
-                      Active
+                    <Badge
+                      className={`capitalize shrink-0 border ${categoryColors.excellent}`}
+                    >
+                      Excellent
                     </Badge>
                     <span className="text-muted-foreground">
-                      0-20 points: Healthy maintenance with regular activity
+                      80-100: Actively maintained with strong community
+                      engagement
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Badge variant="secondary" className="capitalize shrink-0">
-                      Stable
+                    <Badge
+                      className={`capitalize shrink-0 border ${categoryColors.good}`}
+                    >
+                      Good
                     </Badge>
                     <span className="text-muted-foreground">
-                      21-40 points: Maintained but quieter; may be mature
+                      60-79: Well maintained and suitable for production use
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Badge variant="secondary" className="capitalize shrink-0">
-                      At-Risk
+                    <Badge
+                      className={`capitalize shrink-0 border ${categoryColors.fair}`}
+                    >
+                      Fair
                     </Badge>
                     <span className="text-muted-foreground">
-                      41-65 points: Reduced maintenance activity
+                      40-59: Adequate maintenance with some areas of concern
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Badge variant="secondary" className="capitalize shrink-0">
-                      Abandoned
+                    <Badge
+                      className={`capitalize shrink-0 border ${categoryColors.poor}`}
+                    >
+                      Poor
                     </Badge>
                     <span className="text-muted-foreground">
-                      66-100 points: Unmaintained; high risk
+                      20-39: Limited maintenance activity
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Badge
+                      className={`capitalize shrink-0 border ${categoryColors.critical}`}
+                    >
+                      Critical
+                    </Badge>
+                    <span className="text-muted-foreground">
+                      0-19: Appears unmaintained or abandoned
                     </span>
                   </li>
                 </ul>
@@ -63,61 +91,79 @@ export function HowItWorks() {
           <AccordionItem value="item-2">
             <AccordionTrigger>What metrics are measured?</AccordionTrigger>
             <AccordionContent>
-              <ul className="space-y-1 text-sm text-muted-foreground">
-                <li>
-                  <strong className="text-foreground">
-                    Last Commit Recency
-                  </strong>{" "}
-                  (30 pts max)
-                </li>
-                <li>
-                  <strong className="text-foreground">Commit Volume</strong> (20
-                  pts max)
-                </li>
-                <li>
-                  <strong className="text-foreground">Last Release</strong> (15
-                  pts max)
-                </li>
-                <li>
-                  <strong className="text-foreground">Open Issues Ratio</strong>{" "}
-                  (15 pts max)
-                </li>
-                <li>
-                  <strong className="text-foreground">
-                    Issue Resolution Time
-                  </strong>{" "}
-                  (10 pts max)
-                </li>
-                <li>
-                  <strong className="text-foreground">
-                    Open Pull Requests
-                  </strong>{" "}
-                  (10 pts max)
-                </li>
-              </ul>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-foreground mb-1">
+                    Activity (40%)
+                  </h4>
+                  <ul className="space-y-1 text-sm text-muted-foreground">
+                    <li>Last commit recency (25 pts)</li>
+                    <li>Commit volume in last 90 days (15 pts)</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-medium text-foreground mb-1">
+                    Responsiveness (30%)
+                  </h4>
+                  <ul className="space-y-1 text-sm text-muted-foreground">
+                    <li>Issue resolution time (12 pts)</li>
+                    <li>Open issues percentage (12 pts)</li>
+                    <li>Issue velocity (6 pts)</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-medium text-foreground mb-1">
+                    Stability (20%)
+                  </h4>
+                  <ul className="space-y-1 text-sm text-muted-foreground">
+                    <li>Release recency (12 pts)</li>
+                    <li>Project age (8 pts)</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-medium text-foreground mb-1">
+                    Community (10%)
+                  </h4>
+                  <ul className="space-y-1 text-sm text-muted-foreground">
+                    <li>Open pull requests (5 pts)</li>
+                    <li>Stars and forks (5 pts)</li>
+                  </ul>
+                </div>
+              </div>
             </AccordionContent>
           </AccordionItem>
 
           <AccordionItem value="item-3">
-            <AccordionTrigger>Why these strict thresholds?</AccordionTrigger>
+            <AccordionTrigger>
+              How does maturity affect scoring?
+            </AccordionTrigger>
             <AccordionContent>
               <div className="space-y-3 text-muted-foreground">
                 <p>
-                  Deppulse is designed as an early warning system for dependency
-                  evaluation. It uses strict thresholds (30-day commit windows,
-                  90-day activity checks) to catch maintenance decline early
-                  rather than waiting until abandonment is obvious.
+                  Projects are classified into three maturity tiers based on age
+                  and popularity. Mature projects get slightly relaxed
+                  thresholds for commit recency, while still maintaining strict
+                  standards.
                 </p>
-                <p>
-                  This approach works best for teams evaluating dependencies
-                  where active maintenance is critical for security and
-                  compatibility.
-                </p>
+                <ul className="space-y-1 text-sm">
+                  <li>
+                    <strong className="text-foreground">Emerging</strong>: Less
+                    than 2 years old and under 1k stars. Strictest thresholds.
+                  </li>
+                  <li>
+                    <strong className="text-foreground">Growing</strong>: 2-5
+                    years old or 1k-10k stars. Relaxed thresholds.
+                  </li>
+                  <li>
+                    <strong className="text-foreground">Mature</strong>: 5+
+                    years old and 10k+ stars. Most relaxed, but still strict.
+                  </li>
+                </ul>
                 <p className="text-sm">
-                  <strong className="text-foreground">Note:</strong> Stable,
-                  mature projects with infrequent updates may score higher than
-                  expected. Low activity doesn't always mean
-                  abandonment—sometimes it means the project is complete.
+                  <strong className="text-foreground">Note:</strong> Even mature
+                  projects lose points after 6 months of no commits. Issue
+                  velocity helps distinguish genuinely finished projects from
+                  abandoned ones.
                 </p>
               </div>
             </AccordionContent>
