@@ -1,3 +1,13 @@
+// Valid GitHub username/repo: alphanumeric, hyphens, underscores, periods
+const VALID_NAME = /^[a-zA-Z0-9._-]+$/;
+
+/**
+ * Validates that owner and repo names contain only allowed characters.
+ */
+function isValidName(name: string): boolean {
+  return VALID_NAME.test(name) && name.length <= 100;
+}
+
 /**
  * Parse a GitHub repository identifier from a string into its owner and repo components.
  *
@@ -19,7 +29,7 @@ export function parseRepo(
     if (parts.length >= 2) {
       const owner = parts[0];
       const repo = parts[1].replace(/\.git$/, "").replace(/\/$/, "");
-      if (owner && repo) {
+      if (owner && repo && isValidName(owner) && isValidName(repo)) {
         return { owner, repo };
       }
     }
@@ -30,10 +40,11 @@ export function parseRepo(
     if (url.hostname === "github.com") {
       const pathParts = url.pathname.split("/").filter(Boolean);
       if (pathParts.length >= 2) {
-        return {
-          owner: pathParts[0],
-          repo: pathParts[1].replace(/\.git$/, ""),
-        };
+        const owner = pathParts[0];
+        const repo = pathParts[1].replace(/\.git$/, "");
+        if (isValidName(owner) && isValidName(repo)) {
+          return { owner, repo };
+        }
       }
     }
   } catch {

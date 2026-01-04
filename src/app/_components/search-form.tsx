@@ -55,6 +55,7 @@ export function SearchForm() {
           placeholder="GitHub URL or owner/repo"
           disabled={isPending}
           required
+          maxLength={200}
           className="flex-1"
           autoComplete="off"
         />
