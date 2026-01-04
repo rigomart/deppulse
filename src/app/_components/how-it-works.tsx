@@ -8,11 +8,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 const categoryColors = {
-  excellent: "bg-green-500/15 text-green-400 border-green-500/30",
-  good: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  fair: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
-  poor: "bg-orange-500/15 text-orange-400 border-orange-500/30",
-  critical: "bg-red-500/15 text-red-400 border-red-500/30",
+  healthy: "bg-green-500/15 text-green-400 border-green-500/30",
+  moderate: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  "at-risk": "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+  unmaintained: "bg-red-500/15 text-red-400 border-red-500/30",
 };
 
 export function HowItWorks() {
@@ -34,53 +33,44 @@ export function HowItWorks() {
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
                     <Badge
-                      className={`capitalize shrink-0 border ${categoryColors.excellent}`}
+                      className={`shrink-0 border ${categoryColors.healthy}`}
                     >
-                      Excellent
+                      Healthy
                     </Badge>
                     <span className="text-muted-foreground">
-                      80-100: Actively maintained with strong community
+                      70-100: Actively maintained with strong community
                       engagement
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Badge
-                      className={`capitalize shrink-0 border ${categoryColors.good}`}
+                      className={`shrink-0 border ${categoryColors.moderate}`}
                     >
-                      Good
+                      Moderate
                     </Badge>
                     <span className="text-muted-foreground">
-                      60-79: Well maintained and suitable for production use
+                      45-69: Adequately maintained or stable utility
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Badge
-                      className={`capitalize shrink-0 border ${categoryColors.fair}`}
+                      className={`shrink-0 border ${categoryColors["at-risk"]}`}
                     >
-                      Fair
+                      At Risk
                     </Badge>
                     <span className="text-muted-foreground">
-                      40-59: Adequate maintenance with some areas of concern
+                      20-44: Signs of declining maintenance, evaluate
+                      alternatives
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Badge
-                      className={`capitalize shrink-0 border ${categoryColors.poor}`}
+                      className={`shrink-0 border ${categoryColors.unmaintained}`}
                     >
-                      Poor
+                      Unmaintained
                     </Badge>
                     <span className="text-muted-foreground">
-                      20-39: Limited maintenance activity
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Badge
-                      className={`capitalize shrink-0 border ${categoryColors.critical}`}
-                    >
-                      Critical
-                    </Badge>
-                    <span className="text-muted-foreground">
-                      0-19: Appears unmaintained or abandoned
+                      0-19: Appears abandoned, avoid for new projects
                     </span>
                   </li>
                 </ul>
@@ -103,30 +93,30 @@ export function HowItWorks() {
                 </div>
                 <div>
                   <h4 className="font-medium text-foreground mb-1">
-                    Responsiveness (30%)
+                    Responsiveness (40%)
                   </h4>
                   <ul className="space-y-1 text-sm text-muted-foreground">
-                    <li>Issue resolution time (12 pts)</li>
-                    <li>Open issues percentage (12 pts)</li>
-                    <li>Issue velocity (6 pts)</li>
+                    <li>Open issues percentage (15 pts)</li>
+                    <li>Issue resolution time (15 pts)</li>
+                    <li>Issue velocity (10 pts)</li>
                   </ul>
                 </div>
                 <div>
                   <h4 className="font-medium text-foreground mb-1">
-                    Stability (20%)
+                    Stability (12%)
                   </h4>
                   <ul className="space-y-1 text-sm text-muted-foreground">
-                    <li>Release recency (12 pts)</li>
-                    <li>Project age (8 pts)</li>
+                    <li>Release recency (7 pts)</li>
+                    <li>Project age (5 pts)</li>
                   </ul>
                 </div>
                 <div>
                   <h4 className="font-medium text-foreground mb-1">
-                    Community (10%)
+                    Community (8%)
                   </h4>
                   <ul className="space-y-1 text-sm text-muted-foreground">
-                    <li>Open pull requests (5 pts)</li>
-                    <li>Stars and forks (5 pts)</li>
+                    <li>Open pull requests (4 pts)</li>
+                    <li>Stars and forks (4 pts)</li>
                   </ul>
                 </div>
               </div>
@@ -141,9 +131,9 @@ export function HowItWorks() {
               <div className="space-y-3 text-muted-foreground">
                 <p>
                   Projects are classified into three maturity tiers based on age
-                  and popularity. Mature projects get slightly relaxed
-                  thresholds for commit recency, while still maintaining strict
-                  standards.
+                  and popularity. Mature projects get relaxed thresholds,
+                  recognizing that stable utilities may not need frequent
+                  updates.
                 </p>
                 <ul className="space-y-1 text-sm">
                   <li>
@@ -152,18 +142,19 @@ export function HowItWorks() {
                   </li>
                   <li>
                     <strong className="text-foreground">Growing</strong>: 2-5
-                    years old or 1k-10k stars. Relaxed thresholds.
+                    years old or 1k-10k stars. Moderate thresholds.
                   </li>
                   <li>
                     <strong className="text-foreground">Mature</strong>: 5+
-                    years old and 10k+ stars. Most relaxed, but still strict.
+                    years old or 10k+ stars. Relaxed thresholds for
+                    feature-complete projects.
                   </li>
                 </ul>
                 <p className="text-sm">
-                  <strong className="text-foreground">Note:</strong> Even mature
-                  projects lose points after 6 months of no commits. Issue
-                  velocity helps distinguish genuinely finished projects from
-                  abandoned ones.
+                  <strong className="text-foreground">Note:</strong> Low open
+                  issue percentage and low issue velocity distinguish genuinely
+                  finished projects from abandoned ones. Projects with many
+                  unresolved issues are penalized regardless of maturity.
                 </p>
               </div>
             </AccordionContent>

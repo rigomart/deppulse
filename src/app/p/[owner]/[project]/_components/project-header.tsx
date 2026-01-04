@@ -18,11 +18,10 @@ import type { Assessment, MaintenanceCategory } from "@/db/schema";
 import { formatNumber } from "@/lib/utils";
 
 const categoryColors: Record<MaintenanceCategory, string> = {
-  excellent: "bg-green-500/15 text-green-400 border-green-500/30",
-  good: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  fair: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
-  poor: "bg-orange-500/15 text-orange-400 border-orange-500/30",
-  critical: "bg-red-500/15 text-red-400 border-red-500/30",
+  healthy: "bg-green-500/15 text-green-400 border-green-500/30",
+  moderate: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  "at-risk": "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+  unmaintained: "bg-red-500/15 text-red-400 border-red-500/30",
 };
 
 export function ProjectHeader({ assessment }: { assessment: Assessment }) {

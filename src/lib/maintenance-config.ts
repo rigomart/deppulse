@@ -5,11 +5,10 @@
 
 export type MaturityTier = "emerging" | "growing" | "mature";
 export type MaintenanceCategory =
-  | "excellent"
-  | "good"
-  | "fair"
-  | "poor"
-  | "critical";
+  | "healthy"
+  | "moderate"
+  | "at-risk"
+  | "unmaintained";
 
 /**
  * Thresholds for each maturity tier.
@@ -25,11 +24,10 @@ interface TierThresholds {
 interface MaintenanceConfig {
   // Category score thresholds (score >= threshold = that category)
   categoryThresholds: {
-    excellent: number;
-    good: number;
-    fair: number;
-    poor: number;
-    // critical is anything below poor
+    healthy: number;
+    moderate: number;
+    atRisk: number;
+    // unmaintained is anything below atRisk
   };
 
   // Weight distribution (must sum to 100)
@@ -123,10 +121,9 @@ interface MaintenanceConfig {
 
 export const MAINTENANCE_CONFIG: MaintenanceConfig = {
   categoryThresholds: {
-    excellent: 80,
-    good: 60,
-    fair: 40,
-    poor: 20,
+    healthy: 70,
+    moderate: 45,
+    atRisk: 20,
   },
 
   weights: {
@@ -136,41 +133,42 @@ export const MAINTENANCE_CONFIG: MaintenanceConfig = {
       commitVolume: 15,
     },
     responsiveness: {
-      total: 30,
-      issueResolution: 12,
-      openIssuesPercent: 12,
-      issueVelocity: 6,
+      total: 40,
+      issueResolution: 15,
+      openIssuesPercent: 15,
+      issueVelocity: 10,
     },
     stability: {
-      total: 20,
-      releaseRecency: 12,
-      projectAge: 8,
+      total: 12,
+      releaseRecency: 7,
+      projectAge: 5,
     },
     community: {
-      total: 10,
-      openPrs: 5,
-      popularity: 5,
+      total: 8,
+      openPrs: 4,
+      popularity: 4,
     },
   },
 
   maturityTiers: {
     // Emerging: < 2 years AND < 1k stars - strictest thresholds
     emerging: {
-      commitDays: [60, 120, 180, 365],
+      commitDays: [30, 60, 120, 180],
       commitVolume: [30, 10, 3],
+      releaseDays: [60, 120, 180],
+    },
+    // Growing: 2-5 years OR 1k-10k stars - moderate thresholds
+    growing: {
+      commitDays: [60, 120, 180, 365],
+      commitVolume: [20, 5, 1],
       releaseDays: [90, 180, 365],
     },
-    // Growing: 2-5 years OR 1k-10k stars - relaxed thresholds
-    growing: {
-      commitDays: [90, 180, 270, 540],
-      commitVolume: [20, 5, 1],
-      releaseDays: [180, 365, 730],
-    },
-    // Mature: 5+ years AND 10k+ stars - most relaxed (but still strict)
+    // Mature: 5+ years OR 10k+ stars - relaxed for stable/finished projects
+    // Stable utilities like clsx may not commit for 1-2 years but are still reliable
     mature: {
-      commitDays: [180, 365, 540, 730],
+      commitDays: [180, 365, 730, 1095], // 6mo, 1yr, 2yr, 3yr
       commitVolume: [10, 3, 1],
-      releaseDays: [365, 730, 1095],
+      releaseDays: [180, 365, 730], // 6mo, 1yr, 2yr
     },
   },
 
@@ -196,15 +194,15 @@ export const MAINTENANCE_CONFIG: MaintenanceConfig = {
   },
 
   issueVelocity: {
-    low: 5, // 5 or fewer issues in 90 days = low velocity (good)
-    medium: 20, // 6-20 issues = medium
-    high: 50, // 21-50 = high, >50 = very high
+    low: 10, // 10 or fewer issues in 90 days = low velocity (stable/finished)
+    medium: 30, // 11-30 issues = medium (normal activity)
+    high: 80, // 31-80 = high (popular project), >80 = very high
   },
 
   openPrs: {
-    excellent: 5,
-    good: 15,
-    fair: 30,
+    excellent: 10,
+    good: 25,
+    fair: 50,
   },
 
   popularity: {
@@ -227,29 +225,24 @@ export const MAINTENANCE_CATEGORY_INFO: Record<
   MaintenanceCategory,
   { label: string; description: string; recommendation: string }
 > = {
-  excellent: {
-    label: "Excellent",
+  healthy: {
+    label: "Healthy",
     description: "Actively maintained with strong community engagement.",
     recommendation: "Safe to adopt. Monitor normally.",
   },
-  good: {
-    label: "Good",
-    description: "Well maintained and suitable for production use.",
+  moderate: {
+    label: "Moderate",
+    description: "Adequately maintained. Some areas may need attention.",
     recommendation: "Safe to adopt. Check for updates periodically.",
   },
-  fair: {
-    label: "Fair",
-    description: "Adequate maintenance with some areas of concern.",
-    recommendation: "Acceptable with monitoring. Have a backup plan.",
+  "at-risk": {
+    label: "At Risk",
+    description: "Signs of declining maintenance. May not receive updates.",
+    recommendation: "Evaluate alternatives. Have a backup plan.",
   },
-  poor: {
-    label: "Poor",
-    description: "Limited maintenance activity. May not receive updates.",
-    recommendation: "Evaluate alternatives. Avoid for new projects.",
-  },
-  critical: {
-    label: "Critical",
-    description: "Appears unmaintained or abandoned.",
-    recommendation: "Do not adopt. Migrate existing usage if possible.",
+  unmaintained: {
+    label: "Unmaintained",
+    description: "Appears abandoned. Unlikely to receive updates or fixes.",
+    recommendation: "Avoid for new projects. Migrate existing usage.",
   },
 };

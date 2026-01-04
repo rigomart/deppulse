@@ -58,6 +58,7 @@ export async function fetchRepoMetrics(
   const [
     repoInfo,
     commits,
+    latestCommit,
     release,
     closedIssues,
     openIssues,
@@ -70,6 +71,12 @@ export async function fetchRepoMetrics(
       repo,
       since: ninetyDaysAgoIso,
       per_page: 100,
+    }),
+    // Fetch the latest commit separately to get actual last commit date
+    octokit.rest.repos.listCommits({
+      owner,
+      repo,
+      per_page: 1,
     }),
     octokit.rest.repos.getLatestRelease({ owner, repo }).catch(() => null),
     octokit.rest.issues.listForRepo({
@@ -101,9 +108,10 @@ export async function fetchRepoMetrics(
   ]);
 
   const commitsLast90Days = commits.data.length;
+  // Use the latest commit (not just from last 90 days) to get actual last commit date
   const daysSinceLastCommit =
-    commits.data.length > 0 && commits.data[0].commit.committer?.date
-      ? getDaysSince(commits.data[0].commit.committer.date)
+    latestCommit.data.length > 0 && latestCommit.data[0].commit.committer?.date
+      ? getDaysSince(latestCommit.data[0].commit.committer.date)
       : null;
 
   const daysSinceLastRelease = release?.data.published_at
@@ -123,14 +131,21 @@ export async function fetchRepoMetrics(
       ? Math.round((openIssuesCount / totalIssues) * 100 * 10) / 10
       : null;
 
+  // Only consider issues closed in the last 180 days for resolution time
+  // Historic resolution times from abandoned projects are misleading
+  const sixMonthsAgo = subDays(new Date(), 180);
   const closedIssueResolutionDays: number[] = [];
   for (const issue of closedIssues.data) {
     if (!issue.pull_request && issue.closed_at && issue.created_at) {
-      const created = new Date(issue.created_at).getTime();
-      const closed = new Date(issue.closed_at).getTime();
-      closedIssueResolutionDays.push(
-        Math.floor((closed - created) / (1000 * 60 * 60 * 24)),
-      );
+      const closedDate = new Date(issue.closed_at);
+      // Only count recently closed issues
+      if (closedDate >= sixMonthsAgo) {
+        const created = new Date(issue.created_at).getTime();
+        const closed = closedDate.getTime();
+        closedIssueResolutionDays.push(
+          Math.floor((closed - created) / (1000 * 60 * 60 * 24)),
+        );
+      }
     }
   }
   const medianIssueResolutionDays = getMedian(closedIssueResolutionDays);
