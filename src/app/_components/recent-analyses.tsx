@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { getRecentAssessments } from "@/lib/data";
+import { getRecentAssessments } from "@/db/queries";
 import { formatNumber } from "@/lib/utils";
 
 export async function RecentAnalyses() {

@@ -3,19 +3,15 @@ import "server-only";
 import { desc, eq } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
-import { db } from "@/db/drizzle";
-import { type Assessment, assessments } from "@/db/schema";
 import { fetchFreshAssessment } from "@/lib/assessment";
+import { db } from "./drizzle";
+import { type Assessment, assessments } from "./schema";
 
 // Cache duration: 24 hours (in seconds for unstable_cache)
 export const CACHE_REVALIDATE = 86400;
 
 /**
  * Builds a cache tag that uniquely identifies a project.
- *
- * @param owner - The project owner or organization
- * @param project - The project name
- * @returns A tag in the form `project:{owner}/{project}` (e.g., `project:octocat/hello-world`)
  */
 export function getProjectTag(owner: string, project: string): string {
   return `project:${owner}/${project}`;
@@ -24,10 +20,6 @@ export function getProjectTag(owner: string, project: string): string {
 /**
  * Fetches the Assessment record for a given project.
  * Uses React's cache() for request-level deduplication and unstable_cache for persistent caching.
- *
- * @param owner - Project owner (user or organization)
- * @param project - Project name
- * @returns The Assessment for `owner/project` if found, `null` otherwise
  */
 export const getCachedAssessment = cache(
   (owner: string, project: string): Promise<Assessment | null> => {
@@ -51,9 +43,6 @@ export const getCachedAssessment = cache(
 /**
  * Fetches the most recent assessment records ordered by analysis time.
  * Uses short-lived cache (60s) to balance freshness with performance.
- *
- * @param limit - Maximum number of assessments to return (default: 10)
- * @returns An array of Assessment records ordered by `analyzedAt` descending, containing up to `limit` items
  */
 export const getRecentAssessments = cache(
   (limit: number = 10): Promise<Assessment[]> => {
@@ -66,7 +55,7 @@ export const getRecentAssessments = cache(
       },
       [`recent-assessments-${limit}`],
       {
-        revalidate: 60, // Short TTL - recent list updates frequently
+        revalidate: 60,
         tags: ["assessments"],
       },
     )();
@@ -90,20 +79,10 @@ export async function getAssessmentFromDb(
 
 /**
  * Gets a cached assessment if fresh, otherwise fetches from GitHub API.
- * Freshness is determined by CACHE_REVALIDATE (24 hours).
- *
- * Uses direct DB query (not unstable_cache) to ensure freshness check
- * sees the latest data after fetchFreshAssessment writes to DB.
- * Wrapped with cache() for request-level deduplication (metadata + page).
- *
- * @param owner - Project owner (user or organization)
- * @param project - Project name
- * @returns The Assessment for the project (cached or freshly analyzed)
- * @throws If the project doesn't exist or GitHub API fails
+ * Used for direct link access to project pages.
  */
 export const getOrAnalyzeProject = cache(
   async (owner: string, project: string): Promise<Assessment> => {
-    // Query DB directly (bypass unstable_cache) to get actual freshness
     const cached = await getAssessmentFromDb(owner, project);
 
     if (cached) {
@@ -114,7 +93,6 @@ export const getOrAnalyzeProject = cache(
       }
     }
 
-    // Stale or missing - fetch fresh from GitHub
     return fetchFreshAssessment(owner, project);
   },
 );

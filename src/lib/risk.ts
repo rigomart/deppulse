@@ -1,6 +1,16 @@
-import type { MetricsPayload } from "./types";
-
 export type RiskCategory = "active" | "stable" | "at-risk" | "abandoned";
+
+/**
+ * Metrics payload used for risk calculation and database storage.
+ */
+export type MetricsPayload = {
+  daysSinceLastCommit: number | null;
+  commitsLast90Days: number;
+  daysSinceLastRelease: number | null;
+  openIssuesPercent: number | null;
+  medianIssueResolutionDays: number | null;
+  openPrsCount: number;
+};
 
 export type RiskInput = MetricsPayload;
 

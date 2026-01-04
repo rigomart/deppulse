@@ -1,13 +1,13 @@
 "use server";
 
 import { updateTag } from "next/cache";
-import type { Assessment } from "@/db/schema";
-import { fetchFreshAssessment } from "@/lib/assessment";
 import {
   CACHE_REVALIDATE,
   getAssessmentFromDb,
   getProjectTag,
-} from "@/lib/data";
+} from "@/db/queries";
+import type { Assessment } from "@/db/schema";
+import { fetchFreshAssessment } from "@/lib/assessment";
 
 /**
  * Server action: Analyze a GitHub repository with freshness checking.

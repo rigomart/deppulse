@@ -1,5 +1,5 @@
 import type { Metadata, ResolvingMetadata } from "next";
-import { getCachedAssessment, getOrAnalyzeProject } from "@/lib/data";
+import { getCachedAssessment, getOrAnalyzeProject } from "@/db/queries";
 import { MaintenanceHealth } from "./_components/maintenance-health";
 import { ProjectHeader } from "./_components/project-header";
 

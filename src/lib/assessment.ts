@@ -3,8 +3,7 @@ import "server-only";
 import { db } from "@/db/drizzle";
 import { type Assessment, assessments } from "@/db/schema";
 import { fetchRepoMetrics, type RepoMetrics } from "@/lib/github";
-import { calculateRisk } from "@/lib/risk";
-import type { MetricsPayload } from "@/lib/types";
+import { calculateRisk, type MetricsPayload } from "@/lib/risk";
 
 /**
  * Extracts the metrics payload from RepoMetrics for risk calculation and DB storage.
