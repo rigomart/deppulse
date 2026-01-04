@@ -11,7 +11,7 @@ bun run check-types  # TypeScript type checking
 bun run lint         # Lint and auto-fix with Biome
 bun run test         # Run tests with Vitest
 bun run test:ui      # Run tests with Vitest UI
-bun run test -- src/lib/risk.test.ts  # Run a single test file
+bun run test -- src/lib/maintenance.test.ts  # Run a single test file
 
 # Database (Drizzle + Neon)
 bun run db:push      # Push schema to database
@@ -65,13 +65,13 @@ startTransition(async () => {
 ### Data Flow
 
 ```
-User Input → parseRepo() → analyze() → fetchRepoMetrics() → calculateRisk() → DB upsert → Cache invalidation
+User Input → parseProject() → analyze() → fetchRepoMetrics() → calculateMaintenanceScore() → DB upsert → Cache invalidation
 ```
 
-1. `src/lib/parse-repo.ts` - Validates and extracts owner/repo from URL or shorthand
+1. `src/lib/parse-project.ts` - Validates and extracts owner/project from URL or shorthand
 2. `src/actions/analyze.ts` - Server action orchestrating the analysis
 3. `src/lib/github.ts` - Fetches metrics from GitHub API via Octokit
-4. `src/lib/risk.ts` - Computes risk score (0-100) and category
+4. `src/lib/maintenance.ts` - Computes maintenance score (0-100) and category
 5. `src/db/schema.ts` - Single `assessments` table with upsert on conflict
 6. `src/lib/data.ts` - Cached queries with `unstable_cache` + React `cache()` for request deduplication
 
@@ -79,9 +79,9 @@ User Input → parseRepo() → analyze() → fetchRepoMetrics() → calculateRis
 
 | Module | Purpose |
 |--------|---------|
-| `src/lib/risk.ts` | Risk scoring algorithm. Weights: commit recency (30pts), commit volume (20pts), release recency (15pts), open issues (15pts), issue resolution (10pts), open PRs (10pts). |
+| `src/lib/maintenance.ts` | Maintenance scoring algorithm. Categories: healthy (70+), moderate (45-69), at-risk (20-44), unmaintained (0-19). |
+| `src/lib/maintenance-config.ts` | Centralized config for scoring weights, thresholds, and maturity tiers. All tunable values in one place. |
 | `src/lib/github.ts` | GitHub API client. Fetches repo info, commits (90d window), releases, issues, PRs in parallel. |
-| `src/lib/types.ts` | Shared `MetricsPayload` type used across modules. |
 | `src/lib/data.ts` | Database queries with dual caching: `cache()` for request-level, `unstable_cache` for persistent. |
 
 ### Directory Structure
@@ -130,11 +130,16 @@ src/
 
 ## Testing
 
-Tests are in `*.test.ts` files alongside source:
-- `src/lib/risk.test.ts` - Risk calculation edge cases
-- `src/lib/parse-repo.test.ts` - URL parsing validation
+Tests in `*.test.ts` files alongside source. Run with `bun run test`.
 
-Run with `bun run test`. Coverage focuses on pure functions with deterministic outputs.
+### Guidelines
+
+- **Test behavior, not implementation** - Tests should verify what the code does, not how it does it
+- **Purpose is regression prevention** - Tests catch unintended changes when refactoring
+- **Use realistic scenarios** - Describe real situations in test names, not arbitrary boundaries
+- **Keep tests focused** - One concept per test, avoid testing multiple behaviors together
+- **Handle edge cases** - Test null values, empty inputs, and boundary conditions
+- **Allow valid ambiguity** - For borderline cases: `expect(["a", "b"]).toContain(result)`
 
 ## Instructions for AI
 
