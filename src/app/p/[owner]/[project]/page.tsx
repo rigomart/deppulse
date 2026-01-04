@@ -3,7 +3,7 @@ import { getCachedAssessment, getOrAnalyzeProject } from "@/lib/data";
 import { MaintenanceHealth } from "./_components/maintenance-health";
 import { ProjectHeader } from "./_components/project-header";
 
-// Cache rendered pages for 1 hour, matching our data freshness threshold
+// Cache rendered pages for 1 hour
 export const revalidate = 3600;
 
 type Props = {
@@ -15,11 +15,14 @@ export async function generateMetadata(
   _parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const { owner, project } = await params;
+
+  // Use cache for metadata - fast path for homepage navigation
   const assessment = await getCachedAssessment(owner, project);
 
   if (!assessment) {
+    // Direct link to new project - page will handle fetching
     return {
-      title: "Project Not Found",
+      title: `${owner}/${project} - Analyzing...`,
     };
   }
 
@@ -50,9 +53,13 @@ export async function generateMetadata(
 export default async function ProjectPage({ params }: Props) {
   const { owner, project } = await params;
 
-  // getOrAnalyzeProject returns cached data if fresh, otherwise fetches from GitHub.
-  // Throws on errors (not found, rate limit, etc.) which are caught by error.tsx.
-  const assessment = await getOrAnalyzeProject(owner, project);
+  // Try cache first (fast path for homepage navigation)
+  let assessment = await getCachedAssessment(owner, project);
+
+  // Fallback for direct links to new/stale projects
+  if (!assessment) {
+    assessment = await getOrAnalyzeProject(owner, project);
+  }
 
   return (
     <main className="space-y-6">

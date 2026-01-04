@@ -8,7 +8,7 @@ import { type Assessment, assessments } from "@/db/schema";
 import { fetchFreshAssessment } from "@/lib/assessment";
 
 // Cache duration: 24 hours (in seconds for unstable_cache)
-const CACHE_REVALIDATE = 86400;
+export const CACHE_REVALIDATE = 86400;
 
 /**
  * Builds a cache tag that uniquely identifies a project.
@@ -50,43 +50,71 @@ export const getCachedAssessment = cache(
 
 /**
  * Fetches the most recent assessment records ordered by analysis time.
- * Uses request-level deduplication only (no persistent cache) to always show fresh data.
+ * Uses short-lived cache (60s) to balance freshness with performance.
  *
  * @param limit - Maximum number of assessments to return (default: 10)
  * @returns An array of Assessment records ordered by `analyzedAt` descending, containing up to `limit` items
  */
 export const getRecentAssessments = cache(
   (limit: number = 10): Promise<Assessment[]> => {
-    return db.query.assessments.findMany({
-      orderBy: [desc(assessments.analyzedAt)],
-      limit,
-    });
+    return unstable_cache(
+      async (): Promise<Assessment[]> => {
+        return db.query.assessments.findMany({
+          orderBy: [desc(assessments.analyzedAt)],
+          limit,
+        });
+      },
+      [`recent-assessments-${limit}`],
+      {
+        revalidate: 60, // Short TTL - recent list updates frequently
+        tags: ["assessments"],
+      },
+    )();
   },
 );
 
 /**
+ * Direct DB query for assessment, bypassing unstable_cache.
+ * Used for freshness checks where we need actual DB state, not cached data.
+ */
+export async function getAssessmentFromDb(
+  owner: string,
+  project: string,
+): Promise<Assessment | null> {
+  const fullName = `${owner}/${project}`;
+  const assessment = await db.query.assessments.findFirst({
+    where: eq(assessments.fullName, fullName),
+  });
+  return assessment ?? null;
+}
+
+/**
  * Gets a cached assessment if fresh, otherwise fetches from GitHub API.
  * Freshness is determined by CACHE_REVALIDATE (24 hours).
+ *
+ * Uses direct DB query (not unstable_cache) to ensure freshness check
+ * sees the latest data after fetchFreshAssessment writes to DB.
+ * Wrapped with cache() for request-level deduplication (metadata + page).
  *
  * @param owner - Project owner (user or organization)
  * @param project - Project name
  * @returns The Assessment for the project (cached or freshly analyzed)
  * @throws If the project doesn't exist or GitHub API fails
  */
-export async function getOrAnalyzeProject(
-  owner: string,
-  project: string,
-): Promise<Assessment> {
-  const cached = await getCachedAssessment(owner, project);
+export const getOrAnalyzeProject = cache(
+  async (owner: string, project: string): Promise<Assessment> => {
+    // Query DB directly (bypass unstable_cache) to get actual freshness
+    const cached = await getAssessmentFromDb(owner, project);
 
-  if (cached) {
-    const ageSeconds =
-      (Date.now() - new Date(cached.analyzedAt).getTime()) / 1000;
-    if (ageSeconds < CACHE_REVALIDATE) {
-      return cached;
+    if (cached) {
+      const ageSeconds =
+        (Date.now() - new Date(cached.analyzedAt).getTime()) / 1000;
+      if (ageSeconds < CACHE_REVALIDATE) {
+        return cached;
+      }
     }
-  }
 
-  // Stale or missing - fetch fresh from GitHub
-  return fetchFreshAssessment(owner, project);
-}
+    // Stale or missing - fetch fresh from GitHub
+    return fetchFreshAssessment(owner, project);
+  },
+);

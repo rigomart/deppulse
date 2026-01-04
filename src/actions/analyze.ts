@@ -3,25 +3,41 @@
 import { updateTag } from "next/cache";
 import type { Assessment } from "@/db/schema";
 import { fetchFreshAssessment } from "@/lib/assessment";
-import { getProjectTag } from "@/lib/data";
+import {
+  CACHE_REVALIDATE,
+  getAssessmentFromDb,
+  getProjectTag,
+} from "@/lib/data";
 
 /**
- * Server action: Analyze a GitHub repository, compute its risk profile, persist the assessment, and invalidate related caches.
+ * Server action: Analyze a GitHub repository with freshness checking.
  *
- * Use this for explicit user-triggered re-analysis (e.g., a "Refresh" button).
- * For render-time fetching, use `fetchFreshAssessment()` directly.
+ * Returns cached data if fresh (<24h), otherwise fetches from GitHub API.
+ * Called from homepage search form - blocks until complete, then navigates.
  *
  * @param owner - Repository owner (username or organization)
  * @param project - Repository name
- * @returns The persisted `Assessment` record including repository metrics, `riskCategory`, `riskScore`, and `analyzedAt`
+ * @returns The `Assessment` record (cached or freshly fetched)
  */
 export async function analyze(
   owner: string,
   project: string,
 ): Promise<Assessment> {
+  // Check for fresh cached data first
+  const cached = await getAssessmentFromDb(owner, project);
+
+  if (cached) {
+    const ageSeconds =
+      (Date.now() - new Date(cached.analyzedAt).getTime()) / 1000;
+    if (ageSeconds < CACHE_REVALIDATE) {
+      return cached; // Fresh - skip GitHub API
+    }
+  }
+
+  // Stale or missing - fetch fresh from GitHub
   const result = await fetchFreshAssessment(owner, project);
 
-  // Invalidate cached data for this specific repo (recent list refreshes via TTL)
+  // Invalidate cached data for this specific repo
   updateTag(getProjectTag(owner, project));
 
   return result;
