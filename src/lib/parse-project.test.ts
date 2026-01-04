@@ -6,28 +6,28 @@ describe("parseProject", () => {
     it("parses simple owner/repo", () => {
       expect(parseProject("facebook/react")).toEqual({
         owner: "facebook",
-        repo: "react",
+        project: "react",
       });
     });
 
     it("parses owner/repo with .git suffix", () => {
       expect(parseProject("facebook/react.git")).toEqual({
         owner: "facebook",
-        repo: "react",
+        project: "react",
       });
     });
 
     it("handles extra path segments by taking first two", () => {
       expect(parseProject("facebook/react/issues")).toEqual({
         owner: "facebook",
-        repo: "react",
+        project: "react",
       });
     });
 
     it("trims whitespace", () => {
       expect(parseProject("  facebook/react  ")).toEqual({
         owner: "facebook",
-        repo: "react",
+        project: "react",
       });
     });
   });
@@ -36,34 +36,34 @@ describe("parseProject", () => {
     it("parses https URL", () => {
       expect(parseProject("https://github.com/facebook/react")).toEqual({
         owner: "facebook",
-        repo: "react",
+        project: "react",
       });
     });
 
     it("parses URL with trailing slash", () => {
       expect(parseProject("https://github.com/facebook/react/")).toEqual({
         owner: "facebook",
-        repo: "react",
+        project: "react",
       });
     });
 
     it("parses URL with .git suffix", () => {
       expect(parseProject("https://github.com/facebook/react.git")).toEqual({
         owner: "facebook",
-        repo: "react",
+        project: "react",
       });
     });
 
     it("parses URL with extra path segments", () => {
       expect(parseProject("https://github.com/facebook/react/issues")).toEqual({
         owner: "facebook",
-        repo: "react",
+        project: "react",
       });
       expect(
         parseProject("https://github.com/facebook/react/pull/12345"),
       ).toEqual({
         owner: "facebook",
-        repo: "react",
+        project: "react",
       });
     });
 
@@ -72,7 +72,7 @@ describe("parseProject", () => {
         parseProject("https://github.com/facebook/react?tab=readme"),
       ).toEqual({
         owner: "facebook",
-        repo: "react",
+        project: "react",
       });
     });
   });
@@ -111,28 +111,28 @@ describe("parseProject", () => {
     it("handles repos with dots in name", () => {
       expect(parseProject("angular/angular.js")).toEqual({
         owner: "angular",
-        repo: "angular.js",
+        project: "angular.js",
       });
     });
 
     it("handles repos with hyphens", () => {
       expect(parseProject("styled-components/styled-components")).toEqual({
         owner: "styled-components",
-        repo: "styled-components",
+        project: "styled-components",
       });
     });
 
     it("handles repos with underscores", () => {
       expect(parseProject("some_org/some_repo")).toEqual({
         owner: "some_org",
-        repo: "some_repo",
+        project: "some_repo",
       });
     });
 
     it("preserves case", () => {
       expect(parseProject("Facebook/React")).toEqual({
         owner: "Facebook",
-        repo: "React",
+        project: "React",
       });
     });
   });

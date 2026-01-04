@@ -6,6 +6,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { MAINTENANCE_CONFIG } from "@/lib/maintenance-config";
+
+const { categoryThresholds, weights, maturityCriteria } = MAINTENANCE_CONFIG;
 
 const categoryColors = {
   healthy: "bg-green-500/15 text-green-400 border-green-500/30",
@@ -38,8 +41,8 @@ export function HowItWorks() {
                       Healthy
                     </Badge>
                     <span className="text-muted-foreground">
-                      70-100: Actively maintained with strong community
-                      engagement
+                      {categoryThresholds.healthy}-100: Actively maintained with
+                      strong community engagement
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
@@ -49,7 +52,9 @@ export function HowItWorks() {
                       Moderate
                     </Badge>
                     <span className="text-muted-foreground">
-                      45-69: Adequately maintained or stable utility
+                      {categoryThresholds.moderate}-
+                      {categoryThresholds.healthy - 1}: Adequately maintained or
+                      stable utility
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
@@ -59,8 +64,9 @@ export function HowItWorks() {
                       At Risk
                     </Badge>
                     <span className="text-muted-foreground">
-                      20-44: Signs of declining maintenance, evaluate
-                      alternatives
+                      {categoryThresholds.atRisk}-
+                      {categoryThresholds.moderate - 1}: Signs of declining
+                      maintenance, evaluate alternatives
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
@@ -70,7 +76,8 @@ export function HowItWorks() {
                       Unmaintained
                     </Badge>
                     <span className="text-muted-foreground">
-                      0-19: Appears abandoned, avoid for new projects
+                      0-{categoryThresholds.atRisk - 1}: Appears abandoned,
+                      avoid for new projects
                     </span>
                   </li>
                 </ul>
@@ -84,39 +91,59 @@ export function HowItWorks() {
               <div className="space-y-4">
                 <div>
                   <h4 className="font-medium text-foreground mb-1">
-                    Activity (40%)
+                    Activity ({weights.activity.total}%)
                   </h4>
                   <ul className="space-y-1 text-sm text-muted-foreground">
-                    <li>Last commit recency (25 pts)</li>
-                    <li>Commit volume in last 90 days (15 pts)</li>
+                    <li>
+                      Last commit recency ({weights.activity.lastCommit} pts)
+                    </li>
+                    <li>
+                      Commit volume in last 90 days (
+                      {weights.activity.commitVolume} pts)
+                    </li>
                   </ul>
                 </div>
                 <div>
                   <h4 className="font-medium text-foreground mb-1">
-                    Responsiveness (40%)
+                    Responsiveness ({weights.responsiveness.total}%)
                   </h4>
                   <ul className="space-y-1 text-sm text-muted-foreground">
-                    <li>Open issues percentage (15 pts)</li>
-                    <li>Issue resolution time (15 pts)</li>
-                    <li>Issue velocity (10 pts)</li>
+                    <li>
+                      Open issues percentage (
+                      {weights.responsiveness.openIssuesPercent} pts)
+                    </li>
+                    <li>
+                      Issue resolution time (
+                      {weights.responsiveness.issueResolution} pts)
+                    </li>
+                    <li>
+                      Issue velocity ({weights.responsiveness.issueVelocity}{" "}
+                      pts)
+                    </li>
                   </ul>
                 </div>
                 <div>
                   <h4 className="font-medium text-foreground mb-1">
-                    Stability (12%)
+                    Stability ({weights.stability.total}%)
                   </h4>
                   <ul className="space-y-1 text-sm text-muted-foreground">
-                    <li>Release recency (7 pts)</li>
-                    <li>Project age (5 pts)</li>
+                    <li>
+                      Release recency ({weights.stability.releaseRecency} pts)
+                    </li>
+                    <li>Project age ({weights.stability.projectAge} pts)</li>
                   </ul>
                 </div>
                 <div>
                   <h4 className="font-medium text-foreground mb-1">
-                    Community (8%)
+                    Community ({weights.community.total}%)
                   </h4>
                   <ul className="space-y-1 text-sm text-muted-foreground">
-                    <li>Open pull requests (4 pts)</li>
-                    <li>Stars and forks (4 pts)</li>
+                    <li>
+                      Open pull requests ({weights.community.openPrs} pts)
+                    </li>
+                    <li>
+                      Stars and forks ({weights.community.popularity} pts)
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -138,16 +165,23 @@ export function HowItWorks() {
                 <ul className="space-y-1 text-sm">
                   <li>
                     <strong className="text-foreground">Emerging</strong>: Less
-                    than 2 years old and under 1k stars. Strictest thresholds.
+                    than {maturityCriteria.growingMinAgeYears} years old and
+                    under {(maturityCriteria.growingMinStars / 1000).toFixed(0)}
+                    k stars. Strictest thresholds.
                   </li>
                   <li>
-                    <strong className="text-foreground">Growing</strong>: 2-5
-                    years old or 1k-10k stars. Moderate thresholds.
+                    <strong className="text-foreground">Growing</strong>:{" "}
+                    {maturityCriteria.growingMinAgeYears}-
+                    {maturityCriteria.matureMinAgeYears} years old or{" "}
+                    {(maturityCriteria.growingMinStars / 1000).toFixed(0)}k-
+                    {(maturityCriteria.matureMinStars / 1000).toFixed(0)}k
+                    stars. Moderate thresholds.
                   </li>
                   <li>
-                    <strong className="text-foreground">Mature</strong>: 5+
-                    years old or 10k+ stars. Relaxed thresholds for
-                    feature-complete projects.
+                    <strong className="text-foreground">Mature</strong>:{" "}
+                    {maturityCriteria.matureMinAgeYears}+ years old or{" "}
+                    {(maturityCriteria.matureMinStars / 1000).toFixed(0)}k+
+                    stars. Relaxed thresholds for feature-complete projects.
                   </li>
                 </ul>
                 <p className="text-sm">
@@ -155,6 +189,52 @@ export function HowItWorks() {
                   issue percentage and low issue velocity distinguish genuinely
                   finished projects from abandoned ones. Projects with many
                   unresolved issues are penalized regardless of maturity.
+                </p>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="item-4">
+            <AccordionTrigger>
+              Why is scoring stricter than other tools?
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-3 text-muted-foreground">
+                <p>
+                  This tool is intentionally more aggressive about penalizing
+                  inactivity than alternatives like Snyk Advisor or npm package
+                  scores. Here&apos;s why:
+                </p>
+                <ul className="space-y-2 text-sm">
+                  <li>
+                    <strong className="text-foreground">
+                      Stars don&apos;t equal maintenance.
+                    </strong>{" "}
+                    Popular projects can become abandoned. A project with 50k
+                    stars but no commits in 2 years and 200 open issues is a
+                    liability, not an asset.
+                  </li>
+                  <li>
+                    <strong className="text-foreground">
+                      Dependencies are attack vectors.
+                    </strong>{" "}
+                    Unmaintained packages don&apos;t receive security patches.
+                    Better to know early than after a vulnerability is
+                    discovered.
+                  </li>
+                  <li>
+                    <strong className="text-foreground">
+                      Proactive over reactive.
+                    </strong>{" "}
+                    Other tools wait until a project is clearly dead. We flag
+                    warning signs earlier so you can plan migrations before
+                    they&apos;re urgent.
+                  </li>
+                </ul>
+                <p className="text-sm">
+                  The goal is to surface potential risks, not to definitively
+                  label projects. Use the score as one input in your dependency
+                  decisions, alongside your own evaluation.
                 </p>
               </div>
             </AccordionContent>

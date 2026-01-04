@@ -169,7 +169,8 @@ function scoreIssueVelocity(
   const thresholds = MAINTENANCE_CONFIG.issueVelocity;
 
   // If open issues are high (>50%) and velocity is low, people gave up - no points
-  const issuesArePilingUp = openIssuesPercent !== null && openIssuesPercent > 50;
+  const issuesArePilingUp =
+    openIssuesPercent !== null && openIssuesPercent > 50;
   if (issuesArePilingUp && issuesCreated <= thresholds.medium) {
     return 0; // Low velocity + high open issues = abandonment, not stability
   }
@@ -285,7 +286,10 @@ export function calculateMaintenanceScore(
     scoreCommitVolume(input.commitsLast90Days, maturityTier);
 
   const responsivenessScore =
-    scoreIssueResolution(input.medianIssueResolutionDays, input.openIssuesPercent) +
+    scoreIssueResolution(
+      input.medianIssueResolutionDays,
+      input.openIssuesPercent,
+    ) +
     scoreOpenIssuesPercent(input.openIssuesPercent) +
     scoreIssueVelocity(input.issuesCreatedLast90Days, input.openIssuesPercent);
 

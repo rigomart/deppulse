@@ -322,7 +322,9 @@ describe("real-world project categories", () => {
       medianIssueResolutionDays: null, // No recent closed issues
       issuesCreatedLast90Days: 2, // Low velocity + high open % = abandonment
       daysSinceLastRelease: 980,
-      repositoryCreatedAt: new Date(Date.now() - 4.7 * 365 * 24 * 60 * 60 * 1000),
+      repositoryCreatedAt: new Date(
+        Date.now() - 4.7 * 365 * 24 * 60 * 60 * 1000,
+      ),
       openPrsCount: 15,
       stars: 7805,
       forks: 261,
@@ -361,7 +363,9 @@ describe("real-world project categories", () => {
       medianIssueResolutionDays: 14,
       issuesCreatedLast90Days: 50,
       daysSinceLastRelease: 30,
-      repositoryCreatedAt: new Date(Date.now() - 10 * 365 * 24 * 60 * 60 * 1000),
+      repositoryCreatedAt: new Date(
+        Date.now() - 10 * 365 * 24 * 60 * 60 * 1000,
+      ),
       openPrsCount: 20,
       stars: 108428,
       forks: 11471,
@@ -380,7 +384,9 @@ describe("real-world project categories", () => {
       medianIssueResolutionDays: null,
       issuesCreatedLast90Days: 3,
       daysSinceLastRelease: 430,
-      repositoryCreatedAt: new Date(Date.now() - 2.5 * 365 * 24 * 60 * 60 * 1000),
+      repositoryCreatedAt: new Date(
+        Date.now() - 2.5 * 365 * 24 * 60 * 60 * 1000,
+      ),
       openPrsCount: 8,
       stars: 1449,
       forks: 69,
@@ -399,7 +405,9 @@ describe("real-world project categories", () => {
       medianIssueResolutionDays: null, // No recent resolutions
       issuesCreatedLast90Days: 5,
       daysSinceLastRelease: 210,
-      repositoryCreatedAt: new Date(Date.now() - 2.5 * 365 * 24 * 60 * 60 * 1000),
+      repositoryCreatedAt: new Date(
+        Date.now() - 2.5 * 365 * 24 * 60 * 60 * 1000,
+      ),
       openPrsCount: 15,
       stars: 3212,
       forks: 174,
