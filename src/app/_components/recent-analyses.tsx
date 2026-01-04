@@ -24,7 +24,7 @@ export async function RecentAnalyses() {
           {recentAssessments.map((assessment) => (
             <Link
               key={assessment.id}
-              href={`/repo/${assessment.owner}/${assessment.repo}`}
+              href={`/p/${assessment.owner}/${assessment.repo}`}
             >
               <Card className="h-full transition-all hover:bg-surface-3">
                 <CardContent className="space-y-2">

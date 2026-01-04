@@ -17,7 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import type { Assessment } from "@/db/schema";
 import { formatNumber } from "@/lib/utils";
 
-export function RepoHeader({ assessment }: { assessment: Assessment }) {
+export function ProjectHeader({ assessment }: { assessment: Assessment }) {
   const stats = [
     { icon: Star, value: formatNumber(assessment.stars ?? 0), label: "Stars" },
     {

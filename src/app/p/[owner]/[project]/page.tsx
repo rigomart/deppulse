@@ -2,22 +2,22 @@ import type { Metadata, ResolvingMetadata } from "next";
 import { notFound } from "next/navigation";
 import { getCachedAssessment } from "@/lib/data";
 import { MaintenanceHealth } from "./_components/maintenance-health";
-import { RepoHeader } from "./_components/repo-header";
+import { ProjectHeader } from "./_components/project-header";
 
 type Props = {
-  params: Promise<{ owner: string; repo: string }>;
+  params: Promise<{ owner: string; project: string }>;
 };
 
 export async function generateMetadata(
   { params }: Props,
   _parent: ResolvingMetadata,
 ): Promise<Metadata> {
-  const { owner, repo } = await params;
-  const assessment = await getCachedAssessment(owner, repo);
+  const { owner, project } = await params;
+  const assessment = await getCachedAssessment(owner, project);
 
   if (!assessment) {
     return {
-      title: "Repository Not Found",
+      title: "Project Not Found",
     };
   }
 
@@ -30,7 +30,7 @@ export async function generateMetadata(
     title,
     description,
     alternates: {
-      canonical: `/repo/${owner}/${repo}`,
+      canonical: `/p/${owner}/${project}`,
     },
     openGraph: {
       title: `Deppulse: ${title}`,
@@ -45,10 +45,10 @@ export async function generateMetadata(
   };
 }
 
-export default async function RepoPage({ params }: Props) {
-  const { owner, repo } = await params;
+export default async function ProjectPage({ params }: Props) {
+  const { owner, project } = await params;
 
-  const assessment = await getCachedAssessment(owner, repo);
+  const assessment = await getCachedAssessment(owner, project);
 
   if (!assessment) {
     notFound();
@@ -56,7 +56,7 @@ export default async function RepoPage({ params }: Props) {
 
   return (
     <main className="space-y-6">
-      <RepoHeader assessment={assessment} />
+      <ProjectHeader assessment={assessment} />
       <MaintenanceHealth assessment={assessment} />
     </main>
   );

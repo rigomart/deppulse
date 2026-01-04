@@ -3,8 +3,8 @@
 import { updateTag } from "next/cache";
 import { db } from "@/db/drizzle";
 import { type Assessment, assessments } from "@/db/schema";
-import { getRepoTag } from "@/lib/data";
-import { type RepoMetrics, fetchRepoMetrics } from "@/lib/github";
+import { getProjectTag } from "@/lib/data";
+import { fetchRepoMetrics, type RepoMetrics } from "@/lib/github";
 import { calculateRisk } from "@/lib/risk";
 import type { MetricsPayload } from "@/lib/types";
 
@@ -31,11 +31,11 @@ function extractMetrics(m: RepoMetrics): MetricsPayload {
  */
 export async function analyze(
   owner: string,
-  repo: string,
+  project: string,
 ): Promise<Assessment> {
-  const fullName = `${owner}/${repo}`;
+  const fullName = `${owner}/${project}`;
 
-  const metrics = await fetchRepoMetrics(owner, repo);
+  const metrics = await fetchRepoMetrics(owner, project);
   const metricsPayload = extractMetrics(metrics);
   const risk = calculateRisk(metricsPayload);
 
@@ -43,7 +43,7 @@ export async function analyze(
     .insert(assessments)
     .values({
       owner,
-      repo,
+      repo: project,
       fullName,
       description: metrics.description,
       stars: metrics.stars,
@@ -75,7 +75,7 @@ export async function analyze(
     .returning();
 
   // Invalidate cached data for this specific repo (recent list refreshes via TTL)
-  updateTag(getRepoTag(owner, repo));
+  updateTag(getProjectTag(owner, project));
 
   return result;
 }

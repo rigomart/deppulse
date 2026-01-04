@@ -6,7 +6,7 @@ import { useState, useTransition } from "react";
 import { analyze } from "@/actions/analyze";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { parseRepo } from "@/lib/parse-repo";
+import { parseProject } from "@/lib/parse-project";
 
 /** Maps error patterns to user-friendly messages. */
 function getUserFriendlyError(error: unknown): string {
@@ -35,8 +35,8 @@ function getUserFriendlyError(error: unknown): string {
 /**
  * Render a search form for analyzing a GitHub repository.
  *
- * Validates an "owner/repo" string or GitHub URL, starts an analysis action for the parsed repository,
- * navigates to the repository results page on success, and displays loading and error states.
+ * Validates an "owner/project" string or GitHub URL, starts an analysis action for the parsed project,
+ * navigates to the project results page on success, and displays loading and error states.
  *
  * @returns The JSX element for the search form UI.
  */
@@ -52,18 +52,18 @@ export function SearchForm() {
     const formData = new FormData(e.currentTarget);
     const query = formData.get("query") as string;
 
-    const parsed = parseRepo(query);
+    const parsed = parseProject(query);
     if (!parsed) {
-      setError("Invalid format. Use 'owner/repo' or GitHub URL.");
+      setError("Invalid format. Use 'owner/repository' or GitHub URL.");
       return;
     }
 
-    const { owner, repo } = parsed;
+    const { owner, project } = parsed;
 
     startTransition(async () => {
       try {
-        await analyze(owner, repo);
-        router.push(`/repo/${owner}/${repo}`);
+        await analyze(owner, project);
+        router.push(`/p/${owner}/${project}`);
       } catch (err) {
         setError(getUserFriendlyError(err));
       }
@@ -76,7 +76,7 @@ export function SearchForm() {
         <Input
           type="text"
           name="query"
-          placeholder="GitHub URL or owner/repo"
+          placeholder="GitHub URL or owner/repository"
           disabled={isPending}
           required
           maxLength={200}

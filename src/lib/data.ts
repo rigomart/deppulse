@@ -10,38 +10,38 @@ import { type Assessment, assessments } from "@/db/schema";
 const CACHE_REVALIDATE = 86400;
 
 /**
- * Builds a cache tag that uniquely identifies a repository.
+ * Builds a cache tag that uniquely identifies a project.
  *
- * @param owner - The repository owner or organization
- * @param repo - The repository name
- * @returns A tag in the form `repo:{owner}/{repo}` (e.g., `repo:octocat/hello-world`)
+ * @param owner - The project owner or organization
+ * @param project - The project name
+ * @returns A tag in the form `project:{owner}/{project}` (e.g., `project:octocat/hello-world`)
  */
-export function getRepoTag(owner: string, repo: string): string {
-  return `repo:${owner}/${repo}`;
+export function getProjectTag(owner: string, project: string): string {
+  return `project:${owner}/${project}`;
 }
 
 /**
- * Fetches the Assessment record for a given repository.
+ * Fetches the Assessment record for a given project.
  * Uses React's cache() for request-level deduplication and unstable_cache for persistent caching.
  *
- * @param owner - Repository owner (user or organization)
- * @param repo - Repository name
- * @returns The Assessment for `owner/repo` if found, `null` otherwise
+ * @param owner - Project owner (user or organization)
+ * @param project - Project name
+ * @returns The Assessment for `owner/project` if found, `null` otherwise
  */
 export const getCachedAssessment = cache(
-  (owner: string, repo: string): Promise<Assessment | null> => {
+  (owner: string, project: string): Promise<Assessment | null> => {
     return unstable_cache(
       async (): Promise<Assessment | null> => {
-        const fullName = `${owner}/${repo}`;
+        const fullName = `${owner}/${project}`;
         const assessment = await db.query.assessments.findFirst({
           where: eq(assessments.fullName, fullName),
         });
         return assessment ?? null;
       },
-      [`assessment-${owner}-${repo}`],
+      [`assessment-${owner}-${project}`],
       {
         revalidate: CACHE_REVALIDATE,
-        tags: [getRepoTag(owner, repo), "assessments"],
+        tags: [getProjectTag(owner, project), "assessments"],
       },
     )();
   },
