@@ -10,7 +10,6 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import type { MaintenanceCategory, MaturityTier } from "@/lib/maintenance";
 
 export const assessments = pgTable(
   "assessments",
@@ -28,12 +27,12 @@ export const assessments = pgTable(
     language: text("language"),
     repositoryCreatedAt: timestamp("repository_created_at"),
     daysSinceLastCommit: integer("days_since_last_commit"),
-    commitsLast90Days: integer("commits_last_90_days"),
+    commitsLastYear: integer("commits_last_year"),
     daysSinceLastRelease: integer("days_since_last_release"),
     openIssuesPercent: real("open_issues_percent"),
     medianIssueResolutionDays: real("median_issue_resolution_days"),
     openPrsCount: integer("open_prs_count"),
-    issuesCreatedLast90Days: integer("issues_created_last_90_days"),
+    issuesCreatedLastYear: integer("issues_created_last_year"),
     isArchived: boolean("is_archived").default(false),
     commitActivity:
       jsonb("commit_activity").$type<
@@ -47,9 +46,7 @@ export const assessments = pgTable(
       jsonb("releases").$type<
         Array<{ tagName: string; name: string | null; publishedAt: string }>
       >(),
-    maintenanceCategory: text("maintenance_category").notNull(),
     maintenanceScore: integer("maintenance_score"),
-    maturityTier: text("maturity_tier"),
     analyzedAt: timestamp("analyzed_at").notNull().defaultNow(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
@@ -61,4 +58,3 @@ export const assessments = pgTable(
 
 export type Assessment = typeof assessments.$inferSelect;
 export type NewAssessment = typeof assessments.$inferInsert;
-export type { MaintenanceCategory, MaturityTier };

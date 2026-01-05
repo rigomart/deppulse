@@ -7,17 +7,18 @@ export type MaturityTier = "emerging" | "growing" | "mature";
 export type MaintenanceCategory =
   | "healthy"
   | "moderate"
-  | "at-risk"
-  | "unmaintained";
+  | "declining"
+  | "inactive";
 
 /**
  * Thresholds for each maturity tier.
  * Arrays represent: [full points, partial points, low points, zero points]
  * For commit days: [recent, acceptable, stale, old]
+ * For commit volume: thresholds are per year (52 weeks)
  */
 interface TierThresholds {
   commitDays: [number, number, number, number];
-  commitVolume: [number, number, number]; // [high, medium, low]
+  commitVolumeYear: [number, number, number]; // [high, medium, low] - per year
   releaseDays: [number, number, number]; // [recent, acceptable, old]
 }
 
@@ -27,7 +28,7 @@ interface MaintenanceConfig {
     healthy: number;
     moderate: number;
     atRisk: number;
-    // unmaintained is anything below atRisk
+    // inactive is anything below atRisk
   };
 
   // Weight distribution (must sum to 100)
@@ -40,8 +41,6 @@ interface MaintenanceConfig {
     responsiveness: {
       total: number;
       issueResolution: number;
-      openIssuesPercent: number;
-      issueVelocity: number;
     };
     stability: {
       total: number;
@@ -50,7 +49,6 @@ interface MaintenanceConfig {
     };
     community: {
       total: number;
-      openPrs: number;
       popularity: number;
     };
   };
@@ -76,29 +74,6 @@ interface MaintenanceConfig {
     good: number;
     fair: number;
     poor: number;
-  };
-
-  // Open issues percent thresholds
-  openIssuesPercent: {
-    excellent: number;
-    good: number;
-    fair: number;
-    poor: number;
-  };
-
-  // Issue velocity thresholds (issues created in 90 days)
-  // Lower is better for finished projects
-  issueVelocity: {
-    low: number; // Full points
-    medium: number; // Partial points
-    high: number; // Low points
-  };
-
-  // Open PRs thresholds
-  openPrs: {
-    excellent: number;
-    good: number;
-    fair: number;
   };
 
   // Popularity thresholds (stars + forks * 2)
@@ -131,15 +106,13 @@ export const MAINTENANCE_CONFIG: MaintenanceConfig = {
   // For a maintenance health tool, activity is the primary signal
   weights: {
     activity: {
-      total: 60,
-      lastCommit: 35,
-      commitVolume: 25,
+      total: 70,
+      lastCommit: 40,
+      commitVolume: 30,
     },
     responsiveness: {
-      total: 20,
-      issueResolution: 8,
-      openIssuesPercent: 8,
-      issueVelocity: 4,
+      total: 10,
+      issueResolution: 10,
     },
     stability: {
       total: 12,
@@ -148,8 +121,7 @@ export const MAINTENANCE_CONFIG: MaintenanceConfig = {
     },
     community: {
       total: 8,
-      openPrs: 4,
-      popularity: 4,
+      popularity: 8,
     },
   },
 
@@ -157,20 +129,19 @@ export const MAINTENANCE_CONFIG: MaintenanceConfig = {
     // Emerging: < 2 years AND < 1k stars - strictest thresholds
     emerging: {
       commitDays: [30, 60, 120, 180],
-      commitVolume: [30, 10, 3],
+      commitVolumeYear: [120, 40, 12], // ~30/quarter, ~10/quarter, ~3/quarter
       releaseDays: [60, 120, 180],
     },
     // Growing: 2-5 years OR 1k-10k stars - moderate thresholds
     growing: {
       commitDays: [60, 120, 180, 365],
-      commitVolume: [20, 5, 1],
+      commitVolumeYear: [80, 20, 4], // ~20/quarter, ~5/quarter, ~1/quarter
       releaseDays: [90, 180, 365],
     },
-    // Mature: 5+ years OR 10k+ stars - relaxed for stable/finished projects
-    // Stable utilities like clsx may not commit for 1-2 years but are still reliable
+    // Mature: 5+ years OR 10k+ stars - relaxed thresholds
     mature: {
-      commitDays: [180, 365, 730, 1095], // 6mo, 1yr, 2yr, 3yr
-      commitVolume: [10, 3, 1],
+      commitDays: [120, 180, 365, 730], // 4mo, 6mo, 1yr, 2yr
+      commitVolumeYear: [40, 12, 4], // ~10/quarter, ~3/quarter, ~1/quarter
       releaseDays: [180, 365, 730], // 6mo, 1yr, 2yr
     },
   },
@@ -187,25 +158,6 @@ export const MAINTENANCE_CONFIG: MaintenanceConfig = {
     good: 30,
     fair: 90,
     poor: 180,
-  },
-
-  openIssuesPercent: {
-    excellent: 20,
-    good: 40,
-    fair: 60,
-    poor: 80,
-  },
-
-  issueVelocity: {
-    low: 10, // 10 or fewer issues in 90 days = low velocity (stable/finished)
-    medium: 30, // 11-30 issues = medium (normal activity)
-    high: 80, // 31-80 = high (popular project), >80 = very high
-  },
-
-  openPrs: {
-    excellent: 10,
-    good: 25,
-    fair: 50,
   },
 
   popularity: {
@@ -238,14 +190,15 @@ export const MAINTENANCE_CATEGORY_INFO: Record<
     description: "Adequately maintained. Some areas may need attention.",
     recommendation: "Safe to adopt. Check for updates periodically.",
   },
-  "at-risk": {
-    label: "At Risk",
+  declining: {
+    label: "Declining",
     description: "Signs of declining maintenance. May not receive updates.",
     recommendation: "Evaluate alternatives. Have a backup plan.",
   },
-  unmaintained: {
-    label: "Unmaintained",
-    description: "Appears abandoned. Unlikely to receive updates or fixes.",
-    recommendation: "Avoid for new projects. Migrate existing usage.",
+  inactive: {
+    label: "Inactive",
+    description:
+      "No recent activity. Could be stable/feature-complete or unmaintained.",
+    recommendation: "Review metrics to determine if stable or abandoned.",
   },
 };

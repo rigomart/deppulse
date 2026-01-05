@@ -1,6 +1,7 @@
 import type { Metadata, ResolvingMetadata } from "next";
 import { Container } from "@/components/container";
 import { getCachedAssessment, getOrAnalyzeProject } from "@/db/queries";
+import { getCategoryFromScore } from "@/lib/maintenance";
 import { CommitActivityChart } from "./_components/commit-activity-chart";
 import { IssueActivityChart } from "./_components/issue-activity-chart";
 import { MaintenanceHealth } from "./_components/maintenance-health";
@@ -29,10 +30,11 @@ export async function generateMetadata(
     };
   }
 
-  const title = `${assessment.fullName} - ${assessment.maintenanceCategory}`;
+  const category = getCategoryFromScore(assessment.maintenanceScore ?? 0);
+  const title = `${assessment.fullName} - ${category}`;
   const description = assessment.description
     ? `${assessment.description} Maintenance score: ${assessment.maintenanceScore}/100. Last analyzed: ${new Date(assessment.analyzedAt).toLocaleDateString()}.`
-    : `Maintenance assessment for ${assessment.fullName}. Score: ${assessment.maintenanceScore}/100. Category: ${assessment.maintenanceCategory}.`;
+    : `Maintenance assessment for ${assessment.fullName}. Score: ${assessment.maintenanceScore}/100. Category: ${category}.`;
 
   return {
     title,
@@ -76,7 +78,7 @@ export default async function ProjectPage({ params }: Props) {
           <div className="grid md:grid-cols-2 gap-4">
             <CommitActivityChart
               commitActivity={assessment.commitActivity}
-              commitsLast90Days={assessment.commitsLast90Days ?? 0}
+              commitsLastYear={assessment.commitsLastYear ?? 0}
             />
             <IssueActivityChart
               issueActivity={assessment.issueActivity}

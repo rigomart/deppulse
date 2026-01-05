@@ -74,7 +74,7 @@ export function IssueActivityChart({
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center justify-between">
-          <span>Issue Activity</span>
+          <span>Issue Activity (1yr)</span>
           <span className="text-muted-foreground font-normal">{statText}</span>
         </CardTitle>
       </CardHeader>

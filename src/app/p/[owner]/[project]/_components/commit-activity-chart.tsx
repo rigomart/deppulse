@@ -13,7 +13,7 @@ import {
 
 interface CommitActivityChartProps {
   commitActivity: Array<{ week: string; commits: number }> | null;
-  commitsLast90Days: number;
+  commitsLastYear: number;
 }
 
 const chartConfig = {
@@ -37,7 +37,7 @@ function addWeekLabels(
 
 export function CommitActivityChart({
   commitActivity,
-  commitsLast90Days,
+  commitsLastYear,
 }: CommitActivityChartProps) {
   const chartData = useMemo(
     () => addWeekLabels(commitActivity ?? []),
@@ -50,9 +50,9 @@ export function CommitActivityChart({
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center justify-between">
-          <span>Commit Activity</span>
+          <span>Commit Activity (1yr)</span>
           <span className="text-muted-foreground font-normal">
-            {commitsLast90Days} commits (90d)
+            {commitsLastYear} commits
           </span>
         </CardTitle>
       </CardHeader>

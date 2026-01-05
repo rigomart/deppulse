@@ -5,14 +5,17 @@ import { Container } from "@/components/container";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getRecentAssessments } from "@/db/queries";
-import type { MaintenanceCategory } from "@/db/schema";
+import {
+  getCategoryFromScore,
+  type MaintenanceCategory,
+} from "@/lib/maintenance";
 import { formatNumber } from "@/lib/utils";
 
 const categoryColors: Record<MaintenanceCategory, string> = {
   healthy: "bg-green-500/15 text-green-400 border-green-500/30",
   moderate: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  "at-risk": "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
-  unmaintained: "bg-red-500/15 text-red-400 border-red-500/30",
+  declining: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+  inactive: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
 };
 
 export async function RecentAnalyses() {
@@ -52,9 +55,9 @@ export async function RecentAnalyses() {
                       </div>
                     </div>
                     <Badge
-                      className={`capitalize shrink-0 border ${categoryColors[assessment.maintenanceCategory as MaintenanceCategory]}`}
+                      className={`capitalize shrink-0 border ${categoryColors[getCategoryFromScore(assessment.maintenanceScore ?? 0)]}`}
                     >
-                      {assessment.maintenanceCategory}
+                      {getCategoryFromScore(assessment.maintenanceScore ?? 0)}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">

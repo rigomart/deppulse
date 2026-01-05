@@ -22,13 +22,13 @@ export interface RepoMetrics {
   repositoryCreatedAt: Date;
   isArchived: boolean;
   daysSinceLastCommit: number | null;
-  commitsLast90Days: number;
+  commitsLastYear: number;
   daysSinceLastRelease: number | null;
   openIssuesPercent: number | null;
   medianIssueResolutionDays: number | null;
   openPrsCount: number;
-  issuesCreatedLast90Days: number;
-  // Historical data for charts
+  issuesCreatedLastYear: number;
+  // Historical data for charts (1 year)
   commitActivity: Array<{ week: string; commits: number }>;
   issueActivity: Array<{ week: string; opened: number; closed: number }>;
   releases: Array<{
@@ -40,7 +40,7 @@ export interface RepoMetrics {
 
 // GraphQL query to fetch all repository metrics in a single request
 const REPO_METRICS_QUERY = `
-  query RepoMetrics($owner: String!, $repo: String!, $since90Days: GitTimestamp!) {
+  query RepoMetrics($owner: String!, $repo: String!) {
     rateLimit {
       limit
       remaining
@@ -65,9 +65,6 @@ const REPO_METRICS_QUERY = `
             history(first: 1) {
               nodes { committedDate }
             }
-            recentHistory: history(since: $since90Days) {
-              totalCount
-            }
           }
         }
       }
@@ -87,7 +84,7 @@ const REPO_METRICS_QUERY = `
 
       openPRs: pullRequests(states: OPEN) { totalCount }
 
-      # Fetch more issues to build activity chart (last 200 most recent)
+      # Fetch issues for activity chart and metrics (1 year)
       recentIssues: issues(first: 100, orderBy: {field: CREATED_AT, direction: DESC}) {
         nodes {
           createdAt
@@ -128,7 +125,6 @@ interface RepoMetricsGraphQLResponse {
     defaultBranchRef: {
       target: {
         history: { nodes: Array<{ committedDate: string }> };
-        recentHistory: { totalCount: number };
       };
     } | null;
     latestRelease: { publishedAt: string } | null;
@@ -171,64 +167,80 @@ const getDaysSince = (dateString: string): number => {
   );
 };
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 /**
  * Fetch commit activity stats from GitHub REST API.
  * Returns weekly commit counts for the last 52 weeks.
+ *
+ * GitHub returns 202 when stats are being computed in the background.
+ * We retry with exponential backoff until data is ready.
  */
 async function fetchCommitActivity(
   owner: string,
   repo: string,
 ): Promise<Array<{ week: string; commits: number }>> {
-  const startTime = Date.now();
+  const url = `https://api.github.com/repos/${owner}/${repo}/stats/commit_activity`;
   const endpoint = `REST /repos/${owner}/${repo}/stats/commit_activity`;
+  const maxRetries = 4;
 
-  const response = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/stats/commit_activity`,
-    {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const startTime = Date.now();
+
+    const response = await fetch(url, {
       headers: {
         Authorization: `token ${process.env.GITHUB_PAT}`,
         Accept: "application/vnd.github.v3+json",
       },
-    },
-  );
-
-  const durationMs = Date.now() - startTime;
-  const rateLimit = parseRestRateLimit(response.headers);
-
-  // Stats API returns 202 when computing stats (not ready yet)
-  // Also handle other non-success cases
-  if (!response.ok || response.status === 202) {
-    logger.githubApi({
-      endpoint: `${endpoint} (${response.status === 202 ? "computing" : response.status})`,
-      durationMs,
-      rateLimit,
     });
-    return [];
+
+    const durationMs = Date.now() - startTime;
+    const rateLimit = parseRestRateLimit(response.headers);
+
+    // 202 means GitHub is computing stats - retry after delay
+    if (response.status === 202) {
+      logger.githubApi({
+        endpoint: `${endpoint} (computing, attempt ${attempt}/${maxRetries})`,
+        durationMs,
+        rateLimit,
+      });
+
+      if (attempt < maxRetries) {
+        await sleep(1000 * attempt); // 1s, 2s, 3s backoff
+        continue;
+      }
+      return [];
+    }
+
+    if (!response.ok) {
+      logger.githubApi({
+        endpoint: `${endpoint} (${response.status})`,
+        durationMs,
+        rateLimit,
+      });
+      return [];
+    }
+
+    const stats = await response.json();
+
+    if (!Array.isArray(stats)) {
+      logger.githubApi({
+        endpoint: `${endpoint} (invalid response)`,
+        durationMs,
+        rateLimit,
+      });
+      return [];
+    }
+
+    logger.githubApi({ endpoint, durationMs, rateLimit });
+
+    return stats.map((stat: CommitActivityStats) => ({
+      week: format(new Date(stat.week * 1000), "yyyy-MM-dd"),
+      commits: stat.total,
+    }));
   }
 
-  const stats = await response.json();
-
-  // Validate response is an array (can be empty object in some cases)
-  if (!Array.isArray(stats)) {
-    logger.githubApi({
-      endpoint: `${endpoint} (invalid response)`,
-      durationMs,
-      rateLimit,
-    });
-    return [];
-  }
-
-  logger.githubApi({
-    endpoint,
-    durationMs,
-    rateLimit,
-  });
-
-  // Transform to our format (week timestamp -> date string)
-  return stats.map((stat: CommitActivityStats) => ({
-    week: format(new Date(stat.week * 1000), "yyyy-MM-dd"),
-    commits: stat.total,
-  }));
+  return [];
 }
 
 /**
@@ -314,15 +326,12 @@ export async function fetchRepoMetrics(
   owner: string,
   repo: string,
 ): Promise<RepoMetrics> {
-  const since90Days = subDays(new Date(), 90).toISOString();
-
   // Run GraphQL and REST API calls in parallel
   const graphqlStartTime = Date.now();
   const [data, commitActivity] = await Promise.all([
     graphqlWithAuth<RepoMetricsGraphQLResponse>(REPO_METRICS_QUERY, {
       owner,
       repo,
-      since90Days,
     }),
     fetchCommitActivity(owner, repo),
   ]);
@@ -350,9 +359,11 @@ export async function fetchRepoMetrics(
     ? getDaysSince(latestCommitDate)
     : null;
 
-  // Commits in last 90 days (exact count via totalCount)
-  const commitsLast90Days =
-    r.defaultBranchRef?.target?.recentHistory?.totalCount ?? 0;
+  // Commits in last year (derived from REST API commit activity data)
+  const commitsLastYear = commitActivity.reduce(
+    (sum, week) => sum + week.commits,
+    0,
+  );
 
   // Latest release
   const daysSinceLastRelease = r.latestRelease?.publishedAt
@@ -384,24 +395,23 @@ export async function fetchRepoMetrics(
   // Open PRs (exact count)
   const openPrsCount = r.openPRs.totalCount;
 
-  // Process recent issues for resolution time and velocity
-  const ninetyDaysAgo = subDays(new Date(), 90);
-  const sixMonthsAgo = subDays(new Date(), 180);
+  // Process recent issues for resolution time and velocity (1 year)
+  const oneYearAgo = subYears(new Date(), 1);
   const closedIssueResolutionDays: number[] = [];
-  let issuesCreatedLast90Days = 0;
+  let issuesCreatedLastYear = 0;
 
   for (const issue of r.recentIssues.nodes) {
     const createdAt = new Date(issue.createdAt);
 
-    // Count issues created in last 90 days
-    if (createdAt >= ninetyDaysAgo) {
-      issuesCreatedLast90Days++;
+    // Count issues created in last year
+    if (createdAt >= oneYearAgo) {
+      issuesCreatedLastYear++;
     }
 
-    // Calculate resolution time for recently closed issues
+    // Calculate resolution time for issues closed in last year
     if (issue.state === "CLOSED" && issue.closedAt) {
       const closedAt = new Date(issue.closedAt);
-      if (closedAt >= sixMonthsAgo) {
+      if (closedAt >= oneYearAgo) {
         const resolutionDays = Math.floor(
           (closedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24),
         );
@@ -424,12 +434,12 @@ export async function fetchRepoMetrics(
     repositoryCreatedAt: new Date(r.createdAt),
     isArchived: r.isArchived,
     daysSinceLastCommit,
-    commitsLast90Days,
+    commitsLastYear,
     daysSinceLastRelease,
     openIssuesPercent,
     medianIssueResolutionDays,
     openPrsCount,
-    issuesCreatedLast90Days,
+    issuesCreatedLastYear,
     commitActivity,
     issueActivity,
     releases,

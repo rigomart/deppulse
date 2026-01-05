@@ -25,10 +25,10 @@ describe("special cases", () => {
     const result = calculateMaintenanceScore({
       isArchived: true,
       daysSinceLastCommit: 1,
-      commitsLast90Days: 100,
+      commitsLastYear: 100,
       openIssuesPercent: 10,
       medianIssueResolutionDays: 5,
-      issuesCreatedLast90Days: 10,
+      issuesCreatedLastYear: 10,
       daysSinceLastRelease: 7,
       repositoryCreatedAt: yearsAgo(5),
       openPrsCount: 5,
@@ -36,16 +36,16 @@ describe("special cases", () => {
       forks: 5000,
     });
     expect(result.score).toBe(0);
-    expect(result.category).toBe("unmaintained");
+    expect(result.category).toBe("inactive");
   });
 
   it("handles null values gracefully", () => {
     const result = calculateMaintenanceScore({
       daysSinceLastCommit: null,
-      commitsLast90Days: 20,
+      commitsLastYear: 20,
       openIssuesPercent: null,
       medianIssueResolutionDays: null,
-      issuesCreatedLast90Days: 5,
+      issuesCreatedLastYear: 5,
       daysSinceLastRelease: null,
       repositoryCreatedAt: null,
       openPrsCount: 5,
@@ -62,10 +62,10 @@ describe("scenario-based scoring", () => {
   it("actively maintained project → healthy", () => {
     const result = calculateMaintenanceScore({
       daysSinceLastCommit: 5,
-      commitsLast90Days: 50,
+      commitsLastYear: 50,
       openIssuesPercent: 25,
       medianIssueResolutionDays: 7,
-      issuesCreatedLast90Days: 20,
+      issuesCreatedLastYear: 20,
       daysSinceLastRelease: 30,
       repositoryCreatedAt: yearsAgo(5),
       openPrsCount: 10,
@@ -76,30 +76,31 @@ describe("scenario-based scoring", () => {
     expect(result.category).toBe("healthy");
   });
 
-  it("stable finished utility → moderate", () => {
+  it("stable finished utility with recent activity → moderate", () => {
+    // A truly stable utility with occasional maintenance activity
     const result = calculateMaintenanceScore({
-      daysSinceLastCommit: 400,
-      commitsLast90Days: 0,
+      daysSinceLastCommit: 100, // Within 120 days for mature tier = full points
+      commitsLastYear: 0,
       openIssuesPercent: 15,
-      medianIssueResolutionDays: null,
-      issuesCreatedLast90Days: 2,
-      daysSinceLastRelease: 400,
+      medianIssueResolutionDays: 30, // Issues are being resolved
+      issuesCreatedLastYear: 2,
+      daysSinceLastRelease: 100,
       repositoryCreatedAt: yearsAgo(6),
       openPrsCount: 5,
-      stars: 8000,
+      stars: 12000, // Mature tier (10k+)
       forks: 500,
       isArchived: false,
     });
     expect(["moderate", "healthy"]).toContain(result.category);
   });
 
-  it("slowing project with issues piling up → at-risk", () => {
+  it("slowing project with issues piling up → declining", () => {
     const result = calculateMaintenanceScore({
       daysSinceLastCommit: 200,
-      commitsLast90Days: 2,
+      commitsLastYear: 8, // Some activity but slowing down
       openIssuesPercent: 55,
       medianIssueResolutionDays: null,
-      issuesCreatedLast90Days: 5,
+      issuesCreatedLastYear: 20,
       daysSinceLastRelease: 200,
       repositoryCreatedAt: yearsAgo(2.5),
       openPrsCount: 15,
@@ -107,16 +108,16 @@ describe("scenario-based scoring", () => {
       forks: 200,
       isArchived: false,
     });
-    expect(result.category).toBe("at-risk");
+    expect(result.category).toBe("declining");
   });
 
-  it("abandoned project with high open issues → unmaintained", () => {
+  it("abandoned project → inactive", () => {
     const result = calculateMaintenanceScore({
       daysSinceLastCommit: 500,
-      commitsLast90Days: 0,
+      commitsLastYear: 0,
       openIssuesPercent: 70,
       medianIssueResolutionDays: null,
-      issuesCreatedLast90Days: 3,
+      issuesCreatedLastYear: 3,
       daysSinceLastRelease: 600,
       repositoryCreatedAt: yearsAgo(4),
       openPrsCount: 20,
@@ -124,7 +125,7 @@ describe("scenario-based scoring", () => {
       forks: 500,
       isArchived: false,
     });
-    expect(result.category).toBe("unmaintained");
+    expect(result.category).toBe("inactive");
   });
 });
 
@@ -132,10 +133,10 @@ describe("real-world reference projects", () => {
   it("axios (actively maintained) → healthy", () => {
     const result = calculateMaintenanceScore({
       daysSinceLastCommit: 5,
-      commitsLast90Days: 30,
+      commitsLastYear: 30,
       openIssuesPercent: 35,
       medianIssueResolutionDays: 14,
-      issuesCreatedLast90Days: 50,
+      issuesCreatedLastYear: 50,
       daysSinceLastRelease: 30,
       repositoryCreatedAt: yearsAgo(10),
       openPrsCount: 20,
@@ -146,13 +147,16 @@ describe("real-world reference projects", () => {
     expect(result.category).toBe("healthy");
   });
 
-  it("clsx (stable utility, 621 days inactive) → moderate", () => {
+  it("clsx (stable utility, 621 days inactive) → declining or inactive", () => {
+    // clsx is a stable utility but with 621 days of no activity and no
+    // issue resolution, it scores lower under the new system. Users can
+    // see the metrics and decide - the tool surfaces the data honestly.
     const result = calculateMaintenanceScore({
       daysSinceLastCommit: 621,
-      commitsLast90Days: 0,
+      commitsLastYear: 0,
       openIssuesPercent: 13,
       medianIssueResolutionDays: null,
-      issuesCreatedLast90Days: 2,
+      issuesCreatedLastYear: 2,
       daysSinceLastRelease: 621,
       repositoryCreatedAt: new Date("2018-12-24"),
       openPrsCount: 6,
@@ -160,23 +164,22 @@ describe("real-world reference projects", () => {
       forks: 162,
       isArchived: false,
     });
-    expect(["moderate", "healthy"]).toContain(result.category);
+    expect(["declining", "inactive"]).toContain(result.category);
   });
 
-  it("stitches (no activity, low open issues %) → at-risk", () => {
+  it("stitches (no activity) → inactive", () => {
     // Real stitches data as of Jan 2026:
     // - 930 days since commit (2.5+ years)
     // - 1350 days since release (3.7+ years)
-    // - 0 issues created
-    // - 16.9% open issues
-    // With activity-heavy weights, zero activity pulls score down to at-risk
-    // despite "good" issue metrics. Users see the metrics and decide.
+    // - No issues closed recently
+    // With activity-heavy weights (70%) and no free points for null values,
+    // zero activity results in inactive classification.
     const result = calculateMaintenanceScore({
       daysSinceLastCommit: 930,
-      commitsLast90Days: 0,
+      commitsLastYear: 0,
       openIssuesPercent: 16.9,
       medianIssueResolutionDays: null,
-      issuesCreatedLast90Days: 0,
+      issuesCreatedLastYear: 0,
       daysSinceLastRelease: 1350,
       repositoryCreatedAt: new Date("2020-04-14"),
       openPrsCount: 8,
@@ -184,16 +187,16 @@ describe("real-world reference projects", () => {
       forks: 261,
       isArchived: false,
     });
-    expect(result.category).toBe("at-risk");
+    expect(result.category).toBe("inactive");
   });
 
-  it("ts-rest (slowing down, high open issues) → at-risk", () => {
+  it("ts-rest (slowing down, high open issues) → declining", () => {
     const result = calculateMaintenanceScore({
       daysSinceLastCommit: 210,
-      commitsLast90Days: 2,
+      commitsLastYear: 10, // Some activity but slowing down
       openIssuesPercent: 55,
       medianIssueResolutionDays: null,
-      issuesCreatedLast90Days: 5,
+      issuesCreatedLastYear: 20,
       daysSinceLastRelease: 210,
       repositoryCreatedAt: yearsAgo(2.5),
       openPrsCount: 15,
@@ -201,7 +204,7 @@ describe("real-world reference projects", () => {
       forks: 174,
       isArchived: false,
     });
-    expect(result.category).toBe("at-risk");
+    expect(result.category).toBe("declining");
   });
 });
 
@@ -210,8 +213,8 @@ describe("MAINTENANCE_CATEGORY_INFO", () => {
     const categories: MaintenanceCategory[] = [
       "healthy",
       "moderate",
-      "at-risk",
-      "unmaintained",
+      "declining",
+      "inactive",
     ];
     for (const category of categories) {
       expect(MAINTENANCE_CATEGORY_INFO[category]).toBeDefined();

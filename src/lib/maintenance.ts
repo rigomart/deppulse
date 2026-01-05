@@ -10,16 +10,17 @@ export { MAINTENANCE_CATEGORY_INFO };
 
 /**
  * Input metrics for maintenance score calculation.
+ * All time-based metrics use a 1-year timeframe for consistency.
  */
 export interface MaintenanceInput {
   // Activity metrics
   daysSinceLastCommit: number | null;
-  commitsLast90Days: number;
+  commitsLastYear: number;
 
   // Responsiveness metrics
   openIssuesPercent: number | null;
   medianIssueResolutionDays: number | null;
-  issuesCreatedLast90Days: number;
+  issuesCreatedLastYear: number;
 
   // Stability metrics
   daysSinceLastRelease: number | null;
@@ -97,11 +98,11 @@ function scoreLastCommit(days: number | null, tier: MaturityTier): number {
 }
 
 /**
- * Scores commit volume in the last 90 days based on maturity tier thresholds.
+ * Scores commit volume in the last year based on maturity tier thresholds.
  */
 function scoreCommitVolume(commits: number, tier: MaturityTier): number {
   const maxPoints = MAINTENANCE_CONFIG.weights.activity.commitVolume;
-  const thresholds = MAINTENANCE_CONFIG.maturityTiers[tier].commitVolume;
+  const thresholds = MAINTENANCE_CONFIG.maturityTiers[tier].commitVolumeYear;
 
   if (commits >= thresholds[0]) return maxPoints;
   if (commits >= thresholds[1]) return Math.round(maxPoints * 0.65);
@@ -111,25 +112,14 @@ function scoreCommitVolume(commits: number, tier: MaturityTier): number {
 
 /**
  * Scores issue resolution time (median days to close issues).
- * Also considers open issues % - if issues are piling up and none are being
- * resolved recently, that's abandonment not stability.
+ * No recently closed issues = 0 points (no free points for lack of data).
  */
-function scoreIssueResolution(
-  days: number | null,
-  openIssuesPercent: number | null,
-): number {
+function scoreIssueResolution(days: number | null): number {
   const maxPoints = MAINTENANCE_CONFIG.weights.responsiveness.issueResolution;
   const thresholds = MAINTENANCE_CONFIG.issueResolution;
 
-  // No recently closed issues
-  if (days === null) {
-    // If open issues are high, no resolution is BAD (abandonment)
-    if (openIssuesPercent !== null && openIssuesPercent > 50) {
-      return 0;
-    }
-    // Otherwise neutral (could be stable with few issues)
-    return Math.round(maxPoints * 0.4);
-  }
+  // No recently closed issues = no evidence of responsiveness
+  if (days === null) return 0;
 
   if (days <= thresholds.excellent) return maxPoints;
   if (days <= thresholds.good) return Math.round(maxPoints * 0.8);
@@ -139,57 +129,15 @@ function scoreIssueResolution(
 }
 
 /**
- * Scores open issues percentage.
- */
-function scoreOpenIssuesPercent(percent: number | null): number {
-  const maxPoints = MAINTENANCE_CONFIG.weights.responsiveness.openIssuesPercent;
-  const thresholds = MAINTENANCE_CONFIG.openIssuesPercent;
-
-  // No issues at all = slight positive (no issues is usually good)
-  if (percent === null) return Math.round(maxPoints * 0.6);
-
-  if (percent <= thresholds.excellent) return maxPoints;
-  if (percent <= thresholds.good) return Math.round(maxPoints * 0.75);
-  if (percent <= thresholds.fair) return Math.round(maxPoints * 0.4);
-  if (percent <= thresholds.poor) return Math.round(maxPoints * 0.15);
-  return 0;
-}
-
-/**
- * Scores issue velocity (issues created in last 90 days).
- * Lower velocity = higher score, BUT only when open issues % is also low.
- * If open issues are piling up (high %) and velocity is low, that means
- * people gave up filing - which is abandonment, not stability.
- */
-function scoreIssueVelocity(
-  issuesCreated: number,
-  openIssuesPercent: number | null,
-): number {
-  const maxPoints = MAINTENANCE_CONFIG.weights.responsiveness.issueVelocity;
-  const thresholds = MAINTENANCE_CONFIG.issueVelocity;
-
-  // If open issues are high (>50%) and velocity is low, people gave up - no points
-  const issuesArePilingUp =
-    openIssuesPercent !== null && openIssuesPercent > 50;
-  if (issuesArePilingUp && issuesCreated <= thresholds.medium) {
-    return 0; // Low velocity + high open issues = abandonment, not stability
-  }
-
-  if (issuesCreated <= thresholds.low) return maxPoints;
-  if (issuesCreated <= thresholds.medium) return Math.round(maxPoints * 0.65);
-  if (issuesCreated <= thresholds.high) return Math.round(maxPoints * 0.3);
-  return 0;
-}
-
-/**
  * Scores release recency based on maturity tier thresholds.
+ * No releases = 0 points (well-maintained projects use releases).
  */
 function scoreReleaseRecency(days: number | null, tier: MaturityTier): number {
   const maxPoints = MAINTENANCE_CONFIG.weights.stability.releaseRecency;
   const thresholds = MAINTENANCE_CONFIG.maturityTiers[tier].releaseDays;
 
-  // No releases = slight penalty (prefer projects with releases)
-  if (days === null) return Math.round(maxPoints * 0.4);
+  // No releases = no evidence of release management
+  if (days === null) return 0;
 
   if (days <= thresholds[0]) return maxPoints;
   if (days <= thresholds[1]) return Math.round(maxPoints * 0.65);
@@ -217,19 +165,6 @@ function scoreProjectAge(createdAt: Date | null): number {
 }
 
 /**
- * Scores open PRs count.
- */
-function scoreOpenPrs(count: number): number {
-  const maxPoints = MAINTENANCE_CONFIG.weights.community.openPrs;
-  const thresholds = MAINTENANCE_CONFIG.openPrs;
-
-  if (count <= thresholds.excellent) return maxPoints;
-  if (count <= thresholds.good) return Math.round(maxPoints * 0.7);
-  if (count <= thresholds.fair) return Math.round(maxPoints * 0.4);
-  return 0;
-}
-
-/**
  * Scores popularity based on stars and forks.
  */
 function scorePopularity(stars: number, forks: number): number {
@@ -247,14 +182,15 @@ function scorePopularity(stars: number, forks: number): number {
 
 /**
  * Determines category from score.
+ * Exported for use when computing category from stored score.
  */
-function categoryFromScore(score: number): MaintenanceCategory {
+export function getCategoryFromScore(score: number): MaintenanceCategory {
   const { categoryThresholds } = MAINTENANCE_CONFIG;
 
   if (score >= categoryThresholds.healthy) return "healthy";
   if (score >= categoryThresholds.moderate) return "moderate";
-  if (score >= categoryThresholds.atRisk) return "at-risk";
-  return "unmaintained";
+  if (score >= categoryThresholds.atRisk) return "declining";
+  return "inactive";
 }
 
 /**
@@ -268,7 +204,7 @@ export function calculateMaintenanceScore(
   if (input.isArchived) {
     return {
       score: 0,
-      category: "unmaintained",
+      category: "inactive",
       maturityTier: "mature", // Archived repos were typically mature
     };
   }
@@ -283,23 +219,17 @@ export function calculateMaintenanceScore(
   // Calculate component scores
   const activityScore =
     scoreLastCommit(input.daysSinceLastCommit, maturityTier) +
-    scoreCommitVolume(input.commitsLast90Days, maturityTier);
+    scoreCommitVolume(input.commitsLastYear, maturityTier);
 
-  const responsivenessScore =
-    scoreIssueResolution(
-      input.medianIssueResolutionDays,
-      input.openIssuesPercent,
-    ) +
-    scoreOpenIssuesPercent(input.openIssuesPercent) +
-    scoreIssueVelocity(input.issuesCreatedLast90Days, input.openIssuesPercent);
+  const responsivenessScore = scoreIssueResolution(
+    input.medianIssueResolutionDays,
+  );
 
   const stabilityScore =
     scoreReleaseRecency(input.daysSinceLastRelease, maturityTier) +
     scoreProjectAge(input.repositoryCreatedAt);
 
-  const communityScore =
-    scoreOpenPrs(input.openPrsCount) +
-    scorePopularity(input.stars, input.forks);
+  const communityScore = scorePopularity(input.stars, input.forks);
 
   // Total score (capped at 100)
   const score = Math.min(
@@ -309,7 +239,7 @@ export function calculateMaintenanceScore(
 
   return {
     score,
-    category: categoryFromScore(score),
+    category: getCategoryFromScore(score),
     maturityTier,
   };
 }

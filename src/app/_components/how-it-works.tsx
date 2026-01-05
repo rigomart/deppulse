@@ -13,8 +13,8 @@ const { categoryThresholds, weights, maturityCriteria } = MAINTENANCE_CONFIG;
 const categoryColors = {
   healthy: "bg-green-500/15 text-green-400 border-green-500/30",
   moderate: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  "at-risk": "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
-  unmaintained: "bg-red-500/15 text-red-400 border-red-500/30",
+  declining: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+  inactive: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
 };
 
 export function HowItWorks() {
@@ -59,9 +59,9 @@ export function HowItWorks() {
                   </li>
                   <li className="flex items-start gap-2">
                     <Badge
-                      className={`shrink-0 border ${categoryColors["at-risk"]}`}
+                      className={`shrink-0 border ${categoryColors.declining}`}
                     >
-                      At Risk
+                      Declining
                     </Badge>
                     <span className="text-muted-foreground">
                       {categoryThresholds.atRisk}-
@@ -71,13 +71,13 @@ export function HowItWorks() {
                   </li>
                   <li className="flex items-start gap-2">
                     <Badge
-                      className={`shrink-0 border ${categoryColors.unmaintained}`}
+                      className={`shrink-0 border ${categoryColors.inactive}`}
                     >
-                      Unmaintained
+                      Inactive
                     </Badge>
                     <span className="text-muted-foreground">
-                      0-{categoryThresholds.atRisk - 1}: Appears abandoned,
-                      avoid for new projects
+                      0-{categoryThresholds.atRisk - 1}: No recent activity.
+                      Could be stable/feature-complete or unmaintained
                     </span>
                   </li>
                 </ul>
@@ -109,16 +109,8 @@ export function HowItWorks() {
                   </h4>
                   <ul className="space-y-1 text-sm text-muted-foreground">
                     <li>
-                      Open issues percentage (
-                      {weights.responsiveness.openIssuesPercent} pts)
-                    </li>
-                    <li>
                       Issue resolution time (
                       {weights.responsiveness.issueResolution} pts)
-                    </li>
-                    <li>
-                      Issue velocity ({weights.responsiveness.issueVelocity}{" "}
-                      pts)
                     </li>
                   </ul>
                 </div>
@@ -138,9 +130,6 @@ export function HowItWorks() {
                     Community ({weights.community.total}%)
                   </h4>
                   <ul className="space-y-1 text-sm text-muted-foreground">
-                    <li>
-                      Open pull requests ({weights.community.openPrs} pts)
-                    </li>
                     <li>
                       Stars and forks ({weights.community.popularity} pts)
                     </li>
@@ -185,10 +174,11 @@ export function HowItWorks() {
                   </li>
                 </ul>
                 <p className="text-sm">
-                  <strong className="text-foreground">Note:</strong> Low open
-                  issue percentage and low issue velocity distinguish genuinely
-                  finished projects from abandoned ones. Projects with many
-                  unresolved issues are penalized regardless of maturity.
+                  <strong className="text-foreground">Note:</strong> Activity is
+                  weighted heavily ({weights.activity.total}%) because commits
+                  are the strongest signal of ongoing maintenance. Even mature
+                  projects need occasional activity to show they&apos;re not
+                  abandoned.
                 </p>
               </div>
             </AccordionContent>
