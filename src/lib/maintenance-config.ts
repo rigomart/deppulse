@@ -126,17 +126,20 @@ export const MAINTENANCE_CONFIG: MaintenanceConfig = {
     atRisk: 20,
   },
 
+  // Weight distribution (sums to 100)
+  // Activity is weighted most heavily - no commits = not maintained
+  // For a maintenance health tool, activity is the primary signal
   weights: {
     activity: {
-      total: 40,
-      lastCommit: 25,
-      commitVolume: 15,
+      total: 60,
+      lastCommit: 35,
+      commitVolume: 25,
     },
     responsiveness: {
-      total: 40,
-      issueResolution: 15,
-      openIssuesPercent: 15,
-      issueVelocity: 10,
+      total: 20,
+      issueResolution: 8,
+      openIssuesPercent: 8,
+      issueVelocity: 4,
     },
     stability: {
       total: 12,

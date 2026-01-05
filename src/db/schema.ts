@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgTable,
   real,
   serial,
@@ -34,6 +35,18 @@ export const assessments = pgTable(
     openPrsCount: integer("open_prs_count"),
     issuesCreatedLast90Days: integer("issues_created_last_90_days"),
     isArchived: boolean("is_archived").default(false),
+    commitActivity:
+      jsonb("commit_activity").$type<
+        Array<{ week: string; commits: number }>
+      >(),
+    issueActivity:
+      jsonb("issue_activity").$type<
+        Array<{ week: string; opened: number; closed: number }>
+      >(),
+    releases:
+      jsonb("releases").$type<
+        Array<{ tagName: string; name: string | null; publishedAt: string }>
+      >(),
     maintenanceCategory: text("maintenance_category").notNull(),
     maintenanceScore: integer("maintenance_score"),
     maturityTier: text("maturity_tier"),

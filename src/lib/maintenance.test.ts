@@ -163,21 +163,28 @@ describe("real-world reference projects", () => {
     expect(["moderate", "healthy"]).toContain(result.category);
   });
 
-  it("stitches (explicitly unmaintained) → unmaintained", () => {
+  it("stitches (no activity, low open issues %) → at-risk", () => {
+    // Real stitches data as of Jan 2026:
+    // - 930 days since commit (2.5+ years)
+    // - 1350 days since release (3.7+ years)
+    // - 0 issues created
+    // - 16.9% open issues
+    // With activity-heavy weights, zero activity pulls score down to at-risk
+    // despite "good" issue metrics. Users see the metrics and decide.
     const result = calculateMaintenanceScore({
-      daysSinceLastCommit: 570,
+      daysSinceLastCommit: 930,
       commitsLast90Days: 0,
-      openIssuesPercent: 55,
+      openIssuesPercent: 16.9,
       medianIssueResolutionDays: null,
-      issuesCreatedLast90Days: 2,
-      daysSinceLastRelease: 980,
-      repositoryCreatedAt: yearsAgo(4.7),
-      openPrsCount: 15,
+      issuesCreatedLast90Days: 0,
+      daysSinceLastRelease: 1350,
+      repositoryCreatedAt: new Date("2020-04-14"),
+      openPrsCount: 8,
       stars: 7805,
       forks: 261,
       isArchived: false,
     });
-    expect(result.category).toBe("unmaintained");
+    expect(result.category).toBe("at-risk");
   });
 
   it("ts-rest (slowing down, high open issues) → at-risk", () => {

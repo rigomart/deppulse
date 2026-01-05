@@ -1,7 +1,8 @@
 import "server-only";
 
 import { graphql } from "@octokit/graphql";
-import { subDays } from "date-fns";
+import { format, startOfWeek, subDays, subYears } from "date-fns";
+import { logger, parseGraphQLRateLimit, parseRestRateLimit } from "./logger";
 
 const graphqlWithAuth = graphql.defaults({
   headers: {
@@ -27,11 +28,25 @@ export interface RepoMetrics {
   medianIssueResolutionDays: number | null;
   openPrsCount: number;
   issuesCreatedLast90Days: number;
+  // Historical data for charts
+  commitActivity: Array<{ week: string; commits: number }>;
+  issueActivity: Array<{ week: string; opened: number; closed: number }>;
+  releases: Array<{
+    tagName: string;
+    name: string | null;
+    publishedAt: string;
+  }>;
 }
 
 // GraphQL query to fetch all repository metrics in a single request
 const REPO_METRICS_QUERY = `
   query RepoMetrics($owner: String!, $repo: String!, $since90Days: GitTimestamp!) {
+    rateLimit {
+      limit
+      remaining
+      cost
+      resetAt
+    }
     repository(owner: $owner, name: $repo) {
       nameWithOwner
       description
@@ -59,11 +74,20 @@ const REPO_METRICS_QUERY = `
 
       latestRelease { publishedAt }
 
+      releases(first: 20, orderBy: {field: CREATED_AT, direction: DESC}) {
+        nodes {
+          tagName
+          name
+          publishedAt
+        }
+      }
+
       openIssues: issues(states: OPEN) { totalCount }
       closedIssues: issues(states: CLOSED) { totalCount }
 
       openPRs: pullRequests(states: OPEN) { totalCount }
 
+      # Fetch more issues to build activity chart (last 200 most recent)
       recentIssues: issues(first: 100, orderBy: {field: CREATED_AT, direction: DESC}) {
         nodes {
           createdAt
@@ -71,11 +95,25 @@ const REPO_METRICS_QUERY = `
           state
         }
       }
+
+      # Fetch recently closed issues to capture close events
+      recentlyClosedIssues: issues(first: 100, states: CLOSED, orderBy: {field: UPDATED_AT, direction: DESC}) {
+        nodes {
+          createdAt
+          closedAt
+        }
+      }
     }
   }
 `;
 
 interface RepoMetricsGraphQLResponse {
+  rateLimit: {
+    limit: number;
+    remaining: number;
+    cost: number;
+    resetAt: string;
+  };
   repository: {
     nameWithOwner: string;
     description: string | null;
@@ -94,6 +132,13 @@ interface RepoMetricsGraphQLResponse {
       };
     } | null;
     latestRelease: { publishedAt: string } | null;
+    releases: {
+      nodes: Array<{
+        tagName: string;
+        name: string | null;
+        publishedAt: string;
+      }>;
+    };
     openIssues: { totalCount: number };
     closedIssues: { totalCount: number };
     openPRs: { totalCount: number };
@@ -104,7 +149,20 @@ interface RepoMetricsGraphQLResponse {
         state: "OPEN" | "CLOSED";
       }>;
     };
+    recentlyClosedIssues: {
+      nodes: Array<{
+        createdAt: string;
+        closedAt: string;
+      }>;
+    };
   } | null;
+}
+
+// GitHub REST API response for commit activity stats
+interface CommitActivityStats {
+  days: number[]; // Sun-Sat commit counts
+  total: number;
+  week: number; // Unix timestamp
 }
 
 const getDaysSince = (dateString: string): number => {
@@ -112,6 +170,129 @@ const getDaysSince = (dateString: string): number => {
     (Date.now() - new Date(dateString).getTime()) / (1000 * 60 * 60 * 24),
   );
 };
+
+/**
+ * Fetch commit activity stats from GitHub REST API.
+ * Returns weekly commit counts for the last 52 weeks.
+ */
+async function fetchCommitActivity(
+  owner: string,
+  repo: string,
+): Promise<Array<{ week: string; commits: number }>> {
+  const startTime = Date.now();
+  const endpoint = `REST /repos/${owner}/${repo}/stats/commit_activity`;
+
+  const response = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/stats/commit_activity`,
+    {
+      headers: {
+        Authorization: `token ${process.env.GITHUB_PAT}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+    },
+  );
+
+  const durationMs = Date.now() - startTime;
+  const rateLimit = parseRestRateLimit(response.headers);
+
+  // Stats API returns 202 when computing stats (not ready yet)
+  // Also handle other non-success cases
+  if (!response.ok || response.status === 202) {
+    logger.githubApi({
+      endpoint: `${endpoint} (${response.status === 202 ? "computing" : response.status})`,
+      durationMs,
+      rateLimit,
+    });
+    return [];
+  }
+
+  const stats = await response.json();
+
+  // Validate response is an array (can be empty object in some cases)
+  if (!Array.isArray(stats)) {
+    logger.githubApi({
+      endpoint: `${endpoint} (invalid response)`,
+      durationMs,
+      rateLimit,
+    });
+    return [];
+  }
+
+  logger.githubApi({
+    endpoint,
+    durationMs,
+    rateLimit,
+  });
+
+  // Transform to our format (week timestamp -> date string)
+  return stats.map((stat: CommitActivityStats) => ({
+    week: format(new Date(stat.week * 1000), "yyyy-MM-dd"),
+    commits: stat.total,
+  }));
+}
+
+/**
+ * Aggregates issues by week for the activity chart.
+ * Returns opened and closed counts per week for the last 52 weeks.
+ */
+function buildIssueActivity(
+  recentIssues: Array<{
+    createdAt: string;
+    closedAt: string | null;
+    state: "OPEN" | "CLOSED";
+  }>,
+  recentlyClosedIssues: Array<{ createdAt: string; closedAt: string }>,
+): Array<{ week: string; opened: number; closed: number }> {
+  const oneYearAgo = subYears(new Date(), 1);
+  const weekMap = new Map<string, { opened: number; closed: number }>();
+
+  // Initialize last 52 weeks
+  for (let i = 0; i < 52; i++) {
+    const weekDate = subDays(new Date(), i * 7);
+    const weekStart = startOfWeek(weekDate, { weekStartsOn: 0 });
+    const key = format(weekStart, "yyyy-MM-dd");
+    weekMap.set(key, { opened: 0, closed: 0 });
+  }
+
+  // Count issues opened per week
+  for (const issue of recentIssues) {
+    const createdAt = new Date(issue.createdAt);
+    if (createdAt >= oneYearAgo) {
+      const weekStart = startOfWeek(createdAt, { weekStartsOn: 0 });
+      const key = format(weekStart, "yyyy-MM-dd");
+      const existing = weekMap.get(key);
+      if (existing) {
+        existing.opened++;
+      }
+    }
+  }
+
+  // Count issues closed per week from both sources
+  const closedIssues = [
+    ...recentIssues.filter((i) => i.closedAt).map((i) => i.closedAt as string),
+    ...recentlyClosedIssues.map((i) => i.closedAt),
+  ];
+
+  // Deduplicate by using Set
+  const uniqueClosedDates = new Set(closedIssues);
+
+  for (const closedAt of uniqueClosedDates) {
+    const closedDate = new Date(closedAt);
+    if (closedDate >= oneYearAgo) {
+      const weekStart = startOfWeek(closedDate, { weekStartsOn: 0 });
+      const key = format(weekStart, "yyyy-MM-dd");
+      const existing = weekMap.get(key);
+      if (existing) {
+        existing.closed++;
+      }
+    }
+  }
+
+  // Convert to sorted array
+  return Array.from(weekMap.entries())
+    .map(([week, data]) => ({ week, ...data }))
+    .sort((a, b) => a.week.localeCompare(b.week));
+}
 
 const getMedian = (numbers: number[]): number | null => {
   if (numbers.length === 0) return null;
@@ -135,10 +316,26 @@ export async function fetchRepoMetrics(
 ): Promise<RepoMetrics> {
   const since90Days = subDays(new Date(), 90).toISOString();
 
-  const data = await graphqlWithAuth<RepoMetricsGraphQLResponse>(
-    REPO_METRICS_QUERY,
-    { owner, repo, since90Days },
-  );
+  // Run GraphQL and REST API calls in parallel
+  const graphqlStartTime = Date.now();
+  const [data, commitActivity] = await Promise.all([
+    graphqlWithAuth<RepoMetricsGraphQLResponse>(REPO_METRICS_QUERY, {
+      owner,
+      repo,
+      since90Days,
+    }),
+    fetchCommitActivity(owner, repo),
+  ]);
+  const graphqlDuration = Date.now() - graphqlStartTime;
+
+  // Log GraphQL request with rate limit info
+  const rateLimitInfo = parseGraphQLRateLimit(data.rateLimit);
+  logger.githubApi({
+    endpoint: `GraphQL RepoMetrics (${owner}/${repo})`,
+    durationMs: graphqlDuration,
+    cost: rateLimitInfo?.cost,
+    rateLimit: rateLimitInfo?.rateLimit,
+  });
 
   if (!data.repository) {
     throw new Error(`Repository ${owner}/${repo} not found`);
@@ -161,6 +358,19 @@ export async function fetchRepoMetrics(
   const daysSinceLastRelease = r.latestRelease?.publishedAt
     ? getDaysSince(r.latestRelease.publishedAt)
     : null;
+
+  // Release history for charts
+  const releases = r.releases.nodes.map((release) => ({
+    tagName: release.tagName,
+    name: release.name,
+    publishedAt: release.publishedAt,
+  }));
+
+  // Build issue activity chart data
+  const issueActivity = buildIssueActivity(
+    r.recentIssues.nodes,
+    r.recentlyClosedIssues.nodes,
+  );
 
   // Open issues percentage (exact counts)
   const openIssuesCount = r.openIssues.totalCount;
@@ -220,5 +430,8 @@ export async function fetchRepoMetrics(
     medianIssueResolutionDays,
     openPrsCount,
     issuesCreatedLast90Days,
+    commitActivity,
+    issueActivity,
+    releases,
   };
 }

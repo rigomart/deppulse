@@ -1,11 +1,4 @@
-import {
-  AlertCircle,
-  Calendar,
-  Clock,
-  GitCommitHorizontal,
-  GitPullRequest,
-  Tag,
-} from "lucide-react";
+import { AlertCircle, Clock, GitPullRequest } from "lucide-react";
 import { Container } from "@/components/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Assessment } from "@/db/schema";
@@ -18,24 +11,6 @@ const fmt = (val: number | null, suffix: string): string =>
 
 export function MaintenanceHealth({ assessment }: { assessment: Assessment }) {
   const metrics = [
-    {
-      title: "Last Commit",
-      value: fmt(assessment.daysSinceLastCommit, "d ago"),
-      icon: <Calendar className={iconClass} />,
-      description: "Days since most recent commit",
-    },
-    {
-      title: "Commits (90d)",
-      value: assessment.commitsLast90Days ?? "N/A",
-      icon: <GitCommitHorizontal className={iconClass} />,
-      description: "Recent activity level",
-    },
-    {
-      title: "Last Release",
-      value: fmt(assessment.daysSinceLastRelease, "d ago"),
-      icon: <Tag className={iconClass} />,
-      description: "Release cadence",
-    },
     {
       title: "Open Issues",
       value: fmt(assessment.openIssuesPercent, "%"),
@@ -60,9 +35,9 @@ export function MaintenanceHealth({ assessment }: { assessment: Assessment }) {
     <Container>
       <section className="space-y-4">
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-          Maintenance Health
+          Responsiveness
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           {metrics.map((metric) => (
             <Card key={metric.title}>
               <CardHeader className="flex flex-row items-center justify-between">

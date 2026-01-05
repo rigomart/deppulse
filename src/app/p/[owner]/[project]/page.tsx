@@ -1,5 +1,8 @@
 import type { Metadata, ResolvingMetadata } from "next";
+import { Container } from "@/components/container";
 import { getCachedAssessment, getOrAnalyzeProject } from "@/db/queries";
+import { CommitActivityChart } from "./_components/commit-activity-chart";
+import { IssueActivityChart } from "./_components/issue-activity-chart";
 import { MaintenanceHealth } from "./_components/maintenance-health";
 import { ProjectHeader } from "./_components/project-header";
 
@@ -64,6 +67,25 @@ export default async function ProjectPage({ params }: Props) {
   return (
     <main className="space-y-6">
       <ProjectHeader assessment={assessment} />
+
+      <Container>
+        <section className="space-y-4">
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            Activity
+          </h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            <CommitActivityChart
+              commitActivity={assessment.commitActivity}
+              commitsLast90Days={assessment.commitsLast90Days ?? 0}
+            />
+            <IssueActivityChart
+              issueActivity={assessment.issueActivity}
+              openIssuesPercent={assessment.openIssuesPercent}
+            />
+          </div>
+        </section>
+      </Container>
+
       <MaintenanceHealth assessment={assessment} />
     </main>
   );
