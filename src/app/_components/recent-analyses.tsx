@@ -26,7 +26,7 @@ export async function RecentAnalyses() {
   }
 
   return (
-    <section className="bg-surface-2">
+    <section className="bg-surface-2 animate-in fade-in duration-300 delay-200 fill-mode-backwards">
       <Container className="py-8 space-y-4">
         <h2 className="text-xl font-semibold tracking-tight">
           Recent Analyses

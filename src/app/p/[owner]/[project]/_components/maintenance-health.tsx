@@ -58,11 +58,11 @@ export function MaintenanceHealth({ assessment }: { assessment: Assessment }) {
 
   return (
     <Container>
-      <section className="space-y-4">
+      <section className="space-y-4 animate-in fade-in duration-300 delay-150 fill-mode-backwards">
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
           Responsiveness
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {metrics.map((metric) => (
             <Card key={metric.title}>
               <CardHeader className="flex flex-row items-center justify-between">

@@ -106,39 +106,39 @@ export const MAINTENANCE_CONFIG: MaintenanceConfig = {
   // For a maintenance health tool, activity is the primary signal
   weights: {
     activity: {
-      total: 70,
-      lastCommit: 40,
-      commitVolume: 30,
+      total: 60,
+      lastCommit: 35,
+      commitVolume: 25,
     },
     responsiveness: {
-      total: 10,
-      issueResolution: 10,
+      total: 15,
+      issueResolution: 15,
     },
     stability: {
-      total: 12,
-      releaseRecency: 7,
-      projectAge: 5,
+      total: 15,
+      releaseRecency: 8,
+      projectAge: 7,
     },
     community: {
-      total: 8,
-      popularity: 8,
+      total: 10,
+      popularity: 10,
     },
   },
 
   maturityTiers: {
-    // Emerging: < 2 years AND < 1k stars - strictest thresholds
+    // Emerging: < 2 years AND < 1k stars - strictest
     emerging: {
       commitDays: [30, 60, 120, 180],
       commitVolumeYear: [120, 40, 12], // ~30/quarter, ~10/quarter, ~3/quarter
       releaseDays: [60, 120, 180],
     },
-    // Growing: 2-5 years OR 1k-10k stars - moderate thresholds
+    // Growing: 2-5 years OR 1k-10k stars - moderate
     growing: {
       commitDays: [60, 120, 180, 365],
       commitVolumeYear: [80, 20, 4], // ~20/quarter, ~5/quarter, ~1/quarter
       releaseDays: [90, 180, 365],
     },
-    // Mature: 5+ years OR 10k+ stars - relaxed thresholds
+    // Mature: 5+ years OR 10k+ stars - relaxed
     mature: {
       commitDays: [120, 180, 365, 730], // 4mo, 6mo, 1yr, 2yr
       commitVolumeYear: [40, 12, 4], // ~10/quarter, ~3/quarter, ~1/quarter
@@ -155,9 +155,9 @@ export const MAINTENANCE_CONFIG: MaintenanceConfig = {
 
   issueResolution: {
     excellent: 7,
-    good: 30,
-    fair: 90,
-    poor: 180,
+    good: 14,
+    fair: 30,
+    poor: 60,
   },
 
   popularity: {

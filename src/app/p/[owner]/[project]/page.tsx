@@ -72,7 +72,7 @@ export default async function ProjectPage({ params }: Props) {
       <ProjectHeader assessment={assessment} />
 
       <Container>
-        <section className="space-y-4">
+        <section className="space-y-4 animate-in fade-in duration-300 delay-100 fill-mode-backwards">
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
             Activity
           </h2>

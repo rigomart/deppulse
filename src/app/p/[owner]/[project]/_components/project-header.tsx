@@ -44,7 +44,7 @@ export function ProjectHeader({ assessment }: { assessment: Assessment }) {
   return (
     <section className="bg-surface-2">
       <Container className="py-6">
-        <div className="flex gap-4 justify-between">
+        <div className="flex flex-col sm:flex-row gap-4 justify-between animate-in fade-in slide-in-from-bottom-1 duration-300">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               {assessment.avatarUrl && (
@@ -107,8 +107,8 @@ export function ProjectHeader({ assessment }: { assessment: Assessment }) {
             </div>
           </div>
 
-          <div className="flex items-end">
-            <Card className="bg-surface-3">
+          <div className="flex items-start">
+            <Card className="bg-surface-3 w-full sm:w-auto min-w-64">
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between gap-6">
                   <div className="space-y-1">

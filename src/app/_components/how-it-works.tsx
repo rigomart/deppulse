@@ -20,7 +20,7 @@ const categoryColors = {
 export function HowItWorks() {
   return (
     <Container>
-      <section className="space-y-4">
+      <section className="space-y-4 animate-in fade-in duration-300 delay-300 fill-mode-backwards">
         <h2 className="text-xl font-semibold tracking-tight">How It Works</h2>
 
         <Accordion type="single" collapsible className="w-full">
