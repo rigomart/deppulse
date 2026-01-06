@@ -108,8 +108,9 @@ export function CommitActivityChart({
             </AreaChart>
           </ChartContainer>
         ) : (
-          <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
-            No commit history available
+          <div className="h-[200px] flex flex-col items-center justify-center text-muted-foreground text-sm gap-1">
+            <span>Stats unavailable</span>
+            <span className="text-xs">GitHub may still be computing</span>
           </div>
         )}
       </CardContent>

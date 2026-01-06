@@ -11,7 +11,6 @@ import {
 import Image from "next/image";
 import { Container } from "@/components/container";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { Assessment } from "@/db/schema";
@@ -57,9 +56,21 @@ export function ProjectHeader({ assessment }: { assessment: Assessment }) {
                   className="rounded-full"
                 />
               )}
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                {assessment.fullName}
-              </h1>
+              {assessment.htmlUrl ? (
+                <a
+                  href={assessment.htmlUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-center gap-2 text-2xl sm:text-3xl font-bold tracking-tight hover:underline"
+                >
+                  <span>{assessment.fullName}</span>
+                  <ExternalLink className="size-4 opacity-0 transition-opacity group-hover:opacity-70" />
+                </a>
+              ) : (
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                  {assessment.fullName}
+                </h1>
+              )}
             </div>
 
             {assessment.description && (
@@ -69,27 +80,6 @@ export function ProjectHeader({ assessment }: { assessment: Assessment }) {
             )}
 
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-2">
-              {assessment.htmlUrl && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  asChild
-                  className="h-8 gap-1.5 text-muted-foreground hover:text-foreground"
-                >
-                  <a
-                    href={assessment.htmlUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    GitHub
-                    <ExternalLink className="size-3 opacity-70" />
-                  </a>
-                </Button>
-              )}
-              <Separator
-                orientation="vertical"
-                className="data-[orientation=vertical]:h-4"
-              />
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 text-sm text-muted-foreground">
                 {stats.map((stat) => (
                   <div
@@ -118,24 +108,25 @@ export function ProjectHeader({ assessment }: { assessment: Assessment }) {
           </div>
 
           <div className="flex items-end">
-            <Card>
-              <CardContent className="space-y-4">
+            <Card className="bg-surface-3">
+              <CardContent className="space-y-3">
                 <div className="flex items-center justify-between gap-6">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       Maintenance Score
                     </p>
-                    <p className="text-base font-medium text-foreground">
+                    <p className="text-xl font-semibold text-foreground">
                       {assessment.maintenanceScore ?? 0}/100
                     </p>
                   </div>
                   <Badge
-                    className={`capitalize text-sm px-2.5 py-0.5 border ${categoryColors[category]}`}
+                    className={`capitalize text-sm border ${categoryColors[category]}`}
                   >
                     {category}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground pt-3 border-t border-border/50">
+                <Separator />
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Clock className="size-3 opacity-70" />
                   <span>
                     Analyzed: {new Date(assessment.analyzedAt).toLocaleString()}

@@ -5,7 +5,7 @@
   --foreground: oklch(0.9023 0 0);
   --surface-1: oklch(0.1452 0 0);
   --surface-2: oklch(0.167 0 0);
-  --surface-3: oklch(0.234 0 0);
+  --surface-3: oklch(0.203 0 0);
   --primary: oklch(0.45 0 0);
   --primary-foreground: oklch(0.974 0 0);
   --secondary: oklch(0.2686 0 0);
@@ -16,8 +16,8 @@
   --accent-foreground: oklch(0.9851 0 0);
   --destructive: oklch(0.7022 0.1892 22.2279);
   --destructive-foreground: oklch(0.2686 0 0);
-  --border: oklch(0.3407 0 0);
-  --input: oklch(0.4386 0 0);
+  --border: oklch(0.2934 0 0);
+  --input: oklch(0.3682 0 0);
   --ring: oklch(0.5555 0 0);
   --chart-1: oklch(0.5555 0 0);
   --chart-2: oklch(0.5555 0 0);

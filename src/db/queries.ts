@@ -96,3 +96,31 @@ export const getOrAnalyzeProject = cache(
     return fetchFreshAssessment(owner, project);
   },
 );
+
+/**
+ * Updates chart data for an existing assessment.
+ * Used for streaming updates when chart data is fetched separately.
+ *
+ * Note: We don't invalidate cache here because this runs during render.
+ * The cache will refresh naturally, or on next full analysis.
+ */
+export async function updateAssessmentChartData(
+  owner: string,
+  project: string,
+  data: {
+    commitActivity?: Array<{ week: string; commits: number }>;
+    commitsLastYear?: number;
+  },
+): Promise<void> {
+  const fullName = `${owner}/${project}`;
+
+  await db
+    .update(assessments)
+    .set({
+      ...(data.commitActivity && { commitActivity: data.commitActivity }),
+      ...(data.commitsLastYear !== undefined && {
+        commitsLastYear: data.commitsLastYear,
+      }),
+    })
+    .where(eq(assessments.fullName, fullName));
+}

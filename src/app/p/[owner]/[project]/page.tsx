@@ -1,9 +1,10 @@
 import type { Metadata, ResolvingMetadata } from "next";
+import { Suspense } from "react";
 import { Container } from "@/components/container";
 import { getCachedAssessment, getOrAnalyzeProject } from "@/db/queries";
 import { getCategoryFromScore } from "@/lib/maintenance";
-import { CommitActivityChart } from "./_components/commit-activity-chart";
-import { IssueActivityChart } from "./_components/issue-activity-chart";
+import { CommitChartSkeleton } from "./_components/chart-skeletons";
+import { CommitActivityChartAsync } from "./_components/commit-activity-chart-async";
 import { MaintenanceHealth } from "./_components/maintenance-health";
 import { ProjectHeader } from "./_components/project-header";
 
@@ -75,16 +76,9 @@ export default async function ProjectPage({ params }: Props) {
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
             Activity
           </h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            <CommitActivityChart
-              commitActivity={assessment.commitActivity}
-              commitsLastYear={assessment.commitsLastYear ?? 0}
-            />
-            <IssueActivityChart
-              issueActivity={assessment.issueActivity}
-              openIssuesPercent={assessment.openIssuesPercent}
-            />
-          </div>
+          <Suspense fallback={<CommitChartSkeleton />}>
+            <CommitActivityChartAsync owner={owner} project={project} />
+          </Suspense>
         </section>
       </Container>
 

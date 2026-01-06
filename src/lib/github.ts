@@ -1,7 +1,7 @@
 import "server-only";
 
 import { graphql } from "@octokit/graphql";
-import { format, startOfWeek, subDays, subYears } from "date-fns";
+import { format, subYears } from "date-fns";
 import { logger, parseGraphQLRateLimit, parseRestRateLimit } from "./logger";
 
 const graphqlWithAuth = graphql.defaults({
@@ -25,12 +25,13 @@ export interface RepoMetrics {
   commitsLastYear: number;
   daysSinceLastRelease: number | null;
   openIssuesPercent: number | null;
+  openIssuesCount: number;
+  closedIssuesCount: number;
   medianIssueResolutionDays: number | null;
   openPrsCount: number;
   issuesCreatedLastYear: number;
   // Historical data for charts (1 year)
   commitActivity: Array<{ week: string; commits: number }>;
-  issueActivity: Array<{ week: string; opened: number; closed: number }>;
   releases: Array<{
     tagName: string;
     name: string | null;
@@ -169,20 +170,51 @@ const getDaysSince = (dateString: string): number => {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// In-flight request deduplication for commit activity
+const commitActivityRequests = new Map<
+  string,
+  Promise<Array<{ week: string; commits: number }>>
+>();
+
 /**
  * Fetch commit activity stats from GitHub REST API.
  * Returns weekly commit counts for the last 52 weeks.
  *
  * GitHub returns 202 when stats are being computed in the background.
  * We retry with exponential backoff until data is ready.
+ *
+ * Uses in-memory deduplication to prevent duplicate requests during streaming.
  */
-async function fetchCommitActivity(
+export function fetchCommitActivity(
+  owner: string,
+  repo: string,
+): Promise<Array<{ week: string; commits: number }>> {
+  const key = `${owner}/${repo}`;
+
+  // Return existing in-flight request if one exists
+  const existing = commitActivityRequests.get(key);
+  if (existing) {
+    return existing;
+  }
+
+  // Create new request and store it
+  const request = fetchCommitActivityInternal(owner, repo).finally(() => {
+    // Clean up after request completes
+    commitActivityRequests.delete(key);
+  });
+
+  commitActivityRequests.set(key, request);
+  return request;
+}
+
+async function fetchCommitActivityInternal(
   owner: string,
   repo: string,
 ): Promise<Array<{ week: string; commits: number }>> {
   const url = `https://api.github.com/repos/${owner}/${repo}/stats/commit_activity`;
   const endpoint = `REST /repos/${owner}/${repo}/stats/commit_activity`;
-  const maxRetries = 4;
+  const maxRetries = 3;
+  const delayMs = 2000;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const startTime = Date.now();
@@ -206,7 +238,7 @@ async function fetchCommitActivity(
       });
 
       if (attempt < maxRetries) {
-        await sleep(1000 * attempt); // 1s, 2s, 3s backoff
+        await sleep(delayMs); // 2s between retries
         continue;
       }
       return [];
@@ -243,69 +275,6 @@ async function fetchCommitActivity(
   return [];
 }
 
-/**
- * Aggregates issues by week for the activity chart.
- * Returns opened and closed counts per week for the last 52 weeks.
- */
-function buildIssueActivity(
-  recentIssues: Array<{
-    createdAt: string;
-    closedAt: string | null;
-    state: "OPEN" | "CLOSED";
-  }>,
-  recentlyClosedIssues: Array<{ createdAt: string; closedAt: string }>,
-): Array<{ week: string; opened: number; closed: number }> {
-  const oneYearAgo = subYears(new Date(), 1);
-  const weekMap = new Map<string, { opened: number; closed: number }>();
-
-  // Initialize last 52 weeks
-  for (let i = 0; i < 52; i++) {
-    const weekDate = subDays(new Date(), i * 7);
-    const weekStart = startOfWeek(weekDate, { weekStartsOn: 0 });
-    const key = format(weekStart, "yyyy-MM-dd");
-    weekMap.set(key, { opened: 0, closed: 0 });
-  }
-
-  // Count issues opened per week
-  for (const issue of recentIssues) {
-    const createdAt = new Date(issue.createdAt);
-    if (createdAt >= oneYearAgo) {
-      const weekStart = startOfWeek(createdAt, { weekStartsOn: 0 });
-      const key = format(weekStart, "yyyy-MM-dd");
-      const existing = weekMap.get(key);
-      if (existing) {
-        existing.opened++;
-      }
-    }
-  }
-
-  // Count issues closed per week from both sources
-  const closedIssues = [
-    ...recentIssues.filter((i) => i.closedAt).map((i) => i.closedAt as string),
-    ...recentlyClosedIssues.map((i) => i.closedAt),
-  ];
-
-  // Deduplicate by using Set
-  const uniqueClosedDates = new Set(closedIssues);
-
-  for (const closedAt of uniqueClosedDates) {
-    const closedDate = new Date(closedAt);
-    if (closedDate >= oneYearAgo) {
-      const weekStart = startOfWeek(closedDate, { weekStartsOn: 0 });
-      const key = format(weekStart, "yyyy-MM-dd");
-      const existing = weekMap.get(key);
-      if (existing) {
-        existing.closed++;
-      }
-    }
-  }
-
-  // Convert to sorted array
-  return Array.from(weekMap.entries())
-    .map(([week, data]) => ({ week, ...data }))
-    .sort((a, b) => a.week.localeCompare(b.week));
-}
-
 const getMedian = (numbers: number[]): number | null => {
   if (numbers.length === 0) return null;
   const sorted = [...numbers].sort((a, b) => a - b);
@@ -326,15 +295,13 @@ export async function fetchRepoMetrics(
   owner: string,
   repo: string,
 ): Promise<RepoMetrics> {
-  // Run GraphQL and REST API calls in parallel
+  // Only fetch GraphQL data here - commit activity is fetched separately
+  // via streaming to avoid blocking page render on 202 retries
   const graphqlStartTime = Date.now();
-  const [data, commitActivity] = await Promise.all([
-    graphqlWithAuth<RepoMetricsGraphQLResponse>(REPO_METRICS_QUERY, {
-      owner,
-      repo,
-    }),
-    fetchCommitActivity(owner, repo),
-  ]);
+  const data = await graphqlWithAuth<RepoMetricsGraphQLResponse>(
+    REPO_METRICS_QUERY,
+    { owner, repo },
+  );
   const graphqlDuration = Date.now() - graphqlStartTime;
 
   // Log GraphQL request with rate limit info
@@ -359,11 +326,9 @@ export async function fetchRepoMetrics(
     ? getDaysSince(latestCommitDate)
     : null;
 
-  // Commits in last year (derived from REST API commit activity data)
-  const commitsLastYear = commitActivity.reduce(
-    (sum, week) => sum + week.commits,
-    0,
-  );
+  // Commit activity is fetched separately via streaming charts
+  // commitsLastYear will be updated when chart data is fetched
+  const commitsLastYear = 0;
 
   // Latest release
   const daysSinceLastRelease = r.latestRelease?.publishedAt
@@ -377,11 +342,7 @@ export async function fetchRepoMetrics(
     publishedAt: release.publishedAt,
   }));
 
-  // Build issue activity chart data
-  const issueActivity = buildIssueActivity(
-    r.recentIssues.nodes,
-    r.recentlyClosedIssues.nodes,
-  );
+  // Issue activity is fetched separately via streaming charts (uses Search API)
 
   // Open issues percentage (exact counts)
   const openIssuesCount = r.openIssues.totalCount;
@@ -437,11 +398,12 @@ export async function fetchRepoMetrics(
     commitsLastYear,
     daysSinceLastRelease,
     openIssuesPercent,
+    openIssuesCount,
+    closedIssuesCount,
     medianIssueResolutionDays,
     openPrsCount,
     issuesCreatedLastYear,
-    commitActivity,
-    issueActivity,
+    commitActivity: [], // Fetched separately via streaming charts
     releases,
   };
 }

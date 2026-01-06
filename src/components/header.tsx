@@ -4,7 +4,7 @@ import { DeppulseIcon } from "./deppulse-logo";
 
 export function Header() {
   return (
-    <header className="w-full bg-surface-2 shadow-md">
+    <header className="w-full bg-surface-3 shadow-md">
       <div className="container max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
         <Link
           href="/"

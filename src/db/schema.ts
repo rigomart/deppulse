@@ -30,6 +30,8 @@ export const assessments = pgTable(
     commitsLastYear: integer("commits_last_year"),
     daysSinceLastRelease: integer("days_since_last_release"),
     openIssuesPercent: real("open_issues_percent"),
+    openIssuesCount: integer("open_issues_count"),
+    closedIssuesCount: integer("closed_issues_count"),
     medianIssueResolutionDays: real("median_issue_resolution_days"),
     openPrsCount: integer("open_prs_count"),
     issuesCreatedLastYear: integer("issues_created_last_year"),

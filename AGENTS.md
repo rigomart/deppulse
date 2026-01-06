@@ -48,18 +48,6 @@ Use `import "server-only"` at the top of files that should never run on client:
 - `src/lib/github.ts` - API calls with secrets
 - `src/actions/analyze.ts` - Server actions
 
-### Form Handling Pattern
-```tsx
-"use client";
-// Use useTransition for server action calls
-const [isPending, startTransition] = useTransition();
-
-startTransition(async () => {
-  await serverAction(data);
-  router.push("/result");
-});
-```
-
 ## Architecture
 
 ### Data Flow
@@ -108,8 +96,8 @@ src/
 
 ### Component Organization
 - Page-specific components: `app/[route]/_components/` (underscore prefix)
-- Shared UI components: `components/ui/` (Radix wrappers with CVA variants)
-- Layout components: `components/` (Container, Header)
+- Design system components: `components/ui/` (Radix wrappers with CVA variants)
+- Shared components: `components/` (Container, Header)
 
 ### Naming
 - Components: PascalCase, named exports (`export function SearchForm`)
@@ -122,11 +110,6 @@ src/
 - Use semantic tokens: `bg-surface-2`, `text-muted-foreground`
 - CVA for component variants (see `components/ui/button.tsx`)
 - Mobile-first responsive: `text-2xl sm:text-3xl md:text-4xl`
-
-### Database Patterns
-- Upsert with `onConflictDoUpdate` for idempotent operations
-- Type inference: `typeof table.$inferSelect` for select types
-- Indexes defined in schema table function
 
 ## Testing
 
