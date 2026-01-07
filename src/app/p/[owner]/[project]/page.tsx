@@ -8,9 +8,6 @@ import { CommitActivityChartAsync } from "./_components/commit-activity-chart-as
 import { MaintenanceHealth } from "./_components/maintenance-health";
 import { ProjectHeader } from "./_components/project-header";
 
-// Cache rendered pages for 24 hours (matches data freshness threshold)
-export const revalidate = 86400;
-
 type Props = {
   params: Promise<{ owner: string; project: string }>;
 };

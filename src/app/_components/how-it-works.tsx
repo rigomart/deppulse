@@ -98,7 +98,7 @@ export function HowItWorks() {
                       Last commit recency ({weights.activity.lastCommit} pts)
                     </li>
                     <li>
-                      Commit volume in last 90 days (
+                      Commit volume in last year (
                       {weights.activity.commitVolume} pts)
                     </li>
                   </ul>

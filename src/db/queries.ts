@@ -34,7 +34,7 @@ export const getCachedAssessment = cache(
       [`assessment-${owner}-${project}`],
       {
         revalidate: CACHE_REVALIDATE,
-        tags: [getProjectTag(owner, project), "assessments"],
+        tags: [getProjectTag(owner, project)],
       },
     )();
   },
@@ -42,23 +42,15 @@ export const getCachedAssessment = cache(
 
 /**
  * Fetches the most recent assessment records ordered by analysis time.
- * Uses short-lived cache (60s) to balance freshness with performance.
+ * Uses React cache() for request-level deduplication only.
+ * No persistent caching - always shows fresh data from database.
  */
 export const getRecentAssessments = cache(
-  (limit: number = 10): Promise<Assessment[]> => {
-    return unstable_cache(
-      async (): Promise<Assessment[]> => {
-        return db.query.assessments.findMany({
-          orderBy: [desc(assessments.analyzedAt)],
-          limit,
-        });
-      },
-      [`recent-assessments-${limit}`],
-      {
-        revalidate: 60,
-        tags: ["assessments"],
-      },
-    )();
+  async (limit: number = 10): Promise<Assessment[]> => {
+    return db.query.assessments.findMany({
+      orderBy: [desc(assessments.analyzedAt)],
+      limit,
+    });
   },
 );
 

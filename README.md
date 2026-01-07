@@ -18,19 +18,19 @@ If you need a dependency for a long-term project, you should know if it's active
 2. Deppulse fetches recent activity data from GitHub
 3. You get a risk category with the evidence behind it
 
-## Risk Categories
+## Maintenance Categories
 
 | Category | Score | Description |
 |----------|-------|-------------|
-| **Active** | 0-20 | Healthy maintenance. Safe for long-term use. |
-| **Stable** | 21-40 | Maintained but quieter. May be mature or slowing down. |
-| **At-Risk** | 41-65 | Reduced maintenance. Consider evaluating alternatives. |
-| **Abandoned** | 66+ | Unmaintained. High risk for production use. |
+| **Healthy** | 70-100 | Active maintenance. Safe for long-term use. |
+| **Moderate** | 45-69 | Maintained but quieter. May be mature or slowing down. |
+| **At-Risk** | 20-44 | Reduced maintenance. Consider evaluating alternatives. |
+| **Unmaintained** | 0-19 | Little to no activity. High risk for production use. |
 
 ## Metrics Analyzed
 
 - **Commit recency** - Days since last commit
-- **Commit volume** - Number of commits in last 90 days
+- **Commit volume** - Number of commits in last year
 - **Release cadence** - Days since last release
 - **Issue responsiveness** - Open issues ratio and median resolution time
 - **PR backlog** - Number of open pull requests
