@@ -6,7 +6,7 @@ import { RecentAnalyses } from "@/app/_components/recent-analyses";
 export const metadata: Metadata = {
   title: "Deppulse - Open Source Maintenance Checker",
   description:
-    "Analyze GitHub repositories and get a clear maintenance status - Active, Stable, At-Risk, or Abandoned. Paste a repo URL, get an answer in seconds.",
+    "Analyze GitHub repositories and get a clear maintenance status - Healthy, Moderate, Declining, or Inactive. Paste a repo URL, get an answer in seconds.",
   alternates: {
     canonical: "/",
   },

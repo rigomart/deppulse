@@ -1,10 +1,9 @@
 import {
   AlertCircle,
-  Calendar,
+  CheckCircle2,
+  CircleDot,
   Clock,
-  GitCommitHorizontal,
   GitPullRequest,
-  Tag,
 } from "lucide-react";
 import { Container } from "@/components/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,53 +11,46 @@ import type { Assessment } from "@/db/schema";
 
 const iconClass = "w-4 h-4 text-muted-foreground";
 
+/** Formats a nullable metric value with a suffix, or returns "N/A" if null. */
+const fmt = (val: number | null, suffix: string): string =>
+  val !== null ? `${val}${suffix}` : "N/A";
+
+/** Formats a number with K suffix for thousands. */
+const fmtCount = (val: number | null): string => {
+  if (val === null) return "N/A";
+  if (val >= 1000) return `${(val / 1000).toFixed(1)}k`;
+  return val.toString();
+};
+
 export function MaintenanceHealth({ assessment }: { assessment: Assessment }) {
   const metrics = [
     {
-      title: "Last Commit",
-      value:
-        assessment.daysSinceLastCommit !== null
-          ? `${assessment.daysSinceLastCommit}d ago`
-          : "N/A",
-      icon: <Calendar className={iconClass} />,
-      description: "Days since most recent commit",
-    },
-    {
-      title: "Commits (90d)",
-      value: assessment.commitsLast90Days ?? "N/A",
-      icon: <GitCommitHorizontal className={iconClass} />,
-      description: "Recent activity level",
-    },
-    {
-      title: "Last Release",
-      value:
-        assessment.daysSinceLastRelease !== null
-          ? `${assessment.daysSinceLastRelease}d ago`
-          : "N/A",
-      icon: <Tag className={iconClass} />,
-      description: "Release cadence",
-    },
-    {
       title: "Open Issues",
-      value:
-        assessment.openIssuesPercent !== null
-          ? `${assessment.openIssuesPercent}%`
-          : "N/A",
+      value: fmtCount(assessment.openIssuesCount),
+      icon: <CircleDot className={iconClass} />,
+      description: "Currently open",
+    },
+    {
+      title: "Closed Issues",
+      value: fmtCount(assessment.closedIssuesCount),
+      icon: <CheckCircle2 className={iconClass} />,
+      description: "Total resolved",
+    },
+    {
+      title: "Open Ratio",
+      value: fmt(assessment.openIssuesPercent, "%"),
       icon: <AlertCircle className={iconClass} />,
-      description: "Ratio of open to total issues",
+      description: "Open vs total issues",
     },
     {
       title: "Resolution Time",
-      value:
-        assessment.medianIssueResolutionDays !== null
-          ? `${assessment.medianIssueResolutionDays}d`
-          : "N/A",
+      value: fmt(assessment.medianIssueResolutionDays, "d"),
       icon: <Clock className={iconClass} />,
-      description: "Median days to close issues",
+      description: "Median days to close",
     },
     {
       title: "Open PRs",
-      value: assessment.openPrsCount ?? "N/A",
+      value: fmtCount(assessment.openPrsCount),
       icon: <GitPullRequest className={iconClass} />,
       description: "Pending contributions",
     },
@@ -66,11 +58,11 @@ export function MaintenanceHealth({ assessment }: { assessment: Assessment }) {
 
   return (
     <Container>
-      <section className="space-y-4">
+      <section className="space-y-4 animate-in fade-in duration-300 delay-150 fill-mode-backwards">
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-          Maintenance Health
+          Responsiveness
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {metrics.map((metric) => (
             <Card key={metric.title}>
               <CardHeader className="flex flex-row items-center justify-between">

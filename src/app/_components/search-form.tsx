@@ -6,13 +6,37 @@ import { useState, useTransition } from "react";
 import { analyze } from "@/actions/analyze";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { parseRepo } from "@/lib/parse-repo";
+import { parseProject } from "@/lib/parse-project";
+
+/** Maps error patterns to user-friendly messages. */
+function getUserFriendlyError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Analysis failed. Please try again.";
+  }
+
+  const msg = error.message.toLowerCase();
+
+  if (msg.includes("not found") || msg.includes("404")) {
+    return "Repository not found. Please check the owner and repo name.";
+  }
+  if (msg.includes("rate limit")) {
+    return "GitHub API rate limit reached. Please try again later.";
+  }
+  if (msg.includes("network") || msg.includes("fetch")) {
+    return "Network error. Please check your connection and try again.";
+  }
+  if (msg.includes("unauthorized") || msg.includes("401")) {
+    return "Authentication error. Please try again later.";
+  }
+
+  return "Analysis failed. Please try again.";
+}
 
 /**
  * Render a search form for analyzing a GitHub repository.
  *
- * Validates an "owner/repo" string or GitHub URL, starts an analysis action for the parsed repository,
- * navigates to the repository results page on success, and displays loading and error states.
+ * Validates an "owner/project" string or GitHub URL, calls analyze() to fetch/cache data,
+ * then navigates to the project page on success.
  *
  * @returns The JSX element for the search form UI.
  */
@@ -28,20 +52,20 @@ export function SearchForm() {
     const formData = new FormData(e.currentTarget);
     const query = formData.get("query") as string;
 
-    const parsed = parseRepo(query);
+    const parsed = parseProject(query);
     if (!parsed) {
-      setError("Invalid format. Use 'owner/repo' or GitHub URL.");
+      setError("Invalid format. Use 'owner/repository' or GitHub URL.");
       return;
     }
 
-    const { owner, repo } = parsed;
+    const { owner, project } = parsed;
 
     startTransition(async () => {
       try {
-        await analyze(owner, repo);
-        router.push(`/repo/${owner}/${repo}`);
+        await analyze(owner, project);
+        router.push(`/p/${owner}/${project}`);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Analysis failed");
+        setError(getUserFriendlyError(err));
       }
     });
   };
@@ -52,9 +76,10 @@ export function SearchForm() {
         <Input
           type="text"
           name="query"
-          placeholder="GitHub URL or owner/repo"
+          placeholder="GitHub URL or owner/repository"
           disabled={isPending}
           required
+          maxLength={200}
           className="flex-1"
           autoComplete="off"
         />

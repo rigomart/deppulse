@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file provides guidance to AI Agents when working with code in this repository.
+Guidance for AI agents working with this codebase.
 
 ## Commands
 
@@ -11,7 +11,7 @@ bun run check-types  # TypeScript type checking
 bun run lint         # Lint and auto-fix with Biome
 bun run test         # Run tests with Vitest
 bun run test:ui      # Run tests with Vitest UI
-bun run test -- src/lib/risk.test.ts  # Run a single test file
+bun run test -- src/lib/maintenance.test.ts  # Run a single test file
 
 # Database (Drizzle + Neon)
 bun run db:push      # Push schema to database
@@ -26,35 +26,122 @@ Required in `.env.local`:
 - `DATABASE_URL` - Neon PostgreSQL connection string
 - `GITHUB_PAT` - GitHub Personal Access Token for API access
 
-## Architecture
+## Server-First Architecture
 
-**Deppulse** analyzes GitHub repositories and provides maintenance risk assessments (Active, Stable, At-Risk, Abandoned).
+**This application prioritizes server-side rendering for performance and caching.**
+
+### When to use Server Components (default)
+- Data fetching and database queries
+- Static content display
+- Components that don't need interactivity
+- Pages and layouts
+
+### When to use Client Components (`"use client"`)
+Only when you need:
+- React hooks (`useState`, `useEffect`, `useTransition`, `useRouter`)
+- Browser APIs or event handlers
+- Radix UI primitives that require client-side JS
+
+### Server-Only Modules
+Use `import "server-only"` at the top of files that should never run on client:
+- `src/lib/data.ts` - Database queries
+- `src/lib/github.ts` - API calls with secrets
+- `src/actions/analyze.ts` - Server actions
+
+## Architecture
 
 ### Data Flow
 
-1. User enters repo URL → `parseRepoUrl()` extracts owner/repo (`src/lib/parse-repo.ts`)
-2. Server action `analyze()` orchestrates the analysis (`src/actions/analyze.ts`)
-3. `fetchRepoMetrics()` fetches GitHub data via Octokit (`src/lib/github.ts`)
-4. `calculateRisk()` computes risk score and category (`src/lib/risk.ts`)
-5. Results stored in `assessments` table with upsert (`src/db/schema.ts`)
-6. Cache invalidation via Next.js `updateTag()` for granular revalidation
+```
+User Input → parseProject() → analyze() → fetchRepoMetrics() → calculateMaintenanceScore() → DB upsert → Cache invalidation
+```
+
+1. `src/lib/parse-project.ts` - Validates and extracts owner/project from URL or shorthand
+2. `src/actions/analyze.ts` - Server action orchestrating the analysis
+3. `src/lib/github.ts` - Fetches metrics from GitHub API via Octokit
+4. `src/lib/maintenance.ts` - Computes maintenance score (0-100) and category
+5. `src/db/schema.ts` - Single `assessments` table with upsert on conflict
+6. `src/lib/data.ts` - Cached queries with `unstable_cache` + React `cache()` for request deduplication
 
 ### Key Modules
 
-- **`src/lib/risk.ts`**: Risk scoring algorithm. Weighs: commit recency (30pts max), commit volume (20pts), release recency (15pts), open issues ratio (15pts), issue resolution time (10pts), open PRs (10pts). Lower score = healthier.
-- **`src/lib/github.ts`**: GitHub API client with `RepoMetrics` interface. Fetches repo info, commits (90d window), releases, issues, and PRs in parallel.
-- **`src/lib/data.ts`**: Cached database queries using `unstable_cache` with 24hr TTL and tag-based invalidation.
-- **`src/db/`**: Drizzle ORM with Neon serverless driver. Single `assessments` table.
+| Module | Purpose |
+|--------|---------|
+| `src/lib/maintenance.ts` | Maintenance scoring algorithm. Categories: healthy (70+), moderate (45-69), at-risk (20-44), unmaintained (0-19). |
+| `src/lib/maintenance-config.ts` | Centralized config for scoring weights, thresholds, and maturity tiers. All tunable values in one place. |
+| `src/lib/github.ts` | GitHub API client. Fetches repo info, commits (90d window), releases, issues, PRs in parallel. |
+| `src/lib/data.ts` | Database queries with dual caching: `cache()` for request-level, `unstable_cache` for persistent. |
 
-### Tech Stack
+### Directory Structure
 
-- Next.js 16 with React Compiler enabled
-- Bun runtime
-- Drizzle ORM + Neon PostgreSQL
-- Biome for linting/formatting
-- Vitest for testing
-- Tailwind CSS v4 + Radix UI components
+```
+src/
+├── actions/          # Server actions
+├── app/              # Next.js App Router pages
+│   ├── _components/  # Homepage components
+│   └── repo/[owner]/[repo]/  # Dynamic repo page
+├── components/       # Shared UI components
+├── db/               # Drizzle schema and client
+└── lib/              # Core business logic
+```
 
-### Instructions
-- Assume the user is already running the dev environment, don't run it yourself
-- Avoid using `any` or explicit type assertions
+## Code Patterns
+
+### Caching Strategy
+- `unstable_cache` with tags for persistent data cache (24hr TTL)
+- React `cache()` wrapper for request-level deduplication
+- Tag-based invalidation: `repo:{owner}/{repo}` for specific repos
+
+## Code Conventions
+
+### Component Organization
+- Page-specific components: `app/[route]/_components/` (underscore prefix)
+- Design system components: `components/ui/` (Radix wrappers with CVA variants)
+- Shared components: `components/` (Container, Header)
+
+### Naming
+- Components: PascalCase, named exports (`export function SearchForm`)
+- Files: kebab-case (`search-form.tsx`, `parse-repo.ts`)
+- Database columns: snake_case (`analyzed_at`)
+- TypeScript properties: camelCase (`analyzedAt`)
+
+### Styling
+- Tailwind CSS v4 with CSS variables (OKLch color space)
+- Use semantic tokens: `bg-surface-2`, `text-muted-foreground`
+- CVA for component variants (see `components/ui/button.tsx`)
+- Mobile-first responsive: `text-2xl sm:text-3xl md:text-4xl`
+
+## Testing
+
+Tests in `*.test.ts` files alongside source. Run with `bun run test`.
+
+### Guidelines
+
+- **Test behavior, not implementation** - Tests should verify what the code does, not how it does it
+- **Purpose is regression prevention** - Tests catch unintended changes when refactoring
+- **Use realistic scenarios** - Describe real situations in test names, not arbitrary boundaries
+- **Keep tests focused** - One concept per test, avoid testing multiple behaviors together
+- **Handle edge cases** - Test null values, empty inputs, and boundary conditions
+- **Allow valid ambiguity** - For borderline cases: `expect(["a", "b"]).toContain(result)`
+
+## Instructions for AI
+
+**Server-first mindset:**
+- Default to server components - only add `"use client"` when hooks are needed
+- Fetch data in server components, not in client components
+- Use server actions for mutations, not API routes
+- Leverage caching (`unstable_cache`, React `cache()`) aggressively
+
+**Code quality:**
+- Assume dev server is already running
+- Avoid `any` or explicit type assertions
+- Use existing patterns from `src/lib/` for new utilities
+- Run `bun run check-types` before committing
+- Prefer editing existing files over creating new ones
+- Use shared types from `src/lib/types.ts`
+
+**When adding new features:**
+- Check existing components in `components/ui/` before creating new ones
+- Follow the CVA variant pattern for new UI components
+- Add `data-slot` attribute to new components for styling hooks
+- Keep business logic in `src/lib/`, UI in components

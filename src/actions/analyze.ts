@@ -1,83 +1,44 @@
 "use server";
 
 import { updateTag } from "next/cache";
-import { db } from "@/db/drizzle";
-import { type Assessment, assessments } from "@/db/schema";
-import { getRepoTag } from "@/lib/data";
-import { fetchRepoMetrics } from "@/lib/github";
-import { calculateRisk } from "@/lib/risk";
+import {
+  CACHE_REVALIDATE,
+  getAssessmentFromDb,
+  getProjectTag,
+} from "@/db/queries";
+import type { Assessment } from "@/db/schema";
+import { fetchFreshAssessment } from "@/lib/assessment";
 
 /**
- * Analyze a GitHub repository, compute its risk profile, persist the assessment, and invalidate related caches.
+ * Server action: Analyze a GitHub repository with freshness checking.
+ *
+ * Returns cached data if fresh (<24h), otherwise fetches from GitHub API.
+ * Called from homepage search form - blocks until complete, then navigates.
  *
  * @param owner - Repository owner (username or organization)
- * @param repo - Repository name
- * @returns The persisted `Assessment` record including repository metrics, `riskCategory`, `riskScore`, and `analyzedAt`
+ * @param project - Repository name
+ * @returns The `Assessment` record (cached or freshly fetched)
  */
 export async function analyze(
   owner: string,
-  repo: string,
+  project: string,
 ): Promise<Assessment> {
-  const fullName = `${owner}/${repo}`;
+  // Check for fresh cached data first
+  const cached = await getAssessmentFromDb(owner, project);
 
-  const metrics = await fetchRepoMetrics(owner, repo);
-  const risk = calculateRisk({
-    daysSinceLastCommit: metrics.daysSinceLastCommit,
-    commitsLast90Days: metrics.commitsLast90Days,
-    daysSinceLastRelease: metrics.daysSinceLastRelease,
-    openIssuesPercent: metrics.openIssuesPercent,
-    medianIssueResolutionDays: metrics.medianIssueResolutionDays,
-    openPrsCount: metrics.openPrsCount,
-  });
+  if (cached) {
+    const ageSeconds =
+      (Date.now() - new Date(cached.analyzedAt).getTime()) / 1000;
+    if (ageSeconds < CACHE_REVALIDATE) {
+      return cached; // Fresh - skip GitHub API
+    }
+  }
 
-  const [result] = await db
-    .insert(assessments)
-    .values({
-      owner,
-      repo,
-      fullName,
-      description: metrics.description,
-      stars: metrics.stars,
-      forks: metrics.forks,
-      avatarUrl: metrics.avatarUrl,
-      htmlUrl: metrics.htmlUrl,
-      license: metrics.license,
-      language: metrics.language,
-      repositoryCreatedAt: metrics.repositoryCreatedAt,
-      daysSinceLastCommit: metrics.daysSinceLastCommit,
-      commitsLast90Days: metrics.commitsLast90Days,
-      daysSinceLastRelease: metrics.daysSinceLastRelease,
-      openIssuesPercent: metrics.openIssuesPercent,
-      medianIssueResolutionDays: metrics.medianIssueResolutionDays,
-      openPrsCount: metrics.openPrsCount,
-      riskCategory: risk.category,
-      riskScore: risk.score,
-      analyzedAt: new Date(),
-    })
-    .onConflictDoUpdate({
-      target: assessments.fullName,
-      set: {
-        description: metrics.description,
-        stars: metrics.stars,
-        forks: metrics.forks,
-        avatarUrl: metrics.avatarUrl,
-        htmlUrl: metrics.htmlUrl,
-        daysSinceLastCommit: metrics.daysSinceLastCommit,
-        commitsLast90Days: metrics.commitsLast90Days,
-        daysSinceLastRelease: metrics.daysSinceLastRelease,
-        openIssuesPercent: metrics.openIssuesPercent,
-        medianIssueResolutionDays: metrics.medianIssueResolutionDays,
-        openPrsCount: metrics.openPrsCount,
-        riskCategory: risk.category,
-        riskScore: risk.score,
-        analyzedAt: new Date(),
-      },
-    })
-    .returning();
+  // Stale or missing - fetch fresh from GitHub
+  const result = await fetchFreshAssessment(owner, project);
 
-  // Invalidate cached data for this specific repo and the recent list
-  updateTag(getRepoTag(owner, repo));
-  updateTag("assessments");
+  // Invalidate cached data for this specific repo
+  updateTag(getProjectTag(owner, project));
 
   return result;
 }

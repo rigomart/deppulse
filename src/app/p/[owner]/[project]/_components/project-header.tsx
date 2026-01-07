@@ -8,15 +8,28 @@ import {
   Scale,
   Star,
 } from "lucide-react";
+import Image from "next/image";
 import { Container } from "@/components/container";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { Assessment } from "@/db/schema";
+import {
+  getCategoryFromScore,
+  type MaintenanceCategory,
+} from "@/lib/maintenance";
 import { formatNumber } from "@/lib/utils";
 
-export function RepoHeader({ assessment }: { assessment: Assessment }) {
+const categoryColors: Record<MaintenanceCategory, string> = {
+  healthy: "bg-green-500/15 text-green-400 border-green-500/30",
+  moderate: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  declining: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+  inactive: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
+};
+
+export function ProjectHeader({ assessment }: { assessment: Assessment }) {
+  const category = getCategoryFromScore(assessment.maintenanceScore ?? 0);
+
   const stats = [
     { icon: Star, value: formatNumber(assessment.stars ?? 0), label: "Stars" },
     {
@@ -31,12 +44,33 @@ export function RepoHeader({ assessment }: { assessment: Assessment }) {
   return (
     <section className="bg-surface-2">
       <Container className="py-6">
-        <div className="flex gap-4 justify-between">
+        <div className="flex flex-col sm:flex-row gap-4 justify-between animate-in fade-in slide-in-from-bottom-1 duration-300">
           <div className="space-y-4">
-            <div className="flex items-start justify-between gap-4">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                {assessment.fullName}
-              </h1>
+            <div className="flex items-center gap-3">
+              {assessment.avatarUrl && (
+                <Image
+                  src={assessment.avatarUrl}
+                  alt={`${assessment.owner} avatar`}
+                  width={40}
+                  height={40}
+                  className="rounded-full"
+                />
+              )}
+              {assessment.htmlUrl ? (
+                <a
+                  href={assessment.htmlUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-center gap-2 text-2xl sm:text-3xl font-bold tracking-tight hover:underline"
+                >
+                  <span>{assessment.fullName}</span>
+                  <ExternalLink className="size-4 opacity-0 transition-opacity group-hover:opacity-70" />
+                </a>
+              ) : (
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                  {assessment.fullName}
+                </h1>
+              )}
             </div>
 
             {assessment.description && (
@@ -46,27 +80,6 @@ export function RepoHeader({ assessment }: { assessment: Assessment }) {
             )}
 
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-2">
-              {assessment.htmlUrl && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  asChild
-                  className="h-8 gap-1.5 text-muted-foreground hover:text-foreground"
-                >
-                  <a
-                    href={assessment.htmlUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    GitHub
-                    <ExternalLink className="size-3 opacity-70" />
-                  </a>
-                </Button>
-              )}
-              <Separator
-                orientation="vertical"
-                className="data-[orientation=vertical]:h-4"
-              />
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 text-sm text-muted-foreground">
                 {stats.map((stat) => (
                   <div
@@ -94,26 +107,26 @@ export function RepoHeader({ assessment }: { assessment: Assessment }) {
             </div>
           </div>
 
-          <div className="flex items-end">
-            <Card>
-              <CardContent className="space-y-4">
+          <div className="flex items-start">
+            <Card className="bg-surface-3 w-full sm:w-auto min-w-64">
+              <CardContent className="space-y-3">
                 <div className="flex items-center justify-between gap-6">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Risk Assessment
+                    <p className="text-sm text-muted-foreground">
+                      Maintenance Score
                     </p>
-                    <p className="text-base font-medium text-foreground">
-                      Score: {assessment.riskScore ?? 0}/100
+                    <p className="text-xl font-semibold text-foreground">
+                      {assessment.maintenanceScore ?? 0}/100
                     </p>
                   </div>
                   <Badge
-                    variant="secondary"
-                    className="capitalize text-sm px-2.5 py-0.5"
+                    className={`capitalize text-sm border ${categoryColors[category]}`}
                   >
-                    {assessment.riskCategory}
+                    {category}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground pt-3 border-t border-border/50">
+                <Separator />
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Clock className="size-3 opacity-70" />
                   <span>
                     Analyzed: {new Date(assessment.analyzedAt).toLocaleString()}
