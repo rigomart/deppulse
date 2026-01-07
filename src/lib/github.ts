@@ -215,17 +215,41 @@ async function fetchCommitActivityInternal(
   const endpoint = `REST /repos/${owner}/${repo}/stats/commit_activity`;
   const maxRetries = 3;
   const delayMs = 2000;
+  const timeoutMs = 10000;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const startTime = Date.now();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `token ${process.env.GITHUB_PAT}`,
-        Accept: "application/vnd.github.v3+json",
-      },
-    });
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        headers: {
+          Authorization: `token ${process.env.GITHUB_PAT}`,
+          Accept: "application/vnd.github.v3+json",
+        },
+        signal: controller.signal,
+      });
+    } catch (error) {
+      clearTimeout(timeoutId);
+      const durationMs = Date.now() - startTime;
 
+      // Timeout or network error - retry
+      const isAbort = error instanceof Error && error.name === "AbortError";
+      logger.githubApi({
+        endpoint: `${endpoint} (${isAbort ? "timeout" : "network error"}, attempt ${attempt}/${maxRetries})`,
+        durationMs,
+      });
+
+      if (attempt < maxRetries) {
+        await sleep(delayMs);
+        continue;
+      }
+      return [];
+    }
+
+    clearTimeout(timeoutId);
     const durationMs = Date.now() - startTime;
     const rateLimit = parseRestRateLimit(response.headers);
 

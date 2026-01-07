@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV === "development";
+
 const securityHeaders = [
   {
     key: "X-DNS-Prefetch-Control",
@@ -25,11 +27,17 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      isDev
+        ? // Development: allow unsafe-eval for HMR/React Fast Refresh
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+        : // Production: no unsafe-eval
+          "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https://avatars.githubusercontent.com",
       "font-src 'self'",
-      "connect-src 'self'",
+      isDev
+        ? "connect-src 'self' ws://localhost:* http://localhost:*"
+        : "connect-src 'self'",
       "frame-ancestors 'none'",
     ].join("; "),
   },

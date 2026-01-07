@@ -1,7 +1,5 @@
 import "server-only";
 
-type LogLevel = "debug" | "info" | "warn" | "error";
-
 interface GitHubRateLimit {
   limit: number;
   remaining: number;
@@ -14,19 +12,6 @@ interface GitHubApiLogContext {
   cost?: number;
   rateLimit?: GitHubRateLimit;
   durationMs: number;
-}
-
-const LOG_LEVEL: LogLevel = (process.env.LOG_LEVEL as LogLevel) ?? "info";
-
-const LEVEL_PRIORITY: Record<LogLevel, number> = {
-  debug: 0,
-  info: 1,
-  warn: 2,
-  error: 3,
-};
-
-function shouldLog(level: LogLevel): boolean {
-  return LEVEL_PRIORITY[level] >= LEVEL_PRIORITY[LOG_LEVEL];
 }
 
 function formatTimestamp(): string {
@@ -42,35 +27,25 @@ function formatDuration(ms: number): string {
  */
 export const logger = {
   debug(message: string, context?: Record<string, unknown>) {
-    if (shouldLog("debug")) {
-      console.debug(`[${formatTimestamp()}] DEBUG: ${message}`, context ?? "");
-    }
+    console.debug(`[${formatTimestamp()}] DEBUG: ${message}`, context ?? "");
   },
 
   info(message: string, context?: Record<string, unknown>) {
-    if (shouldLog("info")) {
-      console.info(`[${formatTimestamp()}] INFO: ${message}`, context ?? "");
-    }
+    console.info(`[${formatTimestamp()}] INFO: ${message}`, context ?? "");
   },
 
   warn(message: string, context?: Record<string, unknown>) {
-    if (shouldLog("warn")) {
-      console.warn(`[${formatTimestamp()}] WARN: ${message}`, context ?? "");
-    }
+    console.warn(`[${formatTimestamp()}] WARN: ${message}`, context ?? "");
   },
 
   error(message: string, context?: Record<string, unknown>) {
-    if (shouldLog("error")) {
-      console.error(`[${formatTimestamp()}] ERROR: ${message}`, context ?? "");
-    }
+    console.error(`[${formatTimestamp()}] ERROR: ${message}`, context ?? "");
   },
 
   /**
    * Log GitHub API request with rate limit info.
    */
   githubApi(ctx: GitHubApiLogContext) {
-    if (!shouldLog("info")) return;
-
     const parts = [
       `GitHub API: ${ctx.endpoint}`,
       `duration=${formatDuration(ctx.durationMs)}`,

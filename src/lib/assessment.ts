@@ -48,58 +48,43 @@ export async function fetchFreshAssessment(
   const maintenanceInput = extractMaintenanceInput(metrics);
   const maintenance = calculateMaintenanceScore(maintenanceInput);
 
+  const analyzedAt = new Date();
+  const sharedFields = {
+    description: metrics.description,
+    stars: metrics.stars,
+    forks: metrics.forks,
+    avatarUrl: metrics.avatarUrl,
+    htmlUrl: metrics.htmlUrl,
+    license: metrics.license,
+    language: metrics.language,
+    repositoryCreatedAt: metrics.repositoryCreatedAt,
+    isArchived: metrics.isArchived,
+    daysSinceLastCommit: metrics.daysSinceLastCommit,
+    commitsLastYear: metrics.commitsLastYear,
+    daysSinceLastRelease: metrics.daysSinceLastRelease,
+    openIssuesPercent: metrics.openIssuesPercent,
+    openIssuesCount: metrics.openIssuesCount,
+    closedIssuesCount: metrics.closedIssuesCount,
+    medianIssueResolutionDays: metrics.medianIssueResolutionDays,
+    openPrsCount: metrics.openPrsCount,
+    issuesCreatedLastYear: metrics.issuesCreatedLastYear,
+    commitActivity: metrics.commitActivity,
+    releases: metrics.releases,
+    maintenanceScore: maintenance.score,
+    analyzedAt,
+  };
+
   const [result] = await db
     .insert(assessments)
     .values({
       owner,
       repo: project,
       fullName,
-      description: metrics.description,
-      stars: metrics.stars,
-      forks: metrics.forks,
-      avatarUrl: metrics.avatarUrl,
-      htmlUrl: metrics.htmlUrl,
-      license: metrics.license,
-      language: metrics.language,
-      repositoryCreatedAt: metrics.repositoryCreatedAt,
-      isArchived: metrics.isArchived,
-      daysSinceLastCommit: metrics.daysSinceLastCommit,
-      commitsLastYear: metrics.commitsLastYear,
-      daysSinceLastRelease: metrics.daysSinceLastRelease,
-      openIssuesPercent: metrics.openIssuesPercent,
-      openIssuesCount: metrics.openIssuesCount,
-      closedIssuesCount: metrics.closedIssuesCount,
-      medianIssueResolutionDays: metrics.medianIssueResolutionDays,
-      openPrsCount: metrics.openPrsCount,
-      issuesCreatedLastYear: metrics.issuesCreatedLastYear,
-      commitActivity: metrics.commitActivity,
-      releases: metrics.releases,
-      maintenanceScore: maintenance.score,
-      analyzedAt: new Date(),
+      ...sharedFields,
     })
     .onConflictDoUpdate({
       target: assessments.fullName,
-      set: {
-        description: metrics.description,
-        stars: metrics.stars,
-        forks: metrics.forks,
-        avatarUrl: metrics.avatarUrl,
-        htmlUrl: metrics.htmlUrl,
-        isArchived: metrics.isArchived,
-        daysSinceLastCommit: metrics.daysSinceLastCommit,
-        commitsLastYear: metrics.commitsLastYear,
-        daysSinceLastRelease: metrics.daysSinceLastRelease,
-        openIssuesPercent: metrics.openIssuesPercent,
-        openIssuesCount: metrics.openIssuesCount,
-        closedIssuesCount: metrics.closedIssuesCount,
-        medianIssueResolutionDays: metrics.medianIssueResolutionDays,
-        openPrsCount: metrics.openPrsCount,
-        issuesCreatedLastYear: metrics.issuesCreatedLastYear,
-        commitActivity: metrics.commitActivity,
-        releases: metrics.releases,
-        maintenanceScore: maintenance.score,
-        analyzedAt: new Date(),
-      },
+      set: sharedFields,
     })
     .returning();
 

@@ -33,7 +33,7 @@ export async function CommitActivityChartAsync({
 
   // Update DB for future visits
   if (assessment) {
-    updateAssessmentChartData(owner, project, {
+    await updateAssessmentChartData(owner, project, {
       commitActivity,
       commitsLastYear,
     });

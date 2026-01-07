@@ -59,13 +59,8 @@ export async function generateMetadata(
 export default async function ProjectPage({ params }: Props) {
   const { owner, project } = await params;
 
-  // Try cache first (fast path for homepage navigation)
-  let assessment = await getCachedAssessment(owner, project);
-
-  // Fallback for direct links to new/stale projects
-  if (!assessment) {
-    assessment = await getOrAnalyzeProject(owner, project);
-  }
+  // Fetches from cache if fresh (<24h), otherwise re-analyzes from GitHub
+  const assessment = await getOrAnalyzeProject(owner, project);
 
   return (
     <main className="space-y-6">
