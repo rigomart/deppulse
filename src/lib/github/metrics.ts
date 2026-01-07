@@ -101,10 +101,23 @@ export async function fetchRepoMetrics(
   // Only fetch GraphQL data here - commit activity is fetched separately
   // via streaming to avoid blocking page render on 202 retries
   const graphqlStartTime = Date.now();
-  const data = await graphqlWithAuth<RepoMetricsGraphQLResponse>(
-    REPO_METRICS_QUERY,
-    { owner, repo },
-  );
+
+  let data: RepoMetricsGraphQLResponse;
+  try {
+    data = await graphqlWithAuth<RepoMetricsGraphQLResponse>(
+      REPO_METRICS_QUERY,
+      { owner, repo },
+    );
+  } catch (error) {
+    const graphqlDuration = Date.now() - graphqlStartTime;
+    logger.api({
+      service: "GitHub",
+      endpoint: `GraphQL RepoMetrics (${owner}/${repo}) - ERROR`,
+      durationMs: graphqlDuration,
+    });
+    throw error;
+  }
+
   const graphqlDuration = Date.now() - graphqlStartTime;
 
   // Log GraphQL request with rate limit info

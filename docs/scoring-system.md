@@ -179,9 +179,9 @@ Repository: `stitchesjs/stitches`
 **Maturity Tier:** Growing (popularity = 8327, which is > 1000)
 
 **Activity (60 max):**
-- Last Commit: 930 days > 365 days (growing tier) → 5 pts (15%)
+- Last Commit: 930 days > 365 days (growing tier) → 0 pts
 - Commit Volume: 0 commits → 0 pts
-- **Subtotal: 5 points**
+- **Subtotal: 0 points**
 
 **Responsiveness (15 max):**
 - Issue Resolution: null → 0 pts
@@ -196,7 +196,7 @@ Repository: `stitchesjs/stitches`
 - Popularity: 8327 ≥ 1000 → 7 pts (70%)
 - **Subtotal: 7 points**
 
-**Total: 5 + 0 + 6 + 7 = 18 points → Inactive**
+**Total: 0 + 0 + 6 + 7 = 13 points → Inactive**
 
 ---
 
