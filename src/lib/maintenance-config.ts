@@ -54,9 +54,25 @@ interface MaintenanceConfig {
     growingMinAgeYears: number;
     growingMinStars: number;
   };
-  issueResolution: { excellent: number; good: number; fair: number; poor: number };
-  popularity: { excellent: number; good: number; fair: number; poor: number; minimal: number };
-  projectAge: { mature: number; established: number; growing: number; new: number };
+  issueResolution: {
+    excellent: number;
+    good: number;
+    fair: number;
+    poor: number;
+  };
+  popularity: {
+    excellent: number;
+    good: number;
+    fair: number;
+    poor: number;
+    minimal: number;
+  };
+  projectAge: {
+    mature: number;
+    established: number;
+    growing: number;
+    new: number;
+  };
 }
 
 export const MAINTENANCE_CONFIG: MaintenanceConfig = {

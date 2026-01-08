@@ -32,10 +32,6 @@ export async function ScoreAsync({ owner, project }: ScoreAsyncProps) {
 
   // Fetch commit activity (with retries for 202)
   const commitActivity = await fetchCommitActivity(owner, project);
-  const commitsLastYear = commitActivity.reduce(
-    (sum, week) => sum + week.commits,
-    0,
-  );
 
   // Calculate score with complete data
   const result = calculateMaintenanceScore({
@@ -55,7 +51,6 @@ export async function ScoreAsync({ owner, project }: ScoreAsyncProps) {
   // Persist complete data
   await completeAssessmentScore(owner, project, {
     commitActivity,
-    commitsLastYear,
     maintenanceScore: result.score,
   });
 

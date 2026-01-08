@@ -2,17 +2,8 @@ import { Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import {
-  getCategoryFromScore,
-  type MaintenanceCategory,
-} from "@/lib/maintenance";
-
-const categoryColors: Record<MaintenanceCategory, string> = {
-  healthy: "bg-green-500/15 text-green-400 border-green-500/30",
-  moderate: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  declining: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
-  inactive: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
-};
+import { categoryColors } from "@/lib/category-styles";
+import { getCategoryFromScore } from "@/lib/maintenance";
 
 interface ScoreDisplayProps {
   score: number;

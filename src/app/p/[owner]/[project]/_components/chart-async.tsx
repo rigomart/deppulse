@@ -23,10 +23,15 @@ export async function ChartAsync({ owner, project }: ChartAsyncProps) {
 
   // If we have commit activity data, render from cache
   if (assessment.commitActivity?.length) {
+    // Compute commitsLastYear on-demand from commitActivity
+    const commitsLastYear = assessment.commitActivity.reduce(
+      (sum, week) => sum + week.commits,
+      0,
+    );
     return (
       <CommitActivityChart
         commitActivity={assessment.commitActivity}
-        commitsLastYear={assessment.commitsLastYear ?? 0}
+        commitsLastYear={commitsLastYear}
       />
     );
   }

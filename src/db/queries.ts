@@ -101,7 +101,6 @@ export async function completeAssessmentScore(
   project: string,
   data: {
     commitActivity: Array<{ week: string; commits: number }>;
-    commitsLastYear: number;
     maintenanceScore: number;
   },
 ): Promise<void> {
@@ -111,7 +110,6 @@ export async function completeAssessmentScore(
     .update(assessments)
     .set({
       commitActivity: data.commitActivity,
-      commitsLastYear: data.commitsLastYear,
       maintenanceScore: data.maintenanceScore,
     })
     .where(eq(assessments.fullName, fullName));

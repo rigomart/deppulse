@@ -16,6 +16,11 @@
   --accent-foreground: oklch(0.9851 0 0);
   --destructive: oklch(0.7022 0.1892 22.2279);
   --destructive-foreground: oklch(0.2686 0 0);
+  /* Status colors for health indicators */
+  --status-healthy: oklch(0.65 0.17 145);
+  --status-moderate: oklch(0.65 0.17 250);
+  --status-declining: oklch(0.75 0.18 85);
+  --status-inactive: oklch(0.55 0 0);
   --border: oklch(0.2934 0 0);
   --input: oklch(0.3682 0 0);
   --ring: oklch(0.5555 0 0);
@@ -60,6 +65,10 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-status-healthy: var(--status-healthy);
+  --color-status-moderate: var(--status-moderate);
+  --color-status-declining: var(--status-declining);
+  --color-status-inactive: var(--status-inactive);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

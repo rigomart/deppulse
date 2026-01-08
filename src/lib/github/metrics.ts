@@ -1,6 +1,6 @@
 import "server-only";
 
-import { subYears } from "date-fns";
+import { differenceInDays, subYears } from "date-fns";
 import { logger } from "../logger";
 import { graphqlWithAuth } from "./client";
 import { parseGraphQLRateLimit } from "./rate-limit";
@@ -65,9 +65,7 @@ const REPO_METRICS_QUERY = `
 `;
 
 function getDaysSince(dateString: string): number {
-  return Math.floor(
-    (Date.now() - new Date(dateString).getTime()) / (1000 * 60 * 60 * 24),
-  );
+  return differenceInDays(new Date(), new Date(dateString));
 }
 
 function getMedian(numbers: number[]): number | null {
@@ -109,9 +107,10 @@ export async function fetchRepoMetrics(
     );
   } catch (error) {
     const graphqlDuration = Date.now() - graphqlStartTime;
+    const errorMessage = error instanceof Error ? error.message : String(error);
     logger.api({
       service: "GitHub",
-      endpoint: `GraphQL RepoMetrics (${owner}/${repo}) - ERROR`,
+      endpoint: `GraphQL RepoMetrics (${owner}/${repo}) - ERROR: ${errorMessage}`,
       durationMs: graphqlDuration,
     });
     throw error;

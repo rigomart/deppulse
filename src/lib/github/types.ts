@@ -30,13 +30,16 @@ export interface RepoMetrics {
   }>;
 }
 
+// GraphQL rate limit response shape
+export interface GraphQLRateLimitResponse {
+  limit: number;
+  remaining: number;
+  cost: number;
+  resetAt: string;
+}
+
 export interface RepoMetricsGraphQLResponse {
-  rateLimit: {
-    limit: number;
-    remaining: number;
-    cost: number;
-    resetAt: string;
-  };
+  rateLimit: GraphQLRateLimitResponse;
   repository: {
     nameWithOwner: string;
     description: string | null;
@@ -79,12 +82,4 @@ export interface CommitActivityStats {
   days: number[]; // Sun-Sat commit counts
   total: number;
   week: number; // Unix timestamp
-}
-
-// GraphQL rate limit response shape
-export interface GraphQLRateLimitResponse {
-  limit: number;
-  remaining: number;
-  cost: number;
-  resetAt: string;
 }
