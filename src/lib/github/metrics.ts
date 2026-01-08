@@ -60,14 +60,6 @@ const REPO_METRICS_QUERY = `
           state
         }
       }
-
-      # Fetch recently closed issues to capture close events
-      recentlyClosedIssues: issues(first: 100, states: CLOSED, orderBy: {field: UPDATED_AT, direction: DESC}) {
-        nodes {
-          createdAt
-          closedAt
-        }
-      }
     }
   }
 `;

@@ -71,12 +71,6 @@ export interface RepoMetricsGraphQLResponse {
         state: "OPEN" | "CLOSED";
       }>;
     };
-    recentlyClosedIssues: {
-      nodes: Array<{
-        createdAt: string;
-        closedAt: string;
-      }>;
-    };
   } | null;
 }
 

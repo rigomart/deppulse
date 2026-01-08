@@ -18,7 +18,7 @@ const commitActivityRequests = new Map<
  * Returns weekly commit counts for the last 52 weeks.
  *
  * GitHub returns 202 when stats are being computed in the background.
- * We retry with exponential backoff until data is ready.
+ * We retry with a fixed delay until data is ready.
  *
  * Uses in-memory deduplication to prevent duplicate requests during streaming.
  */
