@@ -18,22 +18,20 @@ If you need a dependency for a long-term project, you should know if it's active
 2. Deppulse fetches recent activity data from GitHub
 3. You get a risk category with the evidence behind it
 
-## Maintenance Categories
+## Scoring System
 
-| Category | Score | Description |
-|----------|-------|-------------|
-| **Healthy** | 70-100 | Active maintenance. Safe for long-term use. |
-| **Moderate** | 45-69 | Maintained but quieter. May be mature or slowing down. |
-| **At-Risk** | 20-44 | Reduced maintenance. Consider evaluating alternatives. |
-| **Unmaintained** | 0-19 | Little to no activity. High risk for production use. |
+Repositories are scored 0-100 based on four categories:
 
-## Metrics Analyzed
+- **Activity** — Commit recency and volume (weighted most heavily)
+- **Responsiveness** — How quickly issues get resolved
+- **Stability** — Release cadence and project age
+- **Community** — Popularity signals (stars, forks)
 
-- **Commit recency** - Days since last commit
-- **Commit volume** - Number of commits in last year
-- **Release cadence** - Days since last release
-- **Issue responsiveness** - Open issues ratio and median resolution time
-- **PR backlog** - Number of open pull requests
+Thresholds adapt to project maturity—established projects can have longer gaps between commits without penalty, while newer projects are expected to show more frequent activity.
+
+The final score maps to a category: **Healthy**, **Moderate**, **Declining**, or **Inactive**.
+
+For detailed thresholds and weights, see [`src/lib/maintenance-config.ts`](src/lib/maintenance-config.ts).
 
 ## Getting Started
 

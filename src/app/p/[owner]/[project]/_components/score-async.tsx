@@ -40,7 +40,7 @@ export async function ScoreAsync({ owner, project }: ScoreAsyncProps) {
   // Calculate score with complete data
   const result = calculateMaintenanceScore({
     daysSinceLastCommit: assessment.daysSinceLastCommit,
-    commitsLastYear,
+    commitActivity,
     openIssuesPercent: assessment.openIssuesPercent,
     medianIssueResolutionDays: assessment.medianIssueResolutionDays,
     issuesCreatedLastYear: assessment.issuesCreatedLastYear ?? 0,
