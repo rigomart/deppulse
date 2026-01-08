@@ -2,40 +2,22 @@ import "server-only";
 
 import { db } from "@/db/drizzle";
 import { type Assessment, assessments } from "@/db/schema";
-import { fetchRepoMetrics, type RepoMetrics } from "@/lib/github";
-import {
-  calculateMaintenanceScore,
-  type MaintenanceInput,
-} from "@/lib/maintenance";
+import { fetchRepoMetrics } from "@/lib/github";
 
 /**
- * Extracts the maintenance input from RepoMetrics for score calculation.
- */
-function extractMaintenanceInput(m: RepoMetrics): MaintenanceInput {
-  return {
-    daysSinceLastCommit: m.daysSinceLastCommit,
-    commitsLastYear: m.commitsLastYear,
-    openIssuesPercent: m.openIssuesPercent,
-    medianIssueResolutionDays: m.medianIssueResolutionDays,
-    issuesCreatedLastYear: m.issuesCreatedLastYear,
-    daysSinceLastRelease: m.daysSinceLastRelease,
-    repositoryCreatedAt: m.repositoryCreatedAt,
-    openPrsCount: m.openPrsCount,
-    stars: m.stars,
-    forks: m.forks,
-    isArchived: m.isArchived,
-  };
-}
-
-/**
- * Fetches fresh data from GitHub, computes maintenance score, and persists the assessment.
+ * Fetches fresh data from GitHub and persists a partial assessment.
+ *
+ * @remarks
+ * The maintenance score is NOT calculated here - it's deferred to the
+ * ScoreAndChartAsync component which has access to commit activity data.
+ * The `maintenanceScore` field will be null until that component runs.
  *
  * This function does NOT invalidate caches - use the `analyze()` server action
  * when you need cache invalidation (e.g., user-triggered refresh).
  *
  * @param owner - Repository owner (username or organization)
  * @param project - Repository name
- * @returns The persisted `Assessment` record
+ * @returns The persisted `Assessment` record (with maintenanceScore: null)
  * @throws If the repository doesn't exist or GitHub API fails
  */
 export async function fetchFreshAssessment(
@@ -45,8 +27,6 @@ export async function fetchFreshAssessment(
   const fullName = `${owner}/${project}`;
 
   const metrics = await fetchRepoMetrics(owner, project);
-  const maintenanceInput = extractMaintenanceInput(metrics);
-  const maintenance = calculateMaintenanceScore(maintenanceInput);
 
   const analyzedAt = new Date();
   const sharedFields = {
@@ -60,7 +40,6 @@ export async function fetchFreshAssessment(
     repositoryCreatedAt: metrics.repositoryCreatedAt,
     isArchived: metrics.isArchived,
     daysSinceLastCommit: metrics.daysSinceLastCommit,
-    commitsLastYear: metrics.commitsLastYear,
     daysSinceLastRelease: metrics.daysSinceLastRelease,
     openIssuesPercent: metrics.openIssuesPercent,
     openIssuesCount: metrics.openIssuesCount,
@@ -70,7 +49,8 @@ export async function fetchFreshAssessment(
     issuesCreatedLastYear: metrics.issuesCreatedLastYear,
     commitActivity: metrics.commitActivity,
     releases: metrics.releases,
-    maintenanceScore: maintenance.score,
+    // Score calculated later in ScoreAndChartAsync when commit data is available
+    maintenanceScore: null,
     analyzedAt,
   };
 

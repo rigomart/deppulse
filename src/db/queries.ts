@@ -90,18 +90,19 @@ export const getOrAnalyzeProject = cache(
 );
 
 /**
- * Updates chart data for an existing assessment.
- * Used for streaming updates when chart data is fetched separately.
+ * Completes an assessment by adding the maintenance score and commit activity.
+ * Called by ScoreAndChartAsync after fetching commit data from GitHub REST API.
  *
  * Note: We don't invalidate cache here because this runs during render.
  * The cache will refresh naturally, or on next full analysis.
  */
-export async function updateAssessmentChartData(
+export async function completeAssessmentScore(
   owner: string,
   project: string,
   data: {
-    commitActivity?: Array<{ week: string; commits: number }>;
-    commitsLastYear?: number;
+    commitActivity: Array<{ week: string; commits: number }>;
+    commitsLastYear: number;
+    maintenanceScore: number;
   },
 ): Promise<void> {
   const fullName = `${owner}/${project}`;
@@ -109,10 +110,9 @@ export async function updateAssessmentChartData(
   await db
     .update(assessments)
     .set({
-      ...(data.commitActivity && { commitActivity: data.commitActivity }),
-      ...(data.commitsLastYear !== undefined && {
-        commitsLastYear: data.commitsLastYear,
-      }),
+      commitActivity: data.commitActivity,
+      commitsLastYear: data.commitsLastYear,
+      maintenanceScore: data.maintenanceScore,
     })
     .where(eq(assessments.fullName, fullName));
 }

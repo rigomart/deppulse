@@ -90,9 +90,16 @@ function getMedian(numbers: number[]): number | null {
 /**
  * Fetches repository metadata and computed metrics from GitHub using GraphQL.
  *
+ * @remarks
+ * - Commit activity (`commitsLastYear`) is NOT included - fetched separately via REST API
+ *   in the ScoreAndChartAsync component to avoid blocking page render.
+ * - Issue metrics (`issuesCreatedLastYear`, `medianIssueResolutionDays`) are based on
+ *   the 100 most recent issues. For high-activity repositories with >100 issues/year,
+ *   these metrics may be underestimated.
+ *
  * @param owner - GitHub repository owner (user or organization)
  * @param repo - Repository name
- * @returns A `RepoMetrics` object containing repository metadata and computed metrics for maintenance scoring
+ * @returns A `RepoMetrics` object containing repository metadata and computed metrics
  */
 export async function fetchRepoMetrics(
   owner: string,
@@ -142,10 +149,6 @@ export async function fetchRepoMetrics(
   const daysSinceLastCommit = latestCommitDate
     ? getDaysSince(latestCommitDate)
     : null;
-
-  // Commit activity is fetched separately via streaming charts
-  // commitsLastYear will be updated when chart data is fetched
-  const commitsLastYear = 0;
 
   // Latest release
   const daysSinceLastRelease = r.latestRelease?.publishedAt
@@ -212,7 +215,6 @@ export async function fetchRepoMetrics(
     repositoryCreatedAt: new Date(r.createdAt),
     isArchived: r.isArchived,
     daysSinceLastCommit,
-    commitsLastYear,
     daysSinceLastRelease,
     openIssuesPercent,
     openIssuesCount,
