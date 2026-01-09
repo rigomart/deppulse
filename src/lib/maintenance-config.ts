@@ -35,7 +35,7 @@ interface MaintenanceConfig {
   categoryThresholds: {
     healthy: number;
     moderate: number;
-    atRisk: number;
+    declining: number;
   };
   weights: {
     activity: { total: number; lastCommit: number; commitVolume: number };
@@ -80,7 +80,7 @@ export const MAINTENANCE_CONFIG: MaintenanceConfig = {
   categoryThresholds: {
     healthy: 70, // 70-100
     moderate: 45, // 45-69
-    atRisk: 25, // 25-44 = declining, below = inactive
+    declining: 25, // 25-44, below = inactive
   },
 
   // Points allocation (must sum to 100)

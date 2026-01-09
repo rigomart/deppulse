@@ -201,7 +201,7 @@ export function getCategoryFromScore(score: number): MaintenanceCategory {
 
   if (score >= categoryThresholds.healthy) return "healthy";
   if (score >= categoryThresholds.moderate) return "moderate";
-  if (score >= categoryThresholds.atRisk) return "declining";
+  if (score >= categoryThresholds.declining) return "declining";
   return "inactive";
 }
 

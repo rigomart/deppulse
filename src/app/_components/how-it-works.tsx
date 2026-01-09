@@ -58,7 +58,7 @@ export function HowItWorks() {
                       Declining
                     </Badge>
                     <span className="text-muted-foreground">
-                      {categoryThresholds.atRisk}-
+                      {categoryThresholds.declining}-
                       {categoryThresholds.moderate - 1}: Signs of declining
                       maintenance, evaluate alternatives
                     </span>
@@ -70,7 +70,7 @@ export function HowItWorks() {
                       Inactive
                     </Badge>
                     <span className="text-muted-foreground">
-                      0-{categoryThresholds.atRisk - 1}: No recent activity.
+                      0-{categoryThresholds.declining - 1}: No recent activity.
                       Could be stable/feature-complete or unmaintained
                     </span>
                   </li>
