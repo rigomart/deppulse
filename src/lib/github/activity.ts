@@ -6,6 +6,8 @@ import { parseRestRateLimit } from "./rate-limit";
 import type { CommitActivityStats } from "./types";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const getBackoffDelay = (attempt: number, baseMs: number) =>
+  baseMs * 2 ** (attempt - 1);
 
 // In-flight request deduplication for commit activity
 const commitActivityRequests = new Map<
@@ -18,7 +20,7 @@ const commitActivityRequests = new Map<
  * Returns weekly commit counts for the last 52 weeks.
  *
  * GitHub returns 202 when stats are being computed in the background.
- * We retry with a fixed delay until data is ready.
+ * We retry with exponential backoff until data is ready.
  *
  * Uses in-memory deduplication to prevent duplicate requests during streaming.
  */
@@ -50,11 +52,11 @@ async function fetchCommitActivityInternal(
 ): Promise<Array<{ week: string; commits: number }>> {
   const url = `https://api.github.com/repos/${owner}/${repo}/stats/commit_activity`;
   const endpoint = `REST /repos/${owner}/${repo}/stats/commit_activity`;
-  const maxRetries = 3;
-  const delayMs = 2000;
+  const maxAttempts = 4;
+  const baseDelayMs = 1500;
   const timeoutMs = 10000;
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const startTime = Date.now();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -76,12 +78,12 @@ async function fetchCommitActivityInternal(
       const isAbort = error instanceof Error && error.name === "AbortError";
       logger.api({
         service: "GitHub",
-        endpoint: `${endpoint} (${isAbort ? "timeout" : "network error"}, attempt ${attempt}/${maxRetries})`,
+        endpoint: `${endpoint} (${isAbort ? "timeout" : "network error"}, attempt ${attempt}/${maxAttempts})`,
         durationMs,
       });
 
-      if (attempt < maxRetries) {
-        await sleep(delayMs);
+      if (attempt < maxAttempts) {
+        await sleep(getBackoffDelay(attempt, baseDelayMs));
         continue;
       }
       return [];
@@ -95,13 +97,13 @@ async function fetchCommitActivityInternal(
     if (response.status === 202) {
       logger.api({
         service: "GitHub",
-        endpoint: `${endpoint} (computing, attempt ${attempt}/${maxRetries})`,
+        endpoint: `${endpoint} (computing, attempt ${attempt}/${maxAttempts})`,
         durationMs,
         rateLimit,
       });
 
-      if (attempt < maxRetries) {
-        await sleep(delayMs); // 2s between retries
+      if (attempt < maxAttempts) {
+        await sleep(getBackoffDelay(attempt, baseDelayMs));
         continue;
       }
       return [];
