@@ -6,16 +6,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { categoryColors } from "@/lib/category-styles";
 import { MAINTENANCE_CONFIG } from "@/lib/maintenance-config";
 
 const { categoryThresholds, weights, maturityCriteria } = MAINTENANCE_CONFIG;
-
-const categoryColors = {
-  healthy: "bg-green-500/15 text-green-400 border-green-500/30",
-  moderate: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  declining: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
-  inactive: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
-};
 
 export function HowItWorks() {
   return (
@@ -64,7 +58,7 @@ export function HowItWorks() {
                       Declining
                     </Badge>
                     <span className="text-muted-foreground">
-                      {categoryThresholds.atRisk}-
+                      {categoryThresholds.declining}-
                       {categoryThresholds.moderate - 1}: Signs of declining
                       maintenance, evaluate alternatives
                     </span>
@@ -76,7 +70,7 @@ export function HowItWorks() {
                       Inactive
                     </Badge>
                     <span className="text-muted-foreground">
-                      0-{categoryThresholds.atRisk - 1}: No recent activity.
+                      0-{categoryThresholds.declining - 1}: No recent activity.
                       Could be stable/feature-complete or unmaintained
                     </span>
                   </li>
@@ -98,8 +92,7 @@ export function HowItWorks() {
                       Last commit recency ({weights.activity.lastCommit} pts)
                     </li>
                     <li>
-                      Commit volume in last 90 days (
-                      {weights.activity.commitVolume} pts)
+                      Commit volume ({weights.activity.commitVolume} pts)
                     </li>
                   </ul>
                 </div>

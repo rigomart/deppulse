@@ -40,10 +40,6 @@ export const assessments = pgTable(
       jsonb("commit_activity").$type<
         Array<{ week: string; commits: number }>
       >(),
-    issueActivity:
-      jsonb("issue_activity").$type<
-        Array<{ week: string; opened: number; closed: number }>
-      >(),
     releases:
       jsonb("releases").$type<
         Array<{ tagName: string; name: string | null; publishedAt: string }>

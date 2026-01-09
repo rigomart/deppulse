@@ -10,12 +10,12 @@ export { MAINTENANCE_CATEGORY_INFO };
 
 /**
  * Input metrics for maintenance score calculation.
- * All time-based metrics use a 1-year timeframe for consistency.
  */
 export interface MaintenanceInput {
   // Activity metrics
   daysSinceLastCommit: number | null;
-  commitsLastYear: number;
+  /** Weekly commit activity (52 weeks, most recent first) */
+  commitActivity: Array<{ week: string; commits: number }>;
 
   // Responsiveness metrics
   openIssuesPercent: number | null;
@@ -91,22 +91,34 @@ function scoreLastCommit(days: number | null, tier: MaturityTier): number {
   if (days === null) return 0; // No commits = no points
 
   if (days <= thresholds[0]) return maxPoints;
-  if (days <= thresholds[1]) return Math.round(maxPoints * 0.7);
-  if (days <= thresholds[2]) return Math.round(maxPoints * 0.4);
-  if (days <= thresholds[3]) return Math.round(maxPoints * 0.15);
+  if (days <= thresholds[1]) return Math.round(maxPoints * 0.5);
+  if (days <= thresholds[2]) return Math.round(maxPoints * 0.2);
+  if (days <= thresholds[3]) return Math.round(maxPoints * 0.05);
   return 0;
 }
 
 /**
- * Scores commit volume in the last year based on maturity tier thresholds.
+ * Scores commit volume based on tier-specific timeframes.
+ * Different tiers look at different time windows:
+ * - Emerging: 13 weeks (3 months) - recent activity matters most
+ * - Growing: 26 weeks (6 months) - balanced view
+ * - Mature: 52 weeks (12 months) - allows for gaps
  */
-function scoreCommitVolume(commits: number, tier: MaturityTier): number {
+function scoreCommitVolume(
+  commitActivity: Array<{ week: string; commits: number }>,
+  tier: MaturityTier,
+): number {
   const maxPoints = MAINTENANCE_CONFIG.weights.activity.commitVolume;
-  const thresholds = MAINTENANCE_CONFIG.maturityTiers[tier].commitVolumeYear;
+  const { weeks, thresholds } =
+    MAINTENANCE_CONFIG.maturityTiers[tier].commitVolume;
+
+  // Slice to the tier-specific timeframe (most recent N weeks)
+  const recentActivity = commitActivity.slice(0, weeks);
+  const commits = recentActivity.reduce((sum, week) => sum + week.commits, 0);
 
   if (commits >= thresholds[0]) return maxPoints;
-  if (commits >= thresholds[1]) return Math.round(maxPoints * 0.65);
-  if (commits >= thresholds[2]) return Math.round(maxPoints * 0.3);
+  if (commits >= thresholds[1]) return Math.round(maxPoints * 0.45);
+  if (commits >= thresholds[2]) return Math.round(maxPoints * 0.15);
   return 0;
 }
 
@@ -140,8 +152,8 @@ function scoreReleaseRecency(days: number | null, tier: MaturityTier): number {
   if (days === null) return 0;
 
   if (days <= thresholds[0]) return maxPoints;
-  if (days <= thresholds[1]) return Math.round(maxPoints * 0.65);
-  if (days <= thresholds[2]) return Math.round(maxPoints * 0.3);
+  if (days <= thresholds[1]) return Math.round(maxPoints * 0.5);
+  if (days <= thresholds[2]) return Math.round(maxPoints * 0.15);
   return 0;
 }
 
@@ -189,7 +201,7 @@ export function getCategoryFromScore(score: number): MaintenanceCategory {
 
   if (score >= categoryThresholds.healthy) return "healthy";
   if (score >= categoryThresholds.moderate) return "moderate";
-  if (score >= categoryThresholds.atRisk) return "declining";
+  if (score >= categoryThresholds.declining) return "declining";
   return "inactive";
 }
 
@@ -219,7 +231,7 @@ export function calculateMaintenanceScore(
   // Calculate component scores
   const activityScore =
     scoreLastCommit(input.daysSinceLastCommit, maturityTier) +
-    scoreCommitVolume(input.commitsLastYear, maturityTier);
+    scoreCommitVolume(input.commitActivity, maturityTier);
 
   const responsivenessScore = scoreIssueResolution(
     input.medianIssueResolutionDays,

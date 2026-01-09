@@ -44,8 +44,8 @@ Only when you need:
 
 ### Server-Only Modules
 Use `import "server-only"` at the top of files that should never run on client:
-- `src/lib/data.ts` - Database queries
-- `src/lib/github.ts` - API calls with secrets
+- `src/db/queries.ts` - Database queries
+- `src/lib/github/` - GitHub API client (modular directory)
 - `src/actions/analyze.ts` - Server actions
 
 ## Architecture
@@ -58,10 +58,10 @@ User Input → parseProject() → analyze() → fetchRepoMetrics() → calculate
 
 1. `src/lib/parse-project.ts` - Validates and extracts owner/project from URL or shorthand
 2. `src/actions/analyze.ts` - Server action orchestrating the analysis
-3. `src/lib/github.ts` - Fetches metrics from GitHub API via Octokit
+3. `src/lib/github/` - Fetches metrics from GitHub API via Octokit (GraphQL + REST)
 4. `src/lib/maintenance.ts` - Computes maintenance score (0-100) and category
 5. `src/db/schema.ts` - Single `assessments` table with upsert on conflict
-6. `src/lib/data.ts` - Cached queries with `unstable_cache` + React `cache()` for request deduplication
+6. `src/db/queries.ts` - Cached queries with `unstable_cache` + React `cache()` for request deduplication
 
 ### Key Modules
 
@@ -69,8 +69,9 @@ User Input → parseProject() → analyze() → fetchRepoMetrics() → calculate
 |--------|---------|
 | `src/lib/maintenance.ts` | Maintenance scoring algorithm. Categories: healthy (70+), moderate (45-69), at-risk (20-44), unmaintained (0-19). |
 | `src/lib/maintenance-config.ts` | Centralized config for scoring weights, thresholds, and maturity tiers. All tunable values in one place. |
-| `src/lib/github.ts` | GitHub API client. Fetches repo info, commits (90d window), releases, issues, PRs in parallel. |
-| `src/lib/data.ts` | Database queries with dual caching: `cache()` for request-level, `unstable_cache` for persistent. |
+| `src/lib/github/` | GitHub API client (modular). `metrics.ts` for GraphQL, `activity.ts` for REST commit stats, `rate-limit.ts` for parsing. |
+| `src/db/queries.ts` | Database queries with caching: `cache()` for request-level deduplication, `unstable_cache` for persistent project cache. |
+| `src/lib/logger.ts` | Generic structured logger for external API calls with duration and rate limit tracking. |
 
 ### Directory Structure
 
@@ -79,18 +80,20 @@ src/
 ├── actions/          # Server actions
 ├── app/              # Next.js App Router pages
 │   ├── _components/  # Homepage components
-│   └── repo/[owner]/[repo]/  # Dynamic repo page
+│   └── p/[owner]/[project]/  # Dynamic project page
 ├── components/       # Shared UI components
-├── db/               # Drizzle schema and client
+├── db/               # Drizzle schema, client, and queries
 └── lib/              # Core business logic
+    └── github/       # GitHub API client (modular)
 ```
 
 ## Code Patterns
 
 ### Caching Strategy
-- `unstable_cache` with tags for persistent data cache (24hr TTL)
+- `unstable_cache` with tags for persistent project cache (24hr TTL)
 - React `cache()` wrapper for request-level deduplication
-- Tag-based invalidation: `repo:{owner}/{repo}` for specific repos
+- Tag-based invalidation: `project:{owner}/{project}` for specific projects
+- Recent assessments query has no persistent cache (always fresh from DB)
 
 ## Code Conventions
 
