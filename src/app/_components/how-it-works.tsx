@@ -91,9 +91,7 @@ export function HowItWorks() {
                     <li>
                       Last commit recency ({weights.activity.lastCommit} pts)
                     </li>
-                    <li>
-                      Commit volume ({weights.activity.commitVolume} pts)
-                    </li>
+                    <li>Commit volume ({weights.activity.commitVolume} pts)</li>
                   </ul>
                 </div>
                 <div>

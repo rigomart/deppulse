@@ -10,6 +10,10 @@ function yearsAgo(years: number): Date {
   return new Date(Date.now() - years * 365 * 24 * 60 * 60 * 1000);
 }
 
+function daysAgo(days: number): Date {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+}
+
 /**
  * Creates a commit activity array with commits distributed evenly across weeks.
  * @param totalCommits - Total commits to distribute
@@ -58,12 +62,12 @@ describe("special cases", () => {
   it("archived repository always scores 0", () => {
     const result = calculateMaintenanceScore({
       isArchived: true,
-      daysSinceLastCommit: 1,
+      lastCommitAt: daysAgo(1),
       commitActivity: makeCommitActivity(100),
       openIssuesPercent: 10,
       medianIssueResolutionDays: 5,
       issuesCreatedLastYear: 10,
-      daysSinceLastRelease: 7,
+      lastReleaseAt: daysAgo(7),
       repositoryCreatedAt: yearsAgo(5),
       openPrsCount: 5,
       stars: 50000,
@@ -75,12 +79,12 @@ describe("special cases", () => {
 
   it("handles null values gracefully", () => {
     const result = calculateMaintenanceScore({
-      daysSinceLastCommit: null,
+      lastCommitAt: null,
       commitActivity: makeCommitActivity(20),
       openIssuesPercent: null,
       medianIssueResolutionDays: null,
       issuesCreatedLastYear: 5,
-      daysSinceLastRelease: null,
+      lastReleaseAt: null,
       repositoryCreatedAt: null,
       openPrsCount: 5,
       stars: 1000,
@@ -96,12 +100,12 @@ describe("scenario-based scoring", () => {
   it("actively maintained project → healthy", () => {
     // Mature project (10k+ stars) with 50 commits evenly distributed
     const result = calculateMaintenanceScore({
-      daysSinceLastCommit: 5,
+      lastCommitAt: daysAgo(5),
       commitActivity: makeCommitActivity(50),
       openIssuesPercent: 25,
       medianIssueResolutionDays: 7,
       issuesCreatedLastYear: 20,
-      daysSinceLastRelease: 30,
+      lastReleaseAt: daysAgo(30),
       repositoryCreatedAt: yearsAgo(5),
       openPrsCount: 10,
       stars: 20000,
@@ -114,12 +118,12 @@ describe("scenario-based scoring", () => {
   it("stable finished utility with recent activity → moderate", () => {
     // A truly stable utility with no commits - mature tier looks at full year
     const result = calculateMaintenanceScore({
-      daysSinceLastCommit: 100, // Within 120 days for mature tier = full points
+      lastCommitAt: daysAgo(100), // Within 120 days for mature tier = full points
       commitActivity: makeCommitActivity(0),
       openIssuesPercent: 15,
       medianIssueResolutionDays: 30, // Issues are being resolved
       issuesCreatedLastYear: 2,
-      daysSinceLastRelease: 100,
+      lastReleaseAt: daysAgo(100),
       repositoryCreatedAt: yearsAgo(6),
       openPrsCount: 5,
       stars: 12000, // Mature tier (10k+)
@@ -133,12 +137,12 @@ describe("scenario-based scoring", () => {
     // Growing tier (2+ years) looks at 26 weeks - 8 commits spread across year
     // means only ~4 in the 26-week window - not enough for declining
     const result = calculateMaintenanceScore({
-      daysSinceLastCommit: 200,
+      lastCommitAt: daysAgo(200),
       commitActivity: makeCommitActivity(8),
       openIssuesPercent: 55,
       medianIssueResolutionDays: null,
       issuesCreatedLastYear: 20,
-      daysSinceLastRelease: 200,
+      lastReleaseAt: daysAgo(200),
       repositoryCreatedAt: yearsAgo(2.5),
       openPrsCount: 15,
       stars: 3000,
@@ -150,12 +154,12 @@ describe("scenario-based scoring", () => {
 
   it("abandoned project → inactive", () => {
     const result = calculateMaintenanceScore({
-      daysSinceLastCommit: 500,
+      lastCommitAt: daysAgo(500),
       commitActivity: makeCommitActivity(0),
       openIssuesPercent: 70,
       medianIssueResolutionDays: null,
       issuesCreatedLastYear: 3,
-      daysSinceLastRelease: 600,
+      lastReleaseAt: daysAgo(600),
       repositoryCreatedAt: yearsAgo(4),
       openPrsCount: 20,
       stars: 5000,
@@ -170,12 +174,12 @@ describe("real-world reference projects", () => {
   it("axios (actively maintained) → healthy", () => {
     // Mature project (108k stars) - looks at full 52 weeks
     const result = calculateMaintenanceScore({
-      daysSinceLastCommit: 5,
+      lastCommitAt: daysAgo(5),
       commitActivity: makeCommitActivity(30),
       openIssuesPercent: 35,
       medianIssueResolutionDays: 14,
       issuesCreatedLastYear: 50,
-      daysSinceLastRelease: 30,
+      lastReleaseAt: daysAgo(30),
       repositoryCreatedAt: yearsAgo(10),
       openPrsCount: 20,
       stars: 108000,
@@ -190,12 +194,12 @@ describe("real-world reference projects", () => {
     // issue resolution, it scores lower under the new system.
     // Growing tier (9.6k stars) looks at 26 weeks - 0 commits in window
     const result = calculateMaintenanceScore({
-      daysSinceLastCommit: 621,
+      lastCommitAt: daysAgo(621),
       commitActivity: makeCommitActivity(0),
       openIssuesPercent: 13,
       medianIssueResolutionDays: null,
       issuesCreatedLastYear: 2,
-      daysSinceLastRelease: 621,
+      lastReleaseAt: daysAgo(621),
       repositoryCreatedAt: new Date("2018-12-24"),
       openPrsCount: 6,
       stars: 9600,
@@ -212,12 +216,12 @@ describe("real-world reference projects", () => {
     // - No issues closed recently
     // Growing tier (7.8k stars) looks at 26 weeks - 0 commits
     const result = calculateMaintenanceScore({
-      daysSinceLastCommit: 930,
+      lastCommitAt: daysAgo(930),
       commitActivity: makeCommitActivity(0),
       openIssuesPercent: 16.9,
       medianIssueResolutionDays: null,
       issuesCreatedLastYear: 0,
-      daysSinceLastRelease: 1350,
+      lastReleaseAt: daysAgo(1350),
       repositoryCreatedAt: new Date("2020-04-14"),
       openPrsCount: 8,
       stars: 7805,
@@ -231,12 +235,12 @@ describe("real-world reference projects", () => {
     // Growing tier (3.2k stars) looks at 26 weeks
     // 33 commits in 26 weeks but 220 days since last commit
     const result = calculateMaintenanceScore({
-      daysSinceLastCommit: 220,
+      lastCommitAt: daysAgo(220),
       commitActivity: makeCommitActivity(33), // Actual: 33 commits in last year
       openIssuesPercent: 29,
       medianIssueResolutionDays: 20,
       issuesCreatedLastYear: 100,
-      daysSinceLastRelease: 220,
+      lastReleaseAt: daysAgo(220),
       repositoryCreatedAt: yearsAgo(3.5),
       openPrsCount: 30,
       stars: 3216,
@@ -252,12 +256,12 @@ describe("timeframe-based commit scoring", () => {
     // 12 commits in recent 13 weeks should get full points for emerging
     const recentActivity = makeRecentCommitActivity(12, 13);
     const result = calculateMaintenanceScore({
-      daysSinceLastCommit: 5,
+      lastCommitAt: daysAgo(5),
       commitActivity: recentActivity,
       openIssuesPercent: 20,
       medianIssueResolutionDays: 7,
       issuesCreatedLastYear: 10,
-      daysSinceLastRelease: 30,
+      lastReleaseAt: daysAgo(30),
       repositoryCreatedAt: yearsAgo(1), // Emerging (< 2 years)
       openPrsCount: 5,
       stars: 500, // Emerging (< 1k)
@@ -276,12 +280,12 @@ describe("timeframe-based commit scoring", () => {
       commits: i >= 13 ? 2 : 0, // All commits in weeks 14-52
     }));
     const result = calculateMaintenanceScore({
-      daysSinceLastCommit: 100, // Recent commit but no volume recently
+      lastCommitAt: daysAgo(100), // Recent commit but no volume recently
       commitActivity: oldActivity,
       openIssuesPercent: 20,
       medianIssueResolutionDays: 7,
       issuesCreatedLastYear: 10,
-      daysSinceLastRelease: 30,
+      lastReleaseAt: daysAgo(30),
       repositoryCreatedAt: yearsAgo(1), // Emerging
       openPrsCount: 5,
       stars: 500,
@@ -299,12 +303,12 @@ describe("timeframe-based commit scoring", () => {
       commits: i >= 13 ? 1 : 0, // ~39 commits in older weeks
     }));
     const result = calculateMaintenanceScore({
-      daysSinceLastCommit: 100,
+      lastCommitAt: daysAgo(100),
       commitActivity: oldActivity,
       openIssuesPercent: 20,
       medianIssueResolutionDays: 14,
       issuesCreatedLastYear: 10,
-      daysSinceLastRelease: 100,
+      lastReleaseAt: daysAgo(100),
       repositoryCreatedAt: yearsAgo(6), // Mature (5+ years)
       openPrsCount: 5,
       stars: 15000, // Mature (10k+)

@@ -10,6 +10,7 @@ import {
 } from "./_components/chart-skeletons";
 import { MaintenanceHealth } from "./_components/maintenance-health";
 import { ProjectHeader } from "./_components/project-header";
+import { RecentActivity } from "./_components/recent-activity";
 import { ScoreAsync } from "./_components/score-async";
 
 type Props = {
@@ -75,6 +76,9 @@ export default async function ProjectPage({ params }: Props) {
           </Suspense>
         }
       />
+
+      {/* Recent activity timestamps */}
+      <RecentActivity assessment={assessment} />
 
       {/* Deferred chart (waits for commit activity fetch) */}
       <Container>
