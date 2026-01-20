@@ -13,8 +13,9 @@ export interface RepoMetrics {
   language: string | null;
   repositoryCreatedAt: Date;
   isArchived: boolean;
-  daysSinceLastCommit: number | null;
-  daysSinceLastRelease: number | null;
+  lastCommitAt: Date | null;
+  lastReleaseAt: Date | null;
+  lastClosedIssueAt: Date | null;
   openIssuesPercent: number | null;
   openIssuesCount: number;
   closedIssuesCount: number;

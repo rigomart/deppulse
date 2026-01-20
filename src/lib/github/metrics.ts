@@ -1,6 +1,6 @@
 import "server-only";
 
-import { differenceInDays, subYears } from "date-fns";
+import { subYears } from "date-fns";
 import { logger } from "../logger";
 import { graphqlWithAuth } from "./client";
 import { parseGraphQLRateLimit } from "./rate-limit";
@@ -63,10 +63,6 @@ const REPO_METRICS_QUERY = `
     }
   }
 `;
-
-function getDaysSince(dateString: string): number {
-  return differenceInDays(new Date(), new Date(dateString));
-}
 
 function getMedian(numbers: number[]): number | null {
   if (numbers.length === 0) return null;
@@ -137,13 +133,11 @@ export async function fetchRepoMetrics(
   // Extract latest commit date
   const latestCommitDate =
     r.defaultBranchRef?.target?.history?.nodes?.[0]?.committedDate;
-  const daysSinceLastCommit = latestCommitDate
-    ? getDaysSince(latestCommitDate)
-    : null;
+  const lastCommitAt = latestCommitDate ? new Date(latestCommitDate) : null;
 
-  // Latest release
-  const daysSinceLastRelease = r.latestRelease?.publishedAt
-    ? getDaysSince(r.latestRelease.publishedAt)
+  // Latest release date
+  const lastReleaseAt = r.latestRelease?.publishedAt
+    ? new Date(r.latestRelease.publishedAt)
     : null;
 
   // Release history for charts
@@ -194,6 +188,16 @@ export async function fetchRepoMetrics(
 
   const medianIssueResolutionDays = getMedian(closedIssueResolutionDays);
 
+  // Find the most recent closed issue
+  const lastClosedIssueAt =
+    r.recentIssues.nodes
+      .filter(
+        (issue): issue is typeof issue & { closedAt: string } =>
+          issue.state === "CLOSED" && issue.closedAt !== null,
+      )
+      .map((issue) => new Date(issue.closedAt))
+      .sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
+
   return {
     fullName: r.nameWithOwner,
     description: r.description,
@@ -205,8 +209,9 @@ export async function fetchRepoMetrics(
     language: r.primaryLanguage?.name ?? null,
     repositoryCreatedAt: new Date(r.createdAt),
     isArchived: r.isArchived,
-    daysSinceLastCommit,
-    daysSinceLastRelease,
+    lastCommitAt,
+    lastReleaseAt,
+    lastClosedIssueAt,
     openIssuesPercent,
     openIssuesCount,
     closedIssuesCount,

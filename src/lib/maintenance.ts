@@ -8,12 +8,18 @@ import {
 export type { MaintenanceCategory, MaturityTier };
 export { MAINTENANCE_CATEGORY_INFO };
 
+/** Calculates days since a date, or null if date is null. */
+function getDaysSince(date: Date | null): number | null {
+  if (!date) return null;
+  return Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
+}
+
 /**
  * Input metrics for maintenance score calculation.
  */
 export interface MaintenanceInput {
   // Activity metrics
-  daysSinceLastCommit: number | null;
+  lastCommitAt: Date | null;
   /** Weekly commit activity (52 weeks, most recent first) */
   commitActivity: Array<{ week: string; commits: number }>;
 
@@ -23,7 +29,7 @@ export interface MaintenanceInput {
   issuesCreatedLastYear: number;
 
   // Stability metrics
-  daysSinceLastRelease: number | null;
+  lastReleaseAt: Date | null;
   repositoryCreatedAt: Date | null;
 
   // Community metrics
@@ -228,9 +234,13 @@ export function calculateMaintenanceScore(
     input.forks,
   );
 
+  // Derive days from dates for internal scoring functions
+  const daysSinceLastCommit = getDaysSince(input.lastCommitAt);
+  const daysSinceLastRelease = getDaysSince(input.lastReleaseAt);
+
   // Calculate component scores
   const activityScore =
-    scoreLastCommit(input.daysSinceLastCommit, maturityTier) +
+    scoreLastCommit(daysSinceLastCommit, maturityTier) +
     scoreCommitVolume(input.commitActivity, maturityTier);
 
   const responsivenessScore = scoreIssueResolution(
@@ -238,7 +248,7 @@ export function calculateMaintenanceScore(
   );
 
   const stabilityScore =
-    scoreReleaseRecency(input.daysSinceLastRelease, maturityTier) +
+    scoreReleaseRecency(daysSinceLastRelease, maturityTier) +
     scoreProjectAge(input.repositoryCreatedAt);
 
   const communityScore = scorePopularity(input.stars, input.forks);
