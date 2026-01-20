@@ -14,17 +14,47 @@ bun run test:ui      # Run tests with Vitest UI
 bun run test -- src/lib/maintenance.test.ts  # Run a single test file
 
 # Database (Drizzle + Neon)
-bun run db:push      # Push schema to database
-bun run db:generate  # Generate migrations
-bun run db:migrate   # Run migrations
+bun run db:generate  # Generate migrations from schema changes
+bun run db:migrate   # Run pending migrations
 bun run db:studio    # Open Drizzle Studio
+bun run db:push      # Push schema directly (dev only, destructive)
 ```
+
+## Database Migrations
+
+After modifying `src/db/schema.ts`, generate and commit migration files:
+
+```bash
+bun run db:generate  # Creates SQL migration in ./migrations/
+git add migrations/
+git commit -m "chore(db): add migration for <change>"
+```
+
+**Do not use `db:push` in production** - it can be destructive. Use migrations instead.
+
+Migration files are auto-applied on Vercel deploy via the build command.
+
+## Deployment
+
+**Stack**: Vercel + Neon (via Vercel Marketplace integration)
+
+### How it works
+- **Production**: Vercel runs `db:migrate` before build, applying migrations to the main Neon database
+- **Preview deployments**: Neon creates an isolated database branch per PR, migrations run against it
+- **Cleanup**: Preview database branches auto-delete when deployments are removed
+
+### Environment Variables
+The Neon integration auto-configures these on Vercel:
+- `DATABASE_URL` - Pooled connection (for serverless)
+- `DATABASE_URL_UNPOOLED` - Direct connection (for migrations)
 
 ## Environment Variables
 
-Required in `.env.local`:
+Required in `.env.local` for local development:
 - `DATABASE_URL` - Neon PostgreSQL connection string
 - `GITHUB_PAT` - GitHub Personal Access Token for API access
+
+On Vercel, these are auto-configured by the Neon integration.
 
 ## Server-First Architecture
 
@@ -76,15 +106,16 @@ User Input → parseProject() → analyze() → fetchRepoMetrics() → calculate
 ### Directory Structure
 
 ```
-src/
-├── actions/          # Server actions
-├── app/              # Next.js App Router pages
-│   ├── _components/  # Homepage components
-│   └── p/[owner]/[project]/  # Dynamic project page
-├── components/       # Shared UI components
-├── db/               # Drizzle schema, client, and queries
-└── lib/              # Core business logic
-    └── github/       # GitHub API client (modular)
+├── migrations/       # Drizzle SQL migrations (auto-generated)
+└── src/
+    ├── actions/          # Server actions
+    ├── app/              # Next.js App Router pages
+    │   ├── _components/  # Homepage components
+    │   └── p/[owner]/[project]/  # Dynamic project page
+    ├── components/       # Shared UI components
+    ├── db/               # Drizzle schema, client, and queries
+    └── lib/              # Core business logic
+        └── github/       # GitHub API client (modular)
 ```
 
 ## Code Patterns

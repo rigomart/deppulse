@@ -77,6 +77,9 @@ export default async function ProjectPage({ params }: Props) {
         }
       />
 
+      {/* Recent activity timestamps */}
+      <RecentActivity assessment={assessment} />
+
       {/* Deferred chart (waits for commit activity fetch) */}
       <Container>
         <section className="space-y-4 animate-in fade-in duration-300 delay-100 fill-mode-backwards">
@@ -88,9 +91,6 @@ export default async function ProjectPage({ params }: Props) {
           </Suspense>
         </section>
       </Container>
-
-      {/* Recent activity timestamps */}
-      <RecentActivity assessment={assessment} />
 
       {/* Renders immediately - issue metrics from GraphQL */}
       <MaintenanceHealth assessment={assessment} />
