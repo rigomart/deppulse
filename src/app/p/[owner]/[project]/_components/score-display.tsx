@@ -1,7 +1,5 @@
-"use client";
-
-import { format } from "date-fns";
 import { Clock } from "lucide-react";
+import { LocalDate } from "@/components/local-date";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -33,7 +31,9 @@ export function ScoreDisplay({ score, analyzedAt }: ScoreDisplayProps) {
         <Separator />
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Clock className="size-3 opacity-70" />
-          <span>Analyzed: {format(analyzedAt, "MMM d, yyyy 'at' h:mm a")}</span>
+          <span>
+            Analyzed: <LocalDate date={analyzedAt} />
+          </span>
         </div>
       </CardContent>
     </Card>
