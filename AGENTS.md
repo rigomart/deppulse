@@ -91,7 +91,7 @@ User Input → parseProject() → analyze() → fetchRepoMetrics() → calculate
 3. `src/lib/github/` - Fetches metrics from GitHub API via Octokit (GraphQL + REST)
 4. `src/lib/maintenance.ts` - Computes maintenance score (0-100) and category
 5. `src/db/schema.ts` - Single `assessments` table with upsert on conflict
-6. `src/db/queries.ts` - Cached queries with `unstable_cache` + React `cache()` for request deduplication
+6. `src/db/queries.ts` - Cached queries with `"use cache"` + React `cache()` for request deduplication
 
 ### Key Modules
 
@@ -100,7 +100,7 @@ User Input → parseProject() → analyze() → fetchRepoMetrics() → calculate
 | `src/lib/maintenance.ts` | Maintenance scoring algorithm. Categories: healthy (70+), moderate (45-69), at-risk (20-44), unmaintained (0-19). |
 | `src/lib/maintenance-config.ts` | Centralized config for scoring weights, thresholds, and maturity tiers. All tunable values in one place. |
 | `src/lib/github/` | GitHub API client (modular). `metrics.ts` for GraphQL, `activity.ts` for REST commit stats, `rate-limit.ts` for parsing. |
-| `src/db/queries.ts` | Database queries with caching: `cache()` for request-level deduplication, `unstable_cache` for persistent project cache. |
+| `src/db/queries.ts` | Database queries with caching: `cache()` for request-level deduplication, `"use cache"` for persistent project cache. |
 | `src/lib/logger.ts` | Generic structured logger for external API calls with duration and rate limit tracking. |
 
 ### Directory Structure
@@ -121,10 +121,10 @@ User Input → parseProject() → analyze() → fetchRepoMetrics() → calculate
 ## Code Patterns
 
 ### Caching Strategy
-- `unstable_cache` with tags for persistent project cache (24hr TTL)
+- `"use cache"` directive with tags for persistent project cache (7-day TTL)
 - React `cache()` wrapper for request-level deduplication
-- Tag-based invalidation: `project:{owner}/{project}` for specific projects
-- Recent assessments query has no persistent cache (always fresh from DB)
+- Tag-based invalidation: `project:{owner}/{project}` for specific projects, `recent-assessments` for homepage list
+- Recent assessments uses `"use cache"` with 5-minute TTL, invalidated on new analysis
 
 ## Code Conventions
 
@@ -164,7 +164,7 @@ Tests in `*.test.ts` files alongside source. Run with `bun run test`.
 - Default to server components - only add `"use client"` when hooks are needed
 - Fetch data in server components, not in client components
 - Use server actions for mutations, not API routes
-- Leverage caching (`unstable_cache`, React `cache()`) aggressively
+- Leverage caching (`"use cache"`, React `cache()`) aggressively
 
 **Code quality:**
 - Assume dev server is already running

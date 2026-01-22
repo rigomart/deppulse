@@ -2,10 +2,12 @@ import type { Metadata, ResolvingMetadata } from "next";
 import { Suspense } from "react";
 import { Container } from "@/components/container";
 import { getCachedAssessment, getOrAnalyzeProject } from "@/db/queries";
+import type { Assessment } from "@/db/schema";
 import { getCategoryFromScore } from "@/lib/maintenance";
 import { ChartAsync } from "./_components/chart-async";
 import {
   CommitChartSkeleton,
+  ProjectPageSkeleton,
   ScoreSkeleton,
 } from "./_components/chart-skeletons";
 import { MaintenanceHealth } from "./_components/maintenance-health";
@@ -58,15 +60,37 @@ export async function generateMetadata(
   };
 }
 
-export default async function ProjectPage({ params }: Props) {
+export default function ProjectPage({ params }: Props) {
+  return (
+    <main className="space-y-6">
+      <Suspense fallback={<ProjectPageSkeleton />}>
+        <ProjectContent params={params} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function ProjectContent({ params }: Props) {
   const { owner, project } = await params;
 
-  // Fetches from cache if fresh (<24h), otherwise re-analyzes from GitHub
+  // Fetches from cache if fresh (<7 days), otherwise re-analyzes from GitHub
   // Note: maintenanceScore may be null until ScoreAsync runs
   const assessment = await getOrAnalyzeProject(owner, project);
 
+  return <ProjectDisplay owner={owner} project={project} assessment={assessment} />;
+}
+
+function ProjectDisplay({
+  owner,
+  project,
+  assessment,
+}: {
+  owner: string;
+  project: string;
+  assessment: Assessment;
+}) {
   return (
-    <main className="space-y-6">
+    <>
       {/* Header with deferred score (score waits for commit activity) */}
       <ProjectHeader
         assessment={assessment}
@@ -94,6 +118,6 @@ export default async function ProjectPage({ params }: Props) {
 
       {/* Renders immediately - issue metrics from GraphQL */}
       <MaintenanceHealth assessment={assessment} />
-    </main>
+    </>
   );
 }
