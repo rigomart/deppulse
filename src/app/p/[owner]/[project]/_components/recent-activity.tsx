@@ -1,4 +1,4 @@
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { CheckCircle2, GitCommit, Tag } from "lucide-react";
 import { Container } from "@/components/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,29 +6,34 @@ import type { Assessment } from "@/db/schema";
 
 const iconClass = "w-4 h-4 text-muted-foreground";
 
-/** Formats a date as relative time, or returns "N/A" if null. */
-const fmtDate = (date: Date | string | null): string =>
-  date ? formatDistanceToNow(new Date(date), { addSuffix: true }) : "N/A";
+function formatActivityDate(date: Date | string | null): {
+  display: string;
+  relative: string;
+} {
+  if (!date) return { display: "N/A", relative: "No activity recorded" };
+  const d = new Date(date);
+  return {
+    display: format(d, "MMM d, yyyy"),
+    relative: formatDistanceToNow(d, { addSuffix: true }),
+  };
+}
 
 export function RecentActivity({ assessment }: { assessment: Assessment }) {
   const metrics = [
     {
       title: "Last Commit",
-      value: fmtDate(assessment.lastCommitAt),
+      ...formatActivityDate(assessment.lastCommitAt),
       icon: <GitCommit className={iconClass} />,
-      description: "Most recent commit",
     },
     {
       title: "Last Release",
-      value: fmtDate(assessment.lastReleaseAt),
+      ...formatActivityDate(assessment.lastReleaseAt),
       icon: <Tag className={iconClass} />,
-      description: "Most recent release",
     },
     {
       title: "Last Closed",
-      value: fmtDate(assessment.lastClosedIssueAt),
+      ...formatActivityDate(assessment.lastClosedIssueAt),
       icon: <CheckCircle2 className={iconClass} />,
-      description: "Most recent issue closed",
     },
   ];
 
@@ -48,9 +53,9 @@ export function RecentActivity({ assessment }: { assessment: Assessment }) {
                 {metric.icon}
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{metric.value}</div>
+                <div className="text-2xl font-bold">{metric.display}</div>
                 <p className="text-xs text-muted-foreground">
-                  {metric.description}
+                  {metric.relative}
                 </p>
               </CardContent>
             </Card>
