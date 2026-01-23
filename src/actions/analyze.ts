@@ -37,8 +37,9 @@ export async function analyze(
   // Stale or missing - fetch fresh from GitHub
   const result = await fetchFreshAssessment(owner, project);
 
-  // Invalidate cached data for this specific repo
+  // Invalidate cached data for this specific repo and recent assessments list
   updateTag(getProjectTag(owner, project));
+  updateTag("recent-assessments");
 
   return result;
 }
