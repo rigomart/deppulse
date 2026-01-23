@@ -24,9 +24,10 @@ export async function RecentAnalyses() {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {recentAssessments.map((assessment) => {
-            const category = getCategoryFromScore(
-              assessment.maintenanceScore ?? 0,
-            );
+            const category =
+              assessment.maintenanceScore != null
+                ? getCategoryFromScore(assessment.maintenanceScore)
+                : null;
             return (
               <Link
                 key={assessment.id}
@@ -49,11 +50,17 @@ export async function RecentAnalyses() {
                           {assessment.fullName}
                         </div>
                       </div>
-                      <Badge
-                        className={`capitalize shrink-0 border ${categoryColors[category]}`}
-                      >
-                        {category}
-                      </Badge>
+                      {category ? (
+                        <Badge
+                          className={`capitalize shrink-0 border ${categoryColors[category]}`}
+                        >
+                          {category}
+                        </Badge>
+                      ) : (
+                        <Badge className="shrink-0 border text-muted-foreground">
+                          Scoring...
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
