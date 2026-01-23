@@ -19,21 +19,22 @@ export function getProjectTag(owner: string, project: string): string {
 
 /**
  * Fetches the Assessment record for a given project.
- * Uses React's cache() for request-level deduplication and "use cache" for persistent caching.
+ * Uses "use cache" for persistent caching with request-level deduplication.
  */
-export const getCachedAssessment = cache(
-  async (owner: string, project: string): Promise<Assessment | null> => {
-    "use cache";
-    cacheLife("weeks");
-    cacheTag(getProjectTag(owner, project));
+export async function getCachedAssessment(
+  owner: string,
+  project: string,
+): Promise<Assessment | null> {
+  "use cache";
+  cacheLife("weeks");
+  cacheTag(getProjectTag(owner, project));
 
-    const fullName = `${owner}/${project}`;
-    const assessment = await db.query.assessments.findFirst({
-      where: eq(assessments.fullName, fullName),
-    });
-    return assessment ?? null;
-  },
-);
+  const fullName = `${owner}/${project}`;
+  const assessment = await db.query.assessments.findFirst({
+    where: eq(assessments.fullName, fullName),
+  });
+  return assessment ?? null;
+}
 
 /**
  * Fetches the most recent assessment records ordered by analysis time.
