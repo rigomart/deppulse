@@ -1,7 +1,7 @@
 import "server-only";
 
 import { desc, eq } from "drizzle-orm";
-import { cacheLife, cacheTag, updateTag } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import { cache } from "react";
 import { fetchFreshAssessment } from "@/lib/assessment";
 import { db } from "./drizzle";
@@ -91,10 +91,10 @@ export const getOrAnalyzeProject = cache(
 
 /**
  * Completes an assessment by adding the maintenance score and commit activity.
- * Called by ScoreAndChartAsync after fetching commit data from GitHub REST API.
+ * Called by ScoreAsync after fetching commit data from GitHub REST API.
  *
- * Invalidates caches so the correct score is reflected on the homepage
- * and project page on subsequent visits.
+ * Does NOT invalidate caches - callers must use `after()` to schedule
+ * cache invalidation outside of render (updateTag is not allowed during render).
  */
 export async function completeAssessmentScore(
   owner: string,
@@ -114,7 +114,4 @@ export async function completeAssessmentScore(
       status: "complete",
     })
     .where(eq(assessments.fullName, fullName));
-
-  updateTag(getProjectTag(owner, project));
-  updateTag("recent-assessments");
 }
