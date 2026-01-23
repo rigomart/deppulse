@@ -73,9 +73,10 @@ export default function ProjectPage({ params }: Props) {
 async function ProjectContent({ params }: Props) {
   const { owner, project } = await params;
 
-  // Fetches from cache if fresh (<7 days), otherwise re-analyzes from GitHub
-  // Note: maintenanceScore may be null until ScoreAsync runs
-  const assessment = await getOrAnalyzeProject(owner, project);
+  // Try cached data first (resolves instantly on cache hit - no skeleton flash).
+  // Only falls through to getOrAnalyzeProject for uncached projects.
+  const cached = await getCachedAssessment(owner, project);
+  const assessment = cached ?? (await getOrAnalyzeProject(owner, project));
 
   return <ProjectDisplay owner={owner} project={project} assessment={assessment} />;
 }

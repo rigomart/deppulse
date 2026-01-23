@@ -19,21 +19,22 @@ export function getProjectTag(owner: string, project: string): string {
 
 /**
  * Fetches the Assessment record for a given project.
- * Uses React's cache() for request-level deduplication and "use cache" for persistent caching.
+ * Uses "use cache" for persistent caching with request-level deduplication.
  */
-export const getCachedAssessment = cache(
-  async (owner: string, project: string): Promise<Assessment | null> => {
-    "use cache";
-    cacheLife("weeks");
-    cacheTag(getProjectTag(owner, project));
+export async function getCachedAssessment(
+  owner: string,
+  project: string,
+): Promise<Assessment | null> {
+  "use cache";
+  cacheLife("weeks");
+  cacheTag(getProjectTag(owner, project));
 
-    const fullName = `${owner}/${project}`;
-    const assessment = await db.query.assessments.findFirst({
-      where: eq(assessments.fullName, fullName),
-    });
-    return assessment ?? null;
-  },
-);
+  const fullName = `${owner}/${project}`;
+  const assessment = await db.query.assessments.findFirst({
+    where: eq(assessments.fullName, fullName),
+  });
+  return assessment ?? null;
+}
 
 /**
  * Fetches the most recent assessment records ordered by analysis time.
@@ -46,6 +47,7 @@ export const getRecentAssessments = cache(
     cacheTag("recent-assessments");
 
     return db.query.assessments.findMany({
+      where: eq(assessments.status, "complete"),
       orderBy: [desc(assessments.analyzedAt)],
       limit,
     });
@@ -89,10 +91,10 @@ export const getOrAnalyzeProject = cache(
 
 /**
  * Completes an assessment by adding the maintenance score and commit activity.
- * Called by ScoreAndChartAsync after fetching commit data from GitHub REST API.
+ * Called by ScoreAsync after fetching commit data from GitHub REST API.
  *
- * Note: We don't invalidate cache here because this runs during render.
- * The cache will refresh naturally, or on next full analysis.
+ * Does NOT invalidate caches - callers must use `after()` to schedule
+ * cache invalidation outside of render (updateTag is not allowed during render).
  */
 export async function completeAssessmentScore(
   owner: string,
@@ -109,6 +111,7 @@ export async function completeAssessmentScore(
     .set({
       commitActivity: data.commitActivity,
       maintenanceScore: data.maintenanceScore,
+      status: "complete",
     })
     .where(eq(assessments.fullName, fullName));
 }

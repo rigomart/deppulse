@@ -1,6 +1,12 @@
 import "server-only";
 
-import { completeAssessmentScore, getAssessmentFromDb } from "@/db/queries";
+import { updateTag } from "next/cache";
+import { after } from "next/server";
+import {
+  completeAssessmentScore,
+  getAssessmentFromDb,
+  getProjectTag,
+} from "@/db/queries";
 import { fetchCommitActivity } from "@/lib/github";
 import { calculateMaintenanceScore } from "@/lib/maintenance";
 import { ScoreDisplay } from "./score-display";
@@ -52,6 +58,12 @@ export async function ScoreAsync({ owner, project }: ScoreAsyncProps) {
   await completeAssessmentScore(owner, project, {
     commitActivity,
     maintenanceScore: result.score,
+  });
+
+  // Invalidate caches after the response is sent (updateTag can't run during render)
+  after(() => {
+    updateTag(getProjectTag(owner, project));
+    updateTag("recent-assessments");
   });
 
   return (
