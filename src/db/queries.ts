@@ -47,6 +47,7 @@ export const getRecentAssessments = cache(
     cacheTag("recent-assessments");
 
     return db.query.assessments.findMany({
+      where: eq(assessments.status, "complete"),
       orderBy: [desc(assessments.analyzedAt)],
       limit,
     });
@@ -110,6 +111,7 @@ export async function completeAssessmentScore(
     .set({
       commitActivity: data.commitActivity,
       maintenanceScore: data.maintenanceScore,
+      status: "complete",
     })
     .where(eq(assessments.fullName, fullName));
 

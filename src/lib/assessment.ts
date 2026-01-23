@@ -52,6 +52,7 @@ export async function fetchFreshAssessment(
     releases: metrics.releases,
     // Score calculated later in ScoreAndChartAsync when commit data is available
     maintenanceScore: null,
+    status: "scoring",
     analyzedAt,
   };
 

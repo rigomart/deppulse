@@ -46,6 +46,7 @@ export const assessments = pgTable(
         Array<{ tagName: string; name: string | null; publishedAt: string }>
       >(),
     maintenanceScore: integer("maintenance_score"),
+    status: text("status").notNull().default("scoring"),
     analyzedAt: timestamp("analyzed_at").notNull().defaultNow(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
