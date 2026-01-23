@@ -1,14 +1,14 @@
 import "server-only";
 
 import { desc, eq } from "drizzle-orm";
-import { unstable_cache } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import { cache } from "react";
 import { fetchFreshAssessment } from "@/lib/assessment";
 import { db } from "./drizzle";
 import { type Assessment, assessments } from "./schema";
 
-// Cache duration: 24 hours (in seconds for unstable_cache)
-export const CACHE_REVALIDATE = 86400;
+// Cache duration: 7 days (in seconds)
+export const CACHE_REVALIDATE = 604800;
 
 /**
  * Builds a cache tag that uniquely identifies a project.
@@ -19,34 +19,32 @@ export function getProjectTag(owner: string, project: string): string {
 
 /**
  * Fetches the Assessment record for a given project.
- * Uses React's cache() for request-level deduplication and unstable_cache for persistent caching.
+ * Uses React's cache() for request-level deduplication and "use cache" for persistent caching.
  */
 export const getCachedAssessment = cache(
-  (owner: string, project: string): Promise<Assessment | null> => {
-    return unstable_cache(
-      async (): Promise<Assessment | null> => {
-        const fullName = `${owner}/${project}`;
-        const assessment = await db.query.assessments.findFirst({
-          where: eq(assessments.fullName, fullName),
-        });
-        return assessment ?? null;
-      },
-      [`assessment-${owner}-${project}`],
-      {
-        revalidate: CACHE_REVALIDATE,
-        tags: [getProjectTag(owner, project)],
-      },
-    )();
+  async (owner: string, project: string): Promise<Assessment | null> => {
+    "use cache";
+    cacheLife("weeks");
+    cacheTag(getProjectTag(owner, project));
+
+    const fullName = `${owner}/${project}`;
+    const assessment = await db.query.assessments.findFirst({
+      where: eq(assessments.fullName, fullName),
+    });
+    return assessment ?? null;
   },
 );
 
 /**
  * Fetches the most recent assessment records ordered by analysis time.
- * Uses React cache() for request-level deduplication only.
- * No persistent caching - always shows fresh data from database.
+ * Uses "use cache" with 5-minute TTL for fresh-ish data on homepage.
  */
 export const getRecentAssessments = cache(
   async (limit: number = 10): Promise<Assessment[]> => {
+    "use cache";
+    cacheLife("minutes");
+    cacheTag("recent-assessments");
+
     return db.query.assessments.findMany({
       orderBy: [desc(assessments.analyzedAt)],
       limit,
@@ -55,7 +53,7 @@ export const getRecentAssessments = cache(
 );
 
 /**
- * Direct DB query for assessment, bypassing unstable_cache.
+ * Direct DB query for assessment, bypassing cache.
  * Used for freshness checks where we need actual DB state, not cached data.
  */
 export async function getAssessmentFromDb(

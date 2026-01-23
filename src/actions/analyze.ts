@@ -12,7 +12,7 @@ import { fetchFreshAssessment } from "@/lib/assessment";
 /**
  * Server action: Analyze a GitHub repository with freshness checking.
  *
- * Returns cached data if fresh (<24h), otherwise fetches from GitHub API.
+ * Returns cached data if fresh (<7 days), otherwise fetches from GitHub API.
  * Called from homepage search form - blocks until complete, then navigates.
  *
  * @param owner - Repository owner (username or organization)
@@ -37,8 +37,9 @@ export async function analyze(
   // Stale or missing - fetch fresh from GitHub
   const result = await fetchFreshAssessment(owner, project);
 
-  // Invalidate cached data for this specific repo
+  // Invalidate cached data for this specific repo and recent assessments list
   updateTag(getProjectTag(owner, project));
+  updateTag("recent-assessments");
 
   return result;
 }
