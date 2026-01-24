@@ -8,7 +8,7 @@ import { getCategoryFromScore } from "@/lib/maintenance";
 
 interface ScoreDisplayProps {
   score: number;
-  analyzedAt: Date;
+  analyzedAt: Date | string;
 }
 
 export function ScoreDisplay({ score, analyzedAt }: ScoreDisplayProps) {

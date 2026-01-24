@@ -2,18 +2,18 @@ import type { Metadata, ResolvingMetadata } from "next";
 import { Suspense } from "react";
 import { Container } from "@/components/container";
 import { getCachedAssessment, getOrAnalyzeProject } from "@/db/queries";
-import type { Assessment } from "@/db/schema";
 import { getCategoryFromScore } from "@/lib/maintenance";
 import { ChartAsync } from "./_components/chart-async";
 import {
   CommitChartSkeleton,
-  ProjectPageSkeleton,
   ScoreSkeleton,
 } from "./_components/chart-skeletons";
+import { CommitActivityChart } from "./_components/commit-activity-chart";
 import { MaintenanceHealth } from "./_components/maintenance-health";
 import { ProjectHeader } from "./_components/project-header";
 import { RecentActivity } from "./_components/recent-activity";
 import { ScoreAsync } from "./_components/score-async";
+import { ScoreDisplay } from "./_components/score-display";
 
 type Props = {
   params: Promise<{ owner: string; project: string }>;
@@ -60,65 +60,60 @@ export async function generateMetadata(
   };
 }
 
-export default function ProjectPage({ params }: Props) {
-  return (
-    <main className="space-y-6">
-      <Suspense fallback={<ProjectPageSkeleton />}>
-        <ProjectContent params={params} />
-      </Suspense>
-    </main>
-  );
-}
-
-async function ProjectContent({ params }: Props) {
+export default async function ProjectPage({ params }: Props) {
   const { owner, project } = await params;
 
-  // Try cached data first (resolves instantly on cache hit - no skeleton flash).
-  // Only falls through to getOrAnalyzeProject for uncached projects.
   const cached = await getCachedAssessment(owner, project);
   const assessment = cached ?? (await getOrAnalyzeProject(owner, project));
 
-  return <ProjectDisplay owner={owner} project={project} assessment={assessment} />;
-}
+  const isComplete =
+    assessment.maintenanceScore !== null &&
+    Boolean(assessment.commitActivity?.length);
 
-function ProjectDisplay({
-  owner,
-  project,
-  assessment,
-}: {
-  owner: string;
-  project: string;
-  assessment: Assessment;
-}) {
   return (
-    <>
-      {/* Header with deferred score (score waits for commit activity) */}
+    <main className="space-y-6">
       <ProjectHeader
         assessment={assessment}
         scoreSlot={
-          <Suspense fallback={<ScoreSkeleton />}>
-            <ScoreAsync owner={owner} project={project} />
-          </Suspense>
+          isComplete ? (
+            <ScoreDisplay
+              score={assessment.maintenanceScore ?? 0}
+              analyzedAt={assessment.analyzedAt}
+            />
+          ) : (
+            <Suspense fallback={<ScoreSkeleton />}>
+              <ScoreAsync owner={owner} project={project} />
+            </Suspense>
+          )
         }
       />
 
-      {/* Recent activity timestamps */}
       <RecentActivity assessment={assessment} />
 
-      {/* Deferred chart (waits for commit activity fetch) */}
       <Container>
         <section className="space-y-4 animate-in fade-in duration-300 delay-100 fill-mode-backwards">
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
             Activity
           </h2>
-          <Suspense fallback={<CommitChartSkeleton />}>
-            <ChartAsync owner={owner} project={project} />
-          </Suspense>
+          {isComplete ? (
+            <CommitActivityChart
+              commitActivity={assessment.commitActivity}
+              commitsLastYear={
+                assessment.commitActivity?.reduce(
+                  (sum, week) => sum + week.commits,
+                  0,
+                ) ?? 0
+              }
+            />
+          ) : (
+            <Suspense fallback={<CommitChartSkeleton />}>
+              <ChartAsync owner={owner} project={project} />
+            </Suspense>
+          )}
         </section>
       </Container>
 
-      {/* Renders immediately - issue metrics from GraphQL */}
       <MaintenanceHealth assessment={assessment} />
-    </>
+    </main>
   );
 }
