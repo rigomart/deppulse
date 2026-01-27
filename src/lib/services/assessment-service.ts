@@ -17,6 +17,7 @@ import {
   updateRun,
 } from "@/lib/persistence/analysis-run-repo";
 import {
+  getCachedRepositoryByFullName,
   getRepositoryByFullName,
   upsertRepository,
 } from "@/lib/persistence/repository-repo";
@@ -93,7 +94,7 @@ export async function getCachedLatestRun(
   project: string,
 ): Promise<AnalysisRun | null> {
   const fullName = `${owner}/${project}`;
-  const repository = await getRepositoryByFullName(fullName);
+  const repository = await getCachedRepositoryByFullName(fullName);
 
   if (!repository) {
     return null;

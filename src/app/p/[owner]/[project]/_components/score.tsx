@@ -1,3 +1,5 @@
+import "server-only";
+
 import { Clock } from "lucide-react";
 import { LocalDate } from "@/components/local-date";
 import { Badge } from "@/components/ui/badge";
@@ -5,14 +7,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { categoryColors } from "@/lib/category-styles";
 import { getCategoryFromScore } from "@/lib/maintenance";
+import { ensureScoreCompletion } from "@/lib/services/assessment-service";
 
-interface ScoreDisplayProps {
-  score: number;
-  analyzedAt: Date;
+interface ScoreProps {
+  owner: string;
+  project: string;
 }
 
-export function ScoreDisplay({ score, analyzedAt }: ScoreDisplayProps) {
+export async function Score({ owner, project }: ScoreProps) {
+  const run = await ensureScoreCompletion(owner, project);
+
+  if (run.score === null) {
+    throw new Error("Score not available");
+  }
+
+  const score = run.score;
   const category = getCategoryFromScore(score);
+  const analyzedAt = run.completedAt ?? run.startedAt;
 
   return (
     <Card className="bg-surface-3 w-full sm:w-auto min-w-64">

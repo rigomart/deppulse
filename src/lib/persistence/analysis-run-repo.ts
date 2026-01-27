@@ -4,7 +4,6 @@ import { desc, eq } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db/drizzle";
 import { analysisRuns } from "@/db/schema";
-import { RECENT_ANALYSES_TAG } from "@/lib/cache/tags";
 import type { AnalysisRun as DomainAnalysisRun } from "@/lib/domain/assessment";
 import { type AnalysisRunWithRepository, mapAnalysisRunRow } from "./mappers";
 
@@ -134,10 +133,6 @@ export async function updateRun(
 export async function getRecentCompletedRuns(
   limit: number,
 ): Promise<DomainAnalysisRun[]> {
-  "use cache";
-  cacheLife("minutes");
-  cacheTag(RECENT_ANALYSES_TAG);
-
   const runs = await db.query.analysisRuns.findMany({
     where: eq(analysisRuns.status, "complete"),
     orderBy: [desc(analysisRuns.completedAt)],

@@ -1,8 +1,10 @@
 import "server-only";
 
 import { eq } from "drizzle-orm";
+import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db/drizzle";
 import { repositories } from "@/db/schema";
+import { getProjectTag } from "@/lib/cache/tags";
 import type { RepositoryRef } from "@/lib/domain/repository";
 import { mapRepositoryRow } from "./mappers";
 
@@ -14,6 +16,19 @@ export async function getRepositoryByFullName(
   });
 
   return repository ? mapRepositoryRow(repository) : null;
+}
+
+export async function getCachedRepositoryByFullName(
+  fullName: string,
+): Promise<RepositoryRef | null> {
+  "use cache";
+  cacheLife("weeks");
+  const [owner, name] = fullName.split("/");
+  if (owner && name) {
+    cacheTag(getProjectTag(owner, name));
+  }
+
+  return getRepositoryByFullName(fullName);
 }
 
 export async function getRepositoryById(

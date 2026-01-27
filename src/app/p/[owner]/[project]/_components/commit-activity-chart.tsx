@@ -23,9 +23,6 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-/**
- * Adds display labels to the pre-aggregated weekly commit data.
- */
 function addWeekLabels(
   data: Array<{ week: string; commits: number }>,
 ): Array<{ week: string; commits: number; weekLabel: string }> {
