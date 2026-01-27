@@ -1,9 +1,12 @@
 import type { Metadata, ResolvingMetadata } from "next";
 import { Suspense } from "react";
 import { Container } from "@/components/container";
-import { getCachedAssessment, getOrAnalyzeProject } from "@/db/queries";
-import type { Assessment } from "@/db/schema";
+import type { AnalysisRun } from "@/lib/domain/assessment";
 import { getCategoryFromScore } from "@/lib/maintenance";
+import {
+  getCachedLatestRun,
+  getLatestRunOrAnalyze,
+} from "@/lib/services/assessment-service";
 import { ChartAsync } from "./_components/chart-async";
 import {
   CommitChartSkeleton,
@@ -26,20 +29,21 @@ export async function generateMetadata(
   const { owner, project } = await params;
 
   // Use cache for metadata - fast path for homepage navigation
-  const assessment = await getCachedAssessment(owner, project);
+  const run = await getCachedLatestRun(owner, project);
 
-  if (!assessment) {
+  if (!run || run.score === null) {
     // Direct link to new project - page will handle fetching
     return {
       title: `${owner}/${project} - Analyzing...`,
     };
   }
 
-  const category = getCategoryFromScore(assessment.maintenanceScore ?? 0);
-  const title = `${assessment.fullName} - ${category}`;
-  const description = assessment.description
-    ? `${assessment.description} Maintenance score: ${assessment.maintenanceScore}/100. Last analyzed: ${new Date(assessment.analyzedAt).toLocaleDateString()}.`
-    : `Maintenance assessment for ${assessment.fullName}. Score: ${assessment.maintenanceScore}/100. Category: ${category}.`;
+  const category = run.category ?? getCategoryFromScore(run.score);
+  const title = `${run.repository.fullName} - ${category}`;
+  const analyzedAt = run.completedAt ?? run.startedAt;
+  const description = run.metrics?.description
+    ? `${run.metrics.description} Maintenance score: ${run.score}/100. Last analyzed: ${analyzedAt.toLocaleDateString()}.`
+    : `Maintenance assessment for ${run.repository.fullName}. Score: ${run.score}/100. Category: ${category}.`;
 
   return {
     title,
@@ -74,27 +78,27 @@ async function ProjectContent({ params }: Props) {
   const { owner, project } = await params;
 
   // Try cached data first (resolves instantly on cache hit - no skeleton flash).
-  // Only falls through to getOrAnalyzeProject for uncached projects.
-  const cached = await getCachedAssessment(owner, project);
-  const assessment = cached ?? (await getOrAnalyzeProject(owner, project));
+  // Only falls through to getLatestRunOrAnalyze for uncached projects.
+  const cached = await getCachedLatestRun(owner, project);
+  const run = cached ?? (await getLatestRunOrAnalyze(owner, project));
 
-  return <ProjectDisplay owner={owner} project={project} assessment={assessment} />;
+  return <ProjectDisplay owner={owner} project={project} run={run} />;
 }
 
 function ProjectDisplay({
   owner,
   project,
-  assessment,
+  run,
 }: {
   owner: string;
   project: string;
-  assessment: Assessment;
+  run: AnalysisRun;
 }) {
   return (
     <>
       {/* Header with deferred score (score waits for commit activity) */}
       <ProjectHeader
-        assessment={assessment}
+        run={run}
         scoreSlot={
           <Suspense fallback={<ScoreSkeleton />}>
             <ScoreAsync owner={owner} project={project} />
@@ -103,7 +107,7 @@ function ProjectDisplay({
       />
 
       {/* Recent activity timestamps */}
-      <RecentActivity assessment={assessment} />
+      <RecentActivity run={run} />
 
       {/* Deferred chart (waits for commit activity fetch) */}
       <Container>
@@ -118,7 +122,7 @@ function ProjectDisplay({
       </Container>
 
       {/* Renders immediately - issue metrics from GraphQL */}
-      <MaintenanceHealth assessment={assessment} />
+      <MaintenanceHealth run={run} />
     </>
   );
 }

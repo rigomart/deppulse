@@ -2,7 +2,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { CheckCircle2, GitCommit, Tag } from "lucide-react";
 import { Container } from "@/components/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Assessment } from "@/db/schema";
+import type { AnalysisRun } from "@/lib/domain/assessment";
 
 const iconClass = "w-4 h-4 text-muted-foreground";
 
@@ -18,21 +18,22 @@ function formatActivityDate(date: Date | string | null): {
   };
 }
 
-export function RecentActivity({ assessment }: { assessment: Assessment }) {
-  const metrics = [
+export function RecentActivity({ run }: { run: AnalysisRun }) {
+  const metrics = run.metrics;
+  const activityMetrics = [
     {
       title: "Last Commit",
-      ...formatActivityDate(assessment.lastCommitAt),
+      ...formatActivityDate(metrics?.lastCommitAt ?? null),
       icon: <GitCommit className={iconClass} />,
     },
     {
       title: "Last Release",
-      ...formatActivityDate(assessment.lastReleaseAt),
+      ...formatActivityDate(metrics?.lastReleaseAt ?? null),
       icon: <Tag className={iconClass} />,
     },
     {
       title: "Last Closed",
-      ...formatActivityDate(assessment.lastClosedIssueAt),
+      ...formatActivityDate(metrics?.lastClosedIssueAt ?? null),
       icon: <CheckCircle2 className={iconClass} />,
     },
   ];
@@ -44,7 +45,7 @@ export function RecentActivity({ assessment }: { assessment: Assessment }) {
           Recent Activity
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {metrics.map((metric) => (
+          {activityMetrics.map((metric) => (
             <Card key={metric.title}>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-sm font-medium">

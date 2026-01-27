@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { Container } from "@/components/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Assessment } from "@/db/schema";
+import type { AnalysisRun } from "@/lib/domain/assessment";
 
 const iconClass = "w-4 h-4 text-muted-foreground";
 
@@ -22,35 +22,36 @@ const fmtCount = (val: number | null): string => {
   return val.toString();
 };
 
-export function MaintenanceHealth({ assessment }: { assessment: Assessment }) {
-  const metrics = [
+export function MaintenanceHealth({ run }: { run: AnalysisRun }) {
+  const metrics = run.metrics;
+  const healthMetrics = [
     {
       title: "Open Issues",
-      value: fmtCount(assessment.openIssuesCount),
+      value: fmtCount(metrics?.openIssuesCount ?? null),
       icon: <CircleDot className={iconClass} />,
       description: "Currently open",
     },
     {
       title: "Closed Issues",
-      value: fmtCount(assessment.closedIssuesCount),
+      value: fmtCount(metrics?.closedIssuesCount ?? null),
       icon: <CheckCircle2 className={iconClass} />,
       description: "Total resolved",
     },
     {
       title: "Open Ratio",
-      value: fmt(assessment.openIssuesPercent, "%"),
+      value: fmt(metrics?.openIssuesPercent ?? null, "%"),
       icon: <AlertCircle className={iconClass} />,
       description: "Open vs total issues",
     },
     {
       title: "Resolution Time",
-      value: fmt(assessment.medianIssueResolutionDays, "d"),
+      value: fmt(metrics?.medianIssueResolutionDays ?? null, "d"),
       icon: <Clock className={iconClass} />,
       description: "Median days to close",
     },
     {
       title: "Open PRs",
-      value: fmtCount(assessment.openPrsCount),
+      value: fmtCount(metrics?.openPrsCount ?? null),
       icon: <GitPullRequest className={iconClass} />,
       description: "Pending contributions",
     },
@@ -63,7 +64,7 @@ export function MaintenanceHealth({ assessment }: { assessment: Assessment }) {
           Responsiveness
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {metrics.map((metric) => (
+          {healthMetrics.map((metric) => (
             <Card key={metric.title}>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-sm font-medium">

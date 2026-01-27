@@ -1,13 +1,7 @@
 "use server";
 
-import { updateTag } from "next/cache";
-import {
-  CACHE_REVALIDATE,
-  getAssessmentFromDb,
-  getProjectTag,
-} from "@/db/queries";
-import type { Assessment } from "@/db/schema";
-import { fetchFreshAssessment } from "@/lib/assessment";
+import type { AnalysisRun } from "@/lib/domain/assessment";
+import { startAnalysis } from "@/lib/services/assessment-service";
 
 /**
  * Server action: Analyze a GitHub repository with freshness checking.
@@ -17,29 +11,11 @@ import { fetchFreshAssessment } from "@/lib/assessment";
  *
  * @param owner - Repository owner (username or organization)
  * @param project - Repository name
- * @returns The `Assessment` record (cached or freshly fetched)
+ * @returns The latest analysis run (cached or freshly fetched)
  */
 export async function analyze(
   owner: string,
   project: string,
-): Promise<Assessment> {
-  // Check for fresh cached data first
-  const cached = await getAssessmentFromDb(owner, project);
-
-  if (cached) {
-    const ageSeconds =
-      (Date.now() - new Date(cached.analyzedAt).getTime()) / 1000;
-    if (ageSeconds < CACHE_REVALIDATE) {
-      return cached; // Fresh - skip GitHub API
-    }
-  }
-
-  // Stale or missing - fetch fresh from GitHub
-  const result = await fetchFreshAssessment(owner, project);
-
-  // Invalidate cached data for this specific repo and recent assessments list
-  updateTag(getProjectTag(owner, project));
-  updateTag("recent-assessments");
-
-  return result;
+): Promise<AnalysisRun> {
+  return startAnalysis(owner, project, { invalidate: "immediate" });
 }

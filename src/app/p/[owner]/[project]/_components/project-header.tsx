@@ -10,24 +10,29 @@ import {
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { Container } from "@/components/container";
-import type { Assessment } from "@/db/schema";
+import type { AnalysisRun } from "@/lib/domain/assessment";
 import { formatNumber } from "@/lib/utils";
 
 interface ProjectHeaderProps {
-  assessment: Assessment;
+  run: AnalysisRun;
   scoreSlot: ReactNode;
 }
 
-export function ProjectHeader({ assessment, scoreSlot }: ProjectHeaderProps) {
+export function ProjectHeader({ run, scoreSlot }: ProjectHeaderProps) {
+  const metrics = run.metrics;
   const stats = [
-    { icon: Star, value: formatNumber(assessment.stars ?? 0), label: "Stars" },
+    {
+      icon: Star,
+      value: formatNumber(metrics?.stars ?? 0),
+      label: "Stars",
+    },
     {
       icon: GitFork,
-      value: formatNumber(assessment.forks ?? 0),
+      value: formatNumber(metrics?.forks ?? 0),
       label: "Forks",
     },
-    { icon: Scale, value: assessment.license, label: "License" },
-    { icon: Code2, value: assessment.language, label: "Language" },
+    { icon: Scale, value: metrics?.license, label: "License" },
+    { icon: Code2, value: metrics?.language, label: "Language" },
   ].filter((s) => s.value);
 
   return (
@@ -36,35 +41,35 @@ export function ProjectHeader({ assessment, scoreSlot }: ProjectHeaderProps) {
         <div className="flex flex-col sm:flex-row gap-4 justify-between animate-in fade-in slide-in-from-bottom-1 duration-300">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              {assessment.avatarUrl && (
+              {metrics?.avatarUrl && (
                 <Image
-                  src={assessment.avatarUrl}
-                  alt={`${assessment.owner} avatar`}
+                  src={metrics.avatarUrl}
+                  alt={`${run.repository.owner} avatar`}
                   width={40}
                   height={40}
                   className="rounded-full"
                 />
               )}
-              {assessment.htmlUrl ? (
+              {metrics?.htmlUrl ? (
                 <a
-                  href={assessment.htmlUrl}
+                  href={metrics.htmlUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group flex items-center gap-2 text-2xl sm:text-3xl font-bold tracking-tight hover:underline"
                 >
-                  <span>{assessment.fullName}</span>
+                  <span>{run.repository.fullName}</span>
                   <ExternalLink className="size-4 opacity-0 transition-opacity group-hover:opacity-70" />
                 </a>
               ) : (
                 <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                  {assessment.fullName}
+                  {run.repository.fullName}
                 </h1>
               )}
             </div>
 
-            {assessment.description && (
+            {metrics?.description && (
               <p className="text-base text-muted-foreground leading-relaxed">
-                {assessment.description}
+                {metrics.description}
               </p>
             )}
 
@@ -82,12 +87,12 @@ export function ProjectHeader({ assessment, scoreSlot }: ProjectHeaderProps) {
                     </span>
                   </div>
                 ))}
-                {assessment.repositoryCreatedAt && (
+                {metrics?.repositoryCreatedAt && (
                   <div className="flex items-center gap-1.5" title="Created">
                     <Calendar className="size-4 opacity-70" />
                     <span className="font-medium text-foreground/80">
                       {formatDistanceToNow(
-                        new Date(assessment.repositoryCreatedAt),
+                        new Date(metrics.repositoryCreatedAt),
                       )}
                     </span>
                   </div>
