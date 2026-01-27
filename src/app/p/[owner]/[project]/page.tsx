@@ -3,11 +3,17 @@ import { MaintenanceHealth } from "./_components/maintenance-health";
 import { ProjectHeader } from "./_components/project-header";
 import { RecentActivity } from "./_components/recent-activity";
 
-type Props = {
-  params: Promise<{ owner: string; project: string }>;
-};
+/**
+ * Needed to avoid Suspense boundaries.
+ * https://nextjs.org/docs/app/api-reference/file-conventions/dynamic-routes#with-cache-components
+ */
+export async function generateStaticParams() {
+  return [{ owner: "vercel", project: "next.js" }];
+}
 
-export default async function ProjectPage({ params }: Props) {
+export default async function ProjectPage({
+  params,
+}: PageProps<"/p/[owner]/[project]">) {
   const { owner, project } = await params;
 
   return (
