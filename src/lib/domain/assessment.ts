@@ -3,7 +3,11 @@ import type { RepositoryRef } from "./repository";
 import type { AnalysisStatus, ScoreBreakdown } from "./score";
 
 export type CommitActivityEntry = { week: string; commits: number };
-export type ReleaseInfo = { tagName: string; name: string | null; publishedAt: string };
+export type ReleaseInfo = {
+  tagName: string;
+  name: string | null;
+  publishedAt: string;
+};
 
 export interface MetricsSnapshot {
   description: string | null;

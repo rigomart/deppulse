@@ -1,15 +1,12 @@
 import "server-only";
 
-import { cache } from "react";
 import { after } from "next/server";
-import { fetchCommitActivity, fetchRepoMetrics } from "@/lib/github";
-import { calculateMaintenanceScore } from "@/lib/maintenance";
-import type {
-  AnalysisRun,
-  MetricsSnapshot,
-} from "@/lib/domain/assessment";
+import { cache } from "react";
 import { invalidateProjectCache } from "@/lib/cache/invalidation";
 import { getProjectTag } from "@/lib/cache/tags";
+import type { AnalysisRun, MetricsSnapshot } from "@/lib/domain/assessment";
+import { fetchCommitActivity, fetchRepoMetrics } from "@/lib/github";
+import { calculateMaintenanceScore } from "@/lib/maintenance";
 import {
   createRun,
   getCachedLatestRunByRepositoryId,
@@ -128,9 +125,7 @@ export const getLatestRunOrAnalyze = cache(
   },
 );
 
-export async function getRecentAnalyses(
-  limit: number,
-): Promise<AnalysisRun[]> {
+export async function getRecentAnalyses(limit: number): Promise<AnalysisRun[]> {
   const runs = await getRecentCompletedRuns(limit * 4);
   const unique: AnalysisRun[] = [];
   const seen = new Set<number>();
@@ -200,7 +195,9 @@ export async function ensureScoreCompletion(
   runId?: number,
   options: { invalidate?: InvalidationMode } = {},
 ): Promise<AnalysisRun> {
-  const run = runId ? await getRunById(runId) : await getLatestRun(owner, project);
+  const run = runId
+    ? await getRunById(runId)
+    : await getLatestRun(owner, project);
 
   if (!run) {
     throw new Error("Analysis run not found");

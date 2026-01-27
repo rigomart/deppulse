@@ -2,7 +2,9 @@ import type { AnalysisRun, Repository } from "@/db/schema";
 import type { AnalysisRun as DomainAnalysisRun } from "@/lib/domain/assessment";
 import type { RepositoryRef } from "@/lib/domain/repository";
 
-export type AnalysisRunWithRepository = AnalysisRun & { repository: Repository };
+export type AnalysisRunWithRepository = AnalysisRun & {
+  repository: Repository;
+};
 
 export function mapRepositoryRow(repository: Repository): RepositoryRef {
   return {

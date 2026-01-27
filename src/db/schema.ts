@@ -87,9 +87,10 @@ export const analysisRuns = pgTable(
     repositoryId: integer("repository_id")
       .notNull()
       .references(() => repositories.id, { onDelete: "cascade" }),
-    status: text("status").notNull().default("metrics_fetched").$type<
-      AnalysisStatus
-    >(),
+    status: text("status")
+      .notNull()
+      .default("metrics_fetched")
+      .$type<AnalysisStatus>(),
     metricsJson: jsonb("metrics_json").$type<MetricsSnapshot>(),
     commitActivityJson: jsonb("commit_activity_json").$type<
       Array<CommitActivityEntry>

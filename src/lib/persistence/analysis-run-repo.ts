@@ -4,9 +4,9 @@ import { desc, eq } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db/drizzle";
 import { analysisRuns } from "@/db/schema";
-import type { AnalysisRun as DomainAnalysisRun } from "@/lib/domain/assessment";
 import { RECENT_ANALYSES_TAG } from "@/lib/cache/tags";
-import { mapAnalysisRunRow, type AnalysisRunWithRepository } from "./mappers";
+import type { AnalysisRun as DomainAnalysisRun } from "@/lib/domain/assessment";
+import { type AnalysisRunWithRepository, mapAnalysisRunRow } from "./mappers";
 
 export async function getRunById(
   id: number,
@@ -42,9 +42,7 @@ export async function getRunsByRepositoryId(
     with: { repository: true },
   });
 
-  return runs.map((run) =>
-    mapAnalysisRunRow(run as AnalysisRunWithRepository),
-  );
+  return runs.map((run) => mapAnalysisRunRow(run as AnalysisRunWithRepository));
 }
 
 export async function getCachedLatestRunByRepositoryId(
@@ -147,7 +145,5 @@ export async function getRecentCompletedRuns(
     with: { repository: true },
   });
 
-  return runs.map((run) =>
-    mapAnalysisRunRow(run as AnalysisRunWithRepository),
-  );
+  return runs.map((run) => mapAnalysisRunRow(run as AnalysisRunWithRepository));
 }
