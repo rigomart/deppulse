@@ -152,11 +152,7 @@ export async function ensureScoreCompletion(
     throw new Error("Analysis run not found");
   }
 
-  if (
-    run.status === "complete" &&
-    run.score !== null &&
-    run.commitActivity.length > 0
-  ) {
+  if (run.status === "complete" && run.score !== null) {
     return run;
   }
 
@@ -213,10 +209,14 @@ export async function ensureScoreCompletion(
     return completed;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    await updateRun(workingRun.id, {
-      status: "failed",
-      errorMessage,
-    });
+    try {
+      await updateRun(workingRun.id, {
+        status: "failed",
+        errorMessage,
+      });
+    } catch {
+      // Best-effort status update; proceed to rethrow original error
+    }
     throw error;
   }
 }
