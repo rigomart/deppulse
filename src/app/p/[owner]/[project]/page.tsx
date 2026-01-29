@@ -7,7 +7,7 @@ import { ProjectHeader } from "./_components/project-header";
 import { RecentActivity } from "./_components/recent-activity";
 
 /**
- * Needed for cache components with dynamic routes.
+ * Required for cache components with dynamic routes.
  * https://nextjs.org/docs/app/api-reference/file-conventions/dynamic-routes#with-cache-components
  */
 export async function generateStaticParams() {
