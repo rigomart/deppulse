@@ -28,6 +28,7 @@ const REPO_METRICS_QUERY = `
       owner { avatarUrl }
 
       defaultBranchRef {
+        name
         target {
           ... on Commit {
             history(first: 1) {
@@ -205,6 +206,7 @@ export async function fetchRepoMetrics(
     forks: r.forkCount,
     avatarUrl: r.owner.avatarUrl,
     htmlUrl: r.url,
+    defaultBranch: r.defaultBranchRef?.name ?? null,
     license: r.licenseInfo?.spdxId ?? null,
     language: r.primaryLanguage?.name ?? null,
     repositoryCreatedAt: new Date(r.createdAt),

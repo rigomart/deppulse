@@ -1,49 +1,21 @@
 "use client";
 
-import { Loader2, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { analyze } from "@/actions/analyze";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { parseProject } from "@/lib/parse-project";
 
-/** Maps error patterns to user-friendly messages. */
-function getUserFriendlyError(error: unknown): string {
-  if (!(error instanceof Error)) {
-    return "Analysis failed. Please try again.";
-  }
-
-  const msg = error.message.toLowerCase();
-
-  if (msg.includes("not found") || msg.includes("404")) {
-    return "Repository not found. Please check the owner and repo name.";
-  }
-  if (msg.includes("rate limit")) {
-    return "GitHub API rate limit reached. Please try again later.";
-  }
-  if (msg.includes("network") || msg.includes("fetch")) {
-    return "Network error. Please check your connection and try again.";
-  }
-  if (msg.includes("unauthorized") || msg.includes("401")) {
-    return "Authentication error. Please try again later.";
-  }
-
-  return "Analysis failed. Please try again.";
-}
-
 /**
  * Render a search form for analyzing a GitHub repository.
  *
- * Validates an "owner/project" string or GitHub URL, calls analyze() to fetch/cache data,
- * then navigates to the project page on success.
- *
- * @returns The JSX element for the search form UI.
+ * Validates an "owner/project" string or GitHub URL, then navigates
+ * to the project page where analysis will be triggered.
  */
 export function SearchForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -59,15 +31,7 @@ export function SearchForm() {
     }
 
     const { owner, project } = parsed;
-
-    startTransition(async () => {
-      try {
-        await analyze(owner, project);
-        router.push(`/p/${owner}/${project}`);
-      } catch (err) {
-        setError(getUserFriendlyError(err));
-      }
-    });
+    router.push(`/p/${owner}/${project}`);
   };
 
   return (
@@ -77,15 +41,14 @@ export function SearchForm() {
           type="text"
           name="query"
           placeholder="GitHub URL or owner/repository"
-          disabled={isPending}
           required
           maxLength={200}
           className="flex-1"
           autoComplete="off"
         />
-        <Button type="submit" disabled={isPending}>
-          {isPending ? <Loader2 className="animate-spin" /> : <Search />}
-          {isPending ? "Analyzing..." : "Analyze"}
+        <Button type="submit">
+          <Search />
+          Analyze
         </Button>
       </form>
       {error && <p className="text-sm text-destructive font-medium">{error}</p>}

@@ -9,6 +9,7 @@ export interface RepoMetrics {
   forks: number;
   avatarUrl: string;
   htmlUrl: string;
+  defaultBranch: string | null;
   license: string | null;
   language: string | null;
   repositoryCreatedAt: Date;
@@ -53,6 +54,7 @@ export interface RepoMetricsGraphQLResponse {
     primaryLanguage: { name: string } | null;
     owner: { avatarUrl: string };
     defaultBranchRef: {
+      name: string;
       target: {
         history: { nodes: Array<{ committedDate: string }> };
       };
