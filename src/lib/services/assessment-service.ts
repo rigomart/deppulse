@@ -1,5 +1,6 @@
 import "server-only";
 
+import { invalidateProjectCache } from "@/lib/cache/invalidation";
 import type { AnalysisRun, MetricsSnapshot } from "@/lib/domain/assessment";
 import { fetchCommitActivity, fetchRepoMetrics } from "@/lib/github";
 import { calculateMaintenanceScore } from "@/lib/maintenance";
@@ -202,6 +203,9 @@ export async function ensureScoreCompletion(
       scoreBreakdown: { maturityTier: result.maturityTier },
       completedAt: new Date(),
     });
+
+    // Invalidate cache so next request gets the completed data
+    invalidateProjectCache(owner, project);
 
     return completed;
   } catch (error) {
