@@ -1,4 +1,4 @@
-import "server-only";
+"use client";
 
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -10,16 +10,14 @@ import {
   Star,
 } from "lucide-react";
 import Image from "next/image";
-import { getLatestRunOrAnalyze } from "@/lib/services/assessment-service";
+import type { AnalysisRun } from "@/lib/domain/assessment";
 import { formatNumber } from "@/lib/utils";
 
 interface ProjectInfoProps {
-  owner: string;
-  project: string;
+  run: AnalysisRun;
 }
 
-export async function ProjectInfo({ owner, project }: ProjectInfoProps) {
-  const run = await getLatestRunOrAnalyze(owner, project);
+export function ProjectInfo({ run }: ProjectInfoProps) {
   const metrics = run.metrics;
 
   const stats = [

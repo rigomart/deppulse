@@ -1,10 +1,13 @@
+import { cacheLife, cacheTag } from "next/cache";
+import { getProjectTag } from "@/lib/cache/tags";
+import { startAnalysis } from "@/lib/services/assessment-service";
 import { CommitChart } from "./_components/commit-chart";
 import { MaintenanceHealth } from "./_components/maintenance-health";
 import { ProjectHeader } from "./_components/project-header";
 import { RecentActivity } from "./_components/recent-activity";
 
 /**
- * Needed to avoid Suspense boundaries.
+ * Needed for cache components with dynamic routes.
  * https://nextjs.org/docs/app/api-reference/file-conventions/dynamic-routes#with-cache-components
  */
 export async function generateStaticParams() {
@@ -14,15 +17,19 @@ export async function generateStaticParams() {
 export default async function ProjectPage({
   params,
 }: PageProps<"/p/[owner]/[project]">) {
+  "use cache";
   const { owner, project } = await params;
+  cacheLife("weeks");
+  cacheTag(getProjectTag(owner, project));
+
+  const run = await startAnalysis(owner, project);
 
   return (
     <>
-      {/* Each component fetches its own data and handles its own caching/suspense */}
-      <ProjectHeader owner={owner} project={project} />
-      <RecentActivity owner={owner} project={project} />
-      <CommitChart owner={owner} project={project} />
-      <MaintenanceHealth owner={owner} project={project} />
+      <ProjectHeader run={run} owner={owner} project={project} />
+      <RecentActivity run={run} />
+      <CommitChart runId={run.id} owner={owner} project={project} />
+      <MaintenanceHealth run={run} />
     </>
   );
 }

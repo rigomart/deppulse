@@ -1,21 +1,28 @@
 import "server-only";
 
 import { Clock } from "lucide-react";
+import { cacheLife, cacheTag } from "next/cache";
 import { LocalDate } from "@/components/local-date";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { getProjectTag } from "@/lib/cache/tags";
 import { categoryColors } from "@/lib/category-styles";
 import { getCategoryFromScore } from "@/lib/maintenance";
 import { ensureScoreCompletion } from "@/lib/services/assessment-service";
 
 interface ScoreProps {
+  runId: number;
   owner: string;
   project: string;
 }
 
-export async function Score({ owner, project }: ScoreProps) {
-  const run = await ensureScoreCompletion(owner, project);
+export async function Score({ runId, owner, project }: ScoreProps) {
+  "use cache";
+  cacheLife("weeks");
+  cacheTag(getProjectTag(owner, project));
+
+  const run = await ensureScoreCompletion(owner, project, runId);
 
   if (run.score === null) {
     throw new Error("Score not available");

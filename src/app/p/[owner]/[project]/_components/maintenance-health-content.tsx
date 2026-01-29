@@ -1,5 +1,3 @@
-import "server-only";
-
 import {
   AlertCircle,
   CheckCircle2,
@@ -8,11 +6,10 @@ import {
   GitPullRequest,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getLatestRunOrAnalyze } from "@/lib/services/assessment-service";
+import type { AnalysisRun } from "@/lib/domain/assessment";
 
 interface MaintenanceHealthContentProps {
-  owner: string;
-  project: string;
+  run: AnalysisRun;
 }
 
 const iconClass = "w-4 h-4 text-muted-foreground";
@@ -26,11 +23,9 @@ const fmtCount = (val: number | null): string => {
   return val.toString();
 };
 
-export async function MaintenanceHealthContent({
-  owner,
-  project,
+export function MaintenanceHealthContent({
+  run,
 }: MaintenanceHealthContentProps) {
-  const run = await getLatestRunOrAnalyze(owner, project);
   const metrics = run.metrics;
 
   const healthMetrics = [

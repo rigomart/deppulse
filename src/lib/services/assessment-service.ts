@@ -1,15 +1,10 @@
 import "server-only";
 
-import { after } from "next/server";
-import { cache } from "react";
-import { invalidateProjectCache } from "@/lib/cache/invalidation";
-import { getProjectTag } from "@/lib/cache/tags";
 import type { AnalysisRun, MetricsSnapshot } from "@/lib/domain/assessment";
 import { fetchCommitActivity, fetchRepoMetrics } from "@/lib/github";
 import { calculateMaintenanceScore } from "@/lib/maintenance";
 import {
   createRun,
-  getCachedLatestRunByRepositoryId,
   getLatestRunByRepositoryId,
   getRecentCompletedRuns,
   getRunById,
@@ -17,33 +12,11 @@ import {
   updateRun,
 } from "@/lib/persistence/analysis-run-repo";
 import {
-  getCachedRepositoryByFullName,
   getRepositoryByFullName,
   upsertRepository,
 } from "@/lib/persistence/repository-repo";
 
 const CACHE_REVALIDATE_SECONDS = 60 * 60 * 24 * 7;
-
-type InvalidationMode = "none" | "immediate" | "defer";
-
-function scheduleInvalidation(
-  mode: InvalidationMode,
-  owner: string,
-  project: string,
-) {
-  if (mode === "none") {
-    return;
-  }
-
-  if (mode === "immediate") {
-    invalidateProjectCache(owner, project);
-    return;
-  }
-
-  after(() => {
-    invalidateProjectCache(owner, project);
-  });
-}
 
 function isRunFresh(run: AnalysisRun): boolean {
   const timestamp = run.completedAt ?? run.startedAt;
@@ -89,23 +62,6 @@ function toMetricsSnapshot(metrics: {
   };
 }
 
-export async function getCachedLatestRun(
-  owner: string,
-  project: string,
-): Promise<AnalysisRun | null> {
-  const fullName = `${owner}/${project}`;
-  const repository = await getCachedRepositoryByFullName(fullName);
-
-  if (!repository) {
-    return null;
-  }
-
-  return getCachedLatestRunByRepositoryId(
-    repository.id,
-    getProjectTag(owner, project),
-  );
-}
-
 export async function getLatestRun(
   owner: string,
   project: string,
@@ -119,12 +75,6 @@ export async function getLatestRun(
 
   return getLatestRunByRepositoryId(repository.id);
 }
-
-export const getLatestRunOrAnalyze = cache(
-  async (owner: string, project: string): Promise<AnalysisRun> => {
-    return startAnalysis(owner, project, { invalidate: "defer" });
-  },
-);
 
 export async function getRecentAnalyses(limit: number): Promise<AnalysisRun[]> {
   const runs = await getRecentCompletedRuns(limit * 4);
@@ -159,7 +109,6 @@ export async function getRunHistory(
 export async function startAnalysis(
   owner: string,
   project: string,
-  options: { invalidate?: InvalidationMode } = {},
 ): Promise<AnalysisRun> {
   const latest = await getLatestRun(owner, project);
   if (latest && isRunFresh(latest)) {
@@ -185,8 +134,6 @@ export async function startAnalysis(
     startedAt: new Date(),
   });
 
-  scheduleInvalidation(options.invalidate ?? "immediate", owner, project);
-
   return run;
 }
 
@@ -194,7 +141,6 @@ export async function ensureScoreCompletion(
   owner: string,
   project: string,
   runId?: number,
-  options: { invalidate?: InvalidationMode } = {},
 ): Promise<AnalysisRun> {
   const run = runId
     ? await getRunById(runId)
@@ -256,8 +202,6 @@ export async function ensureScoreCompletion(
       scoreBreakdown: { maturityTier: result.maturityTier },
       completedAt: new Date(),
     });
-
-    scheduleInvalidation(options.invalidate ?? "defer", owner, project);
 
     return completed;
   } catch (error) {

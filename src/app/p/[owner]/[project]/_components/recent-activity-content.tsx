@@ -1,13 +1,12 @@
-import "server-only";
+"use client";
 
 import { format, formatDistanceToNow } from "date-fns";
 import { CheckCircle2, GitCommit, Tag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getLatestRunOrAnalyze } from "@/lib/services/assessment-service";
+import type { AnalysisRun } from "@/lib/domain/assessment";
 
 interface RecentActivityContentProps {
-  owner: string;
-  project: string;
+  run: AnalysisRun;
 }
 
 const iconClass = "w-4 h-4 text-muted-foreground";
@@ -24,11 +23,7 @@ function formatActivityDate(date: Date | string | null): {
   };
 }
 
-export async function RecentActivityContent({
-  owner,
-  project,
-}: RecentActivityContentProps) {
-  const run = await getLatestRunOrAnalyze(owner, project);
+export function RecentActivityContent({ run }: RecentActivityContentProps) {
   const metrics = run.metrics;
 
   const activityMetrics = [

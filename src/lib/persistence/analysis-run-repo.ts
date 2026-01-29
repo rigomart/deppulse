@@ -1,7 +1,6 @@
 import "server-only";
 
 import { desc, eq } from "drizzle-orm";
-import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db/drizzle";
 import { analysisRuns } from "@/db/schema";
 import type { AnalysisRun as DomainAnalysisRun } from "@/lib/domain/assessment";
@@ -42,17 +41,6 @@ export async function getRunsByRepositoryId(
   });
 
   return runs.map((run) => mapAnalysisRunRow(run as AnalysisRunWithRepository));
-}
-
-export async function getCachedLatestRunByRepositoryId(
-  repositoryId: number,
-  projectTag: string,
-): Promise<DomainAnalysisRun | null> {
-  "use cache";
-  cacheLife("weeks");
-  cacheTag(projectTag);
-
-  return getLatestRunByRepositoryId(repositoryId);
 }
 
 export async function createRun(input: {

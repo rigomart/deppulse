@@ -1,18 +1,28 @@
 import type { Metadata, ResolvingMetadata } from "next";
+import { cacheLife, cacheTag } from "next/cache";
+import { getProjectTag } from "@/lib/cache/tags";
 import { getCategoryFromScore } from "@/lib/maintenance";
-import { getCachedLatestRun } from "@/lib/services/assessment-service";
+import { getLatestRun } from "@/lib/services/assessment-service";
 
 type Props = {
   params: Promise<{ owner: string; project: string }>;
   children: React.ReactNode;
 };
 
+async function getCachedRunForMetadata(owner: string, project: string) {
+  "use cache";
+  cacheLife("weeks");
+  cacheTag(getProjectTag(owner, project));
+
+  return getLatestRun(owner, project);
+}
+
 export async function generateMetadata(
   { params }: Props,
   _parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const { owner, project } = await params;
-  const run = await getCachedLatestRun(owner, project);
+  const run = await getCachedRunForMetadata(owner, project);
 
   if (!run || run.score === null) {
     return {

@@ -1,14 +1,14 @@
 import { Suspense } from "react";
 import { Container } from "@/components/container";
+import type { AnalysisRun } from "@/lib/domain/assessment";
 import { RecentActivityContent } from "./recent-activity-content";
 import { RecentActivitySkeleton } from "./recent-activity-skeleton";
 
 interface RecentActivityProps {
-  owner: string;
-  project: string;
+  run: AnalysisRun;
 }
 
-export function RecentActivity({ owner, project }: RecentActivityProps) {
+export function RecentActivity({ run }: RecentActivityProps) {
   return (
     <Container>
       <section className="space-y-4 animate-in fade-in duration-300 delay-100 fill-mode-backwards">
@@ -16,7 +16,7 @@ export function RecentActivity({ owner, project }: RecentActivityProps) {
           Recent Activity
         </h2>
         <Suspense fallback={<RecentActivitySkeleton />}>
-          <RecentActivityContent owner={owner} project={project} />
+          <RecentActivityContent run={run} />
         </Suspense>
       </section>
     </Container>
