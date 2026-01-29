@@ -70,7 +70,7 @@ bun run check-types  # TypeScript checking
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 with App Router
+- **Framework**: Next.js 16 with App Router and Cache Components
 - **Database**: Neon PostgreSQL + Drizzle ORM
 - **Styling**: Tailwind CSS v4 + Radix UI
 - **Testing**: Vitest

@@ -70,37 +70,40 @@ On Vercel, these are auto-configured by the Neon integration.
 Only when you need:
 - React hooks (`useState`, `useEffect`, `useTransition`, `useRouter`)
 - Browser APIs or event handlers
+- Time-relative rendering (`formatDistanceToNow`, `Date.now()`) - requires Suspense boundary
 - Radix UI primitives that require client-side JS
 
 ### Server-Only Modules
 Use `import "server-only"` at the top of files that should never run on client:
-- `src/db/queries.ts` - Database queries
+- `src/lib/services/` - Business logic and data orchestration
+- `src/lib/persistence/` - Database queries
 - `src/lib/github/` - GitHub API client (modular directory)
-- `src/actions/analyze.ts` - Server actions
 
 ## Architecture
 
 ### Data Flow
 
 ```
-User Input → parseProject() → analyze() → fetchRepoMetrics() → calculateMaintenanceScore() → DB upsert → Cache invalidation
+User Input → parseProject() → redirect to project page → startAnalysis() → ensureScoreCompletion() → render
 ```
 
 1. `src/lib/parse-project.ts` - Validates and extracts owner/project from URL or shorthand
-2. `src/actions/analyze.ts` - Server action orchestrating the analysis
-3. `src/lib/github/` - Fetches metrics from GitHub API via Octokit (GraphQL + REST)
-4. `src/lib/maintenance.ts` - Computes maintenance score (0-100) and category
-5. `src/db/schema.ts` - Single `assessments` table with upsert on conflict
-6. `src/db/queries.ts` - Cached queries with `"use cache"` + React `cache()` for request deduplication
+2. `src/app/p/[owner]/[project]/page.tsx` - Page with `"use cache"`, calls `startAnalysis()`
+3. `src/lib/services/assessment-service.ts` - Orchestrates analysis: fetches metrics, creates runs, calculates scores
+4. `src/lib/github/` - Fetches metrics from GitHub API via Octokit (GraphQL + REST)
+5. `src/lib/maintenance.ts` - Computes maintenance score (0-100) and category
+6. `src/lib/persistence/` - Repository and analysis run queries with Drizzle ORM
 
 ### Key Modules
 
 | Module | Purpose |
 |--------|---------|
+| `src/lib/services/assessment-service.ts` | Business logic: `startAnalysis()` creates runs, `ensureScoreCompletion()` calculates scores. |
+| `src/lib/persistence/` | Database access: `repository-repo.ts` and `analysis-run-repo.ts` for Drizzle queries. |
 | `src/lib/maintenance.ts` | Maintenance scoring algorithm. Categories: healthy (70+), moderate (45-69), at-risk (20-44), unmaintained (0-19). |
 | `src/lib/maintenance-config.ts` | Centralized config for scoring weights, thresholds, and maturity tiers. All tunable values in one place. |
 | `src/lib/github/` | GitHub API client (modular). `metrics.ts` for GraphQL, `activity.ts` for REST commit stats, `rate-limit.ts` for parsing. |
-| `src/db/queries.ts` | Database queries with caching: `cache()` for request-level deduplication, `"use cache"` for persistent project cache. |
+| `src/lib/cache/` | Cache utilities: `tags.ts` for tag generation, `invalidation.ts` for cache busting. |
 | `src/lib/logger.ts` | Generic structured logger for external API calls with duration and rate limit tracking. |
 
 ### Directory Structure
@@ -108,23 +111,45 @@ User Input → parseProject() → analyze() → fetchRepoMetrics() → calculate
 ```
 ├── migrations/       # Drizzle SQL migrations (auto-generated)
 └── src/
-    ├── actions/          # Server actions
     ├── app/              # Next.js App Router pages
     │   ├── _components/  # Homepage components
-    │   └── p/[owner]/[project]/  # Dynamic project page
+    │   └── p/[owner]/[project]/  # Dynamic project page with cache components
     ├── components/       # Shared UI components
-    ├── db/               # Drizzle schema, client, and queries
-    └── lib/              # Core business logic
-        └── github/       # GitHub API client (modular)
+    ├── db/               # Drizzle schema and client
+    └── lib/
+        ├── cache/        # Cache tags and invalidation utilities
+        ├── domain/       # Domain types (assessment, repository)
+        ├── github/       # GitHub API client (modular)
+        ├── persistence/  # Database repositories (Drizzle queries)
+        └── services/     # Business logic orchestration
 ```
 
 ## Code Patterns
 
-### Caching Strategy
-- `"use cache"` directive with tags for persistent project cache (7-day TTL)
-- React `cache()` wrapper for request-level deduplication
-- Tag-based invalidation: `project:{owner}/{project}` for specific projects, `recent-assessments` for homepage list
-- Recent assessments uses `"use cache"` with 5-minute TTL, invalidated on new analysis
+### Caching Strategy (Next.js 16 Cache Components)
+
+**Page-level caching**: The project page uses `"use cache"` directive with `cacheLife("weeks")` and `cacheTag()`:
+```tsx
+export default async function ProjectPage({ params }) {
+  "use cache";
+  cacheLife("weeks");
+  cacheTag(getProjectTag(owner, project));
+
+  const run = await startAnalysis(owner, project);
+  // ...
+}
+```
+
+**Cache invalidation**: Use `after()` from `next/server` to schedule invalidation after response:
+```tsx
+after(() => {
+  invalidateProjectCache(owner, project);
+});
+```
+
+**Tag-based invalidation**: `project:{owner}/{project}` for specific projects.
+
+**Important**: `updateTag()` cannot be called during render or inside cached functions. Always use `after()` to schedule invalidation.
 
 ## Code Conventions
 
@@ -161,10 +186,10 @@ Tests in `*.test.ts` files alongside source. Run with `bun run test`.
 ## Instructions for AI
 
 **Server-first mindset:**
-- Default to server components - only add `"use client"` when hooks are needed
+- Default to server components - only add `"use client"` when hooks or `Date.now()` are needed
 - Fetch data in server components, not in client components
-- Use server actions for mutations, not API routes
-- Leverage caching (`"use cache"`, React `cache()`) aggressively
+- Use `"use cache"` at the page level for data-fetching pages
+- Cache invalidation must use `after()` - never call `updateTag()` during render
 
 **Code quality:**
 - Assume dev server is already running
