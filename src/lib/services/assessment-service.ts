@@ -1,7 +1,5 @@
 import "server-only";
 
-import { after } from "next/server";
-import { invalidateProjectCache } from "@/lib/cache/invalidation";
 import type { AnalysisRun, MetricsSnapshot } from "@/lib/domain/assessment";
 import { fetchCommitActivity, fetchRepoMetrics } from "@/lib/github";
 import { calculateMaintenanceScore } from "@/lib/maintenance";
@@ -199,11 +197,6 @@ export async function ensureScoreCompletion(
       category: result.category,
       scoreBreakdown: { maturityTier: result.maturityTier },
       completedAt: new Date(),
-    });
-
-    // Schedule cache invalidation after response (can't call during render)
-    after(() => {
-      invalidateProjectCache(owner, project);
     });
 
     return completed;
