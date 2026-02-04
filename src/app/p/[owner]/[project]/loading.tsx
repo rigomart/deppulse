@@ -10,7 +10,7 @@ export default function Loading() {
     <>
       <section className="bg-surface-2">
         <Container className="py-6">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between animate-in fade-in slide-in-from-bottom-1 duration-300">
+          <div className="flex flex-col sm:flex-row gap-4 justify-between">
             <ProjectInfoSkeleton />
             <div className="flex items-start">
               <ScoreSkeleton />
@@ -18,9 +18,24 @@ export default function Loading() {
           </div>
         </Container>
       </section>
-      <RecentActivitySkeleton />
-      <CommitChartSkeleton />
-      <MaintenanceHealthSkeleton />
+      <Container>
+        <section className="space-y-4">
+          <div className="h-4 w-28 bg-muted animate-pulse rounded" />
+          <RecentActivitySkeleton />
+        </section>
+      </Container>
+      <Container>
+        <section className="space-y-4">
+          <div className="h-4 w-16 bg-muted animate-pulse rounded" />
+          <CommitChartSkeleton />
+        </section>
+      </Container>
+      <Container>
+        <section className="space-y-4">
+          <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+          <MaintenanceHealthSkeleton />
+        </section>
+      </Container>
     </>
   );
 }
