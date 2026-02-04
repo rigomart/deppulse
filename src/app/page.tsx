@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import { Hero } from "@/app/_components/hero";
 import { HowItWorks } from "@/app/_components/how-it-works";
 import { RecentAnalyses } from "@/app/_components/recent-analyses";
+import { Container } from "@/components/container";
+import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata: Metadata = {
   title: "Deppulse - Open Source Maintenance Checker",
@@ -27,15 +29,29 @@ export default function Home() {
 
 function RecentAnalysesSkeleton() {
   return (
-    <section className="bg-surface-2 animate-pulse">
-      <div className="container mx-auto px-4 py-8 space-y-4">
-        <div className="h-7 w-40 bg-muted rounded" />
+    <section className="bg-surface-2">
+      <Container className="py-8 space-y-4">
+        <div className="h-7 w-40 bg-muted animate-pulse rounded" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-24 bg-muted rounded-lg" />
+            <Card key={i} className="h-full">
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="h-6 w-6 rounded-full bg-muted animate-pulse shrink-0" />
+                    <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+                  </div>
+                  <div className="h-5 w-16 bg-muted animate-pulse rounded-full" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="h-3.5 w-12 bg-muted animate-pulse rounded" />
+                  <div className="h-3.5 w-16 bg-muted animate-pulse rounded" />
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
-      </div>
+      </Container>
     </section>
   );
 }
