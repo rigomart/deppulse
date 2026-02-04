@@ -1,8 +1,8 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { parseProject } from "@/lib/parse-project";
@@ -16,6 +16,7 @@ import { parseProject } from "@/lib/parse-project";
 export function SearchForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -31,7 +32,9 @@ export function SearchForm() {
     }
 
     const { owner, project } = parsed;
-    router.push(`/p/${owner}/${project}`);
+    startTransition(() => {
+      router.push(`/p/${owner}/${project}`);
+    });
   };
 
   return (
@@ -45,10 +48,11 @@ export function SearchForm() {
           maxLength={200}
           className="flex-1"
           autoComplete="off"
+          disabled={isPending}
         />
-        <Button type="submit">
-          <Search />
-          Analyze
+        <Button type="submit" disabled={isPending}>
+          {isPending ? <Loader2 className="animate-spin" /> : <Search />}
+          {isPending ? "Analyzing..." : "Analyze"}
         </Button>
       </form>
       {error && <p className="text-sm text-destructive font-medium">{error}</p>}

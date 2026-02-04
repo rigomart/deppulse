@@ -1,6 +1,4 @@
-"use client";
-
-import { formatDistanceToNow } from "date-fns";
+import { Suspense } from "react";
 import {
   Calendar,
   Code2,
@@ -12,6 +10,7 @@ import {
 import Image from "next/image";
 import type { AnalysisRun } from "@/lib/domain/assessment";
 import { formatNumber } from "@/lib/utils";
+import { RelativeTime } from "@/components/relative-time";
 
 interface ProjectInfoProps {
   run: AnalysisRun;
@@ -87,9 +86,16 @@ export function ProjectInfo({ run }: ProjectInfoProps) {
           {metrics?.repositoryCreatedAt && (
             <div className="flex items-center gap-1.5" title="Created">
               <Calendar className="size-4 opacity-70" />
-              <span className="font-medium text-foreground/80">
-                {formatDistanceToNow(new Date(metrics.repositoryCreatedAt))}
-              </span>
+              <Suspense
+                fallback={
+                  <span className="font-medium text-foreground/80">—</span>
+                }
+              >
+                <RelativeTime
+                  date={metrics.repositoryCreatedAt}
+                  className="font-medium text-foreground/80"
+                />
+              </Suspense>
             </div>
           )}
         </div>
