@@ -1,5 +1,6 @@
 import type { Metadata, ResolvingMetadata } from "next";
 import { cacheLife, cacheTag } from "next/cache";
+import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getProjectTag } from "@/lib/cache/tags";
 import { getCategoryFromScore } from "@/lib/maintenance";
 import { getLatestRun } from "@/lib/services/assessment-service";
@@ -11,7 +12,7 @@ type Props = {
 
 async function getCachedRunForMetadata(owner: string, project: string) {
   "use cache";
-  cacheLife("weeks");
+  cacheLife(ANALYSIS_CACHE_LIFE);
   cacheTag(getProjectTag(owner, project));
 
   return getLatestRun(owner, project);

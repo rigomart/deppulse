@@ -15,14 +15,7 @@ import {
   getRepositoryByFullName,
   upsertRepository,
 } from "@/lib/persistence/repository-repo";
-
-const CACHE_REVALIDATE_SECONDS = 60 * 60 * 24 * 7;
-
-function isRunFresh(run: AnalysisRun): boolean {
-  const timestamp = run.completedAt ?? run.startedAt;
-  const ageSeconds = (Date.now() - timestamp.getTime()) / 1000;
-  return ageSeconds < CACHE_REVALIDATE_SECONDS;
-}
+import { isAnalysisFresh } from "@/lib/cache/analysis-cache";
 
 function toMetricsSnapshot(metrics: {
   description: MetricsSnapshot["description"];
@@ -111,7 +104,7 @@ export async function startAnalysis(
   project: string,
 ): Promise<AnalysisRun> {
   const latest = await getLatestRun(owner, project);
-  if (latest && isRunFresh(latest)) {
+  if (latest && isAnalysisFresh(latest)) {
     return latest;
   }
 

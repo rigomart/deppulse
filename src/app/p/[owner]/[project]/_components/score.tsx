@@ -6,6 +6,7 @@ import { LocalDate } from "@/components/local-date";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getProjectTag } from "@/lib/cache/tags";
 import { categoryColors } from "@/lib/category-styles";
 import { getCategoryFromScore } from "@/lib/maintenance";
@@ -19,7 +20,7 @@ interface ScoreProps {
 
 export async function Score({ runId, owner, project }: ScoreProps) {
   "use cache";
-  cacheLife("weeks");
+  cacheLife(ANALYSIS_CACHE_LIFE);
   cacheTag(getProjectTag(owner, project));
 
   const run = await ensureScoreCompletion(owner, project, runId);
