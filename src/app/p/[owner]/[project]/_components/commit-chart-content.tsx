@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cacheLife, cacheTag } from "next/cache";
+import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getProjectTag } from "@/lib/cache/tags";
 import { ensureScoreCompletion } from "@/lib/services/assessment-service";
 import { CommitActivityChart } from "./commit-activity-chart";
@@ -17,7 +18,7 @@ export async function CommitChartContent({
   project,
 }: CommitChartContentProps) {
   "use cache";
-  cacheLife("weeks");
+  cacheLife(ANALYSIS_CACHE_LIFE);
   cacheTag(getProjectTag(owner, project));
 
   const run = await ensureScoreCompletion(owner, project, runId);
