@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isAnalysisFresh } from "@/lib/cache/analysis-cache";
 import type { AnalysisRun, MetricsSnapshot } from "@/lib/domain/assessment";
 import { fetchCommitActivity, fetchRepoMetrics } from "@/lib/github";
 import { calculateMaintenanceScore } from "@/lib/maintenance";
@@ -15,7 +16,6 @@ import {
   getRepositoryByFullName,
   upsertRepository,
 } from "@/lib/persistence/repository-repo";
-import { isAnalysisFresh } from "@/lib/cache/analysis-cache";
 
 function toMetricsSnapshot(metrics: {
   description: MetricsSnapshot["description"];

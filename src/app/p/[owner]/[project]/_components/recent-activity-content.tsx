@@ -38,7 +38,7 @@ export function RecentActivityContent({ run }: RecentActivityContentProps) {
       icon: <Tag className={iconClass} />,
     },
     {
-      title: "Last Closed",
+      title: "Last Issue Closed",
       ...formatActivityDate(metrics?.lastClosedIssueAt ?? null),
       icon: <CheckCircle2 className={iconClass} />,
     },
