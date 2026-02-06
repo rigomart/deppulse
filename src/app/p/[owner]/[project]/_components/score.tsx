@@ -8,9 +8,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getProjectTag } from "@/lib/cache/tags";
-import { categoryColors } from "@/lib/category-styles";
 import { getCategoryFromScore } from "@/lib/maintenance";
 import { ensureScoreCompletion } from "@/lib/services/assessment-service";
+import { CategoryInfoPopover } from "./category-info-popover";
 
 interface ScoreProps {
   runId: number;
@@ -62,11 +62,7 @@ export async function Score({ runId, owner, project }: ScoreProps) {
             <p className="text-sm text-muted-foreground">Maintenance Score</p>
             <p className="text-xl font-semibold text-foreground">{score}/100</p>
           </div>
-          <Badge
-            className={`capitalize text-sm border ${categoryColors[category]}`}
-          >
-            {category}
-          </Badge>
+          <CategoryInfoPopover category={category} />
         </div>
         <Separator />
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
