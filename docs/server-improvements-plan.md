@@ -1,7 +1,8 @@
 # Server-Side Improvement Plan
 
 Date: 2026-02-03
-Scope: architecture, performance, data flow, efficiency (server-side). No changes implemented yet.
+Scope: architecture, performance, data flow, efficiency (server-side).
+Status: 1 of 11 items fully implemented, 1 partially implemented (as of 2026-02-06).
 
 Legend: Impact = effect on user-visible latency, correctness, or infra cost. Complexity = estimated engineering effort and risk.
 Each item includes: rationale, suggested approach, affected areas, and risks/notes.
@@ -23,21 +24,11 @@ Risks/notes:
 - Requires product decision on when analysis runs (on submit vs. manual refresh).
 - Might require a job runner if analysis is too slow for a request.
 
-2. Align cache TTL with freshness window
+2. ~~Align cache TTL with freshness window~~ **DONE**
 Impact: High
 Complexity: Low
 Quick win: Yes
-Rationale: `cacheLife("weeks")` and `CACHE_REVALIDATE_SECONDS` are inconsistent. Cached output may persist longer than intended.
-Suggested approach:
-- Decide a freshness target (e.g., 7 days).
-- Apply a consistent `cacheLife(...)` across page + subcomponents.
-Affected areas:
-- `src/app/p/[owner]/[project]/page.tsx`
-- `src/app/p/[owner]/[project]/_components/score.tsx`
-- `src/app/p/[owner]/[project]/_components/commit-chart-content.tsx`
-- `src/app/p/[owner]/[project]/layout.tsx`
-Risks/notes:
-- Tightening TTL increases GitHub API usage and DB load.
+Status: **Implemented** (PR #30). A centralized `ANALYSIS_CACHE_LIFE` config in `src/lib/cache/analysis-cache.ts` sets stale/revalidate/expire values derived from `ANALYSIS_FRESHNESS_SECONDS` (7 days). All cache components (`page.tsx`, `score.tsx`, `commit-chart-content.tsx`, `layout.tsx`) now use this shared config. The old `CACHE_REVALIDATE_SECONDS` constant has been removed.
 
 3. Guard against duplicate concurrent runs
 Impact: High
@@ -69,7 +60,7 @@ Affected areas:
 Risks/notes:
 - If you choose canonical naming, ensure redirects happen before caching tags.
 
-5. Reduce DB round-trips in run creation/updates
+5. Reduce DB round-trips in run creation/updates — **PARTIAL**
 Impact: Medium
 Complexity: Medium
 Quick win: No
@@ -79,6 +70,7 @@ Suggested approach:
 - If repository data is required, join or fetch once at a higher level.
 Affected areas:
 - `src/lib/persistence/analysis-run-repo.ts`
+Status: **Partially implemented.** Both `createRun()` and `updateRun()` now use `.returning()` clauses, but still call `getRunById()` afterwards to hydrate the full domain object with joined repository data. `upsertRepository()` is fully optimized (returns directly from `.returning()`). Remaining work: join repository data in the returning query or pass it from a higher level to eliminate the extra round-trip.
 Risks/notes:
 - Requires careful mapper updates to avoid mismatched domain types.
 

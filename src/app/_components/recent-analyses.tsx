@@ -1,15 +1,24 @@
+import "server-only";
+
 import { Code2, Star } from "lucide-react";
+import { cacheLife, cacheTag } from "next/cache";
 import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@/components/container";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { HOMEPAGE_CACHE_LIFE } from "@/lib/cache/analysis-cache";
+import { getRecentAnalysesTag } from "@/lib/cache/tags";
 import { categoryColors } from "@/lib/category-styles";
 import { getCategoryFromScore } from "@/lib/maintenance";
 import { getRecentAnalyses } from "@/lib/services/assessment-service";
 import { formatNumber } from "@/lib/utils";
 
 export async function RecentAnalyses() {
+  "use cache";
+  cacheLife(HOMEPAGE_CACHE_LIFE);
+  cacheTag(getRecentAnalysesTag());
+
   const recentRuns = await getRecentAnalyses(12);
 
   if (recentRuns.length === 0) {
