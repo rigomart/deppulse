@@ -7,6 +7,12 @@ export const ANALYSIS_CACHE_LIFE = {
   expire: ANALYSIS_FRESHNESS_SECONDS + 3600,
 } as const;
 
+export const HOMEPAGE_CACHE_LIFE = {
+  stale: 60,
+  revalidate: 300,
+  expire: 3600,
+} as const;
+
 export function isAnalysisFresh(
   run: Pick<AnalysisRun, "startedAt" | "completedAt">,
   now: Date = new Date(),
