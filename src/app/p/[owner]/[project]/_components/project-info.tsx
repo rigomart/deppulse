@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import {
   Calendar,
   Code2,
@@ -8,9 +7,10 @@ import {
   Star,
 } from "lucide-react";
 import Image from "next/image";
+import { Suspense } from "react";
+import { RelativeTime } from "@/components/relative-time";
 import type { AnalysisRun } from "@/lib/domain/assessment";
 import { formatNumber } from "@/lib/utils";
-import { RelativeTime } from "@/components/relative-time";
 
 interface ProjectInfoProps {
   run: AnalysisRun;
