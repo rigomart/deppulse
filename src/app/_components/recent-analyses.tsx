@@ -1,4 +1,4 @@
-import { Star } from "lucide-react";
+import { Code2, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@/components/container";
@@ -60,7 +60,10 @@ export async function RecentAnalyses() {
                         {formatNumber(run.metrics?.stars ?? 0)}
                       </span>
                       {run.metrics?.language && (
-                        <span>{run.metrics.language}</span>
+                        <span className="flex items-center gap-1">
+                          <Code2 className="w-3.5 h-3.5" />
+                          {run.metrics.language}
+                        </span>
                       )}
                     </div>
                   </CardContent>

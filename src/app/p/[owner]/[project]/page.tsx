@@ -1,6 +1,6 @@
 import { cacheLife, cacheTag } from "next/cache";
-import { getProjectTag } from "@/lib/cache/tags";
 import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
+import { getProjectTag } from "@/lib/cache/tags";
 import { startAnalysis } from "@/lib/services/assessment-service";
 import { CommitChart } from "./_components/commit-chart";
 import { MaintenanceHealth } from "./_components/maintenance-health";

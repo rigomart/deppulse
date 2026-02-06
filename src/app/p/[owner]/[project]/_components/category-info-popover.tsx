@@ -1,6 +1,6 @@
 "use client";
 
-import { Info } from "lucide-react";
+import { Info, MoreHorizontal } from "lucide-react";
 import { badgeVariants } from "@/components/ui/badge";
 import {
   Popover,
@@ -28,12 +28,13 @@ export function CategoryInfoPopover({ category }: CategoryInfoPopoverProps) {
           type="button"
           className={cn(
             badgeVariants(),
-            "capitalize text-sm border cursor-pointer transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring/60",
+            "capitalize text-sm border cursor-pointer transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring/60 inline-flex items-center gap-1.5",
             categoryColors[category],
           )}
           aria-label={`Show details for ${categoryInfo.label} category`}
         >
           {categoryInfo.label}
+          <MoreHorizontal className="size-3.5 opacity-80" aria-hidden="true" />
         </button>
       </PopoverTrigger>
       <PopoverContent
