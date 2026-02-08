@@ -143,7 +143,11 @@ export async function ensureScoreCompletion(
     throw new Error("Analysis run not found");
   }
 
-  if (run.status === "complete" && run.score !== null) {
+  if (
+    run.status === "complete" &&
+    run.score !== null &&
+    run.commitActivity.length > 0
+  ) {
     return run;
   }
 
