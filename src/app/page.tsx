@@ -17,19 +17,21 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <main className="space-y-8 py-6">
+    <main>
       <Hero />
-      <Suspense fallback={<RecentAnalysesSkeleton />}>
-        <RecentAnalyses />
-      </Suspense>
-      <HowItWorks />
+      <div className="space-y-8 py-6">
+        <Suspense fallback={<RecentAnalysesSkeleton />}>
+          <RecentAnalyses />
+        </Suspense>
+        <HowItWorks />
+      </div>
     </main>
   );
 }
 
 function RecentAnalysesSkeleton() {
   return (
-    <section className="bg-surface-2">
+    <section>
       <Container className="py-8 space-y-4">
         <div className="h-7 w-40 bg-muted animate-pulse rounded" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
