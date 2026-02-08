@@ -3,13 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import {
   type AsciiRuntimeEnvironment,
-  shouldFallbackFromWarmup,
+  readEnvironment,
   shouldUseThreeAscii,
 } from "@/lib/visual-runtime-guards";
 
 const FRAME_INTERVAL_MS = 1000 / 30;
-const WARMUP_DURATION_MS = 1500;
-const LONG_FRAME_THRESHOLD_MS = 120;
 const MAX_PIXEL_RATIO = 1.5;
 const ASCII_CHARSET = " .:-=+*#%@";
 const ASCII_RESOLUTION = 0.22;
@@ -20,28 +18,8 @@ const CAMERA_ORBIT_X_AMPLITUDE = 0.1;
 const CAMERA_ORBIT_Y_AMPLITUDE = 0.06;
 const CAMERA_ORBIT_SPEED = 0.00004;
 
-type NavigatorWithHints = Navigator & {
-  connection?: {
-    saveData?: boolean;
-  };
-  deviceMemory?: number;
-};
-
 interface AsciiBackgroundThreeProps {
   onUnavailable: () => void;
-}
-
-function readEnvironment(): AsciiRuntimeEnvironment {
-  const nav = navigator as NavigatorWithHints;
-  return {
-    isDesktop: window.matchMedia("(min-width: 768px)").matches,
-    prefersReducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)")
-      .matches,
-    isDocumentHidden: document.hidden,
-    saveData: nav.connection?.saveData ?? null,
-    hardwareConcurrency: navigator.hardwareConcurrency ?? null,
-    deviceMemory: nav.deviceMemory ?? null,
-  };
 }
 
 function isPermanentlyEligible(env: AsciiRuntimeEnvironment): boolean {
@@ -107,6 +85,10 @@ export function AsciiBackgroundThree({
 }: AsciiBackgroundThreeProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(false);
+  const onUnavailableRef = useRef(onUnavailable);
+  useEffect(() => {
+    onUnavailableRef.current = onUnavailable;
+  });
 
   useEffect(() => {
     const wrapperCurrent = wrapperRef.current;
@@ -123,11 +105,6 @@ export function AsciiBackgroundThree({
     let animId = 0;
     let isRunning = false;
     let lastFrameTs = 0;
-    let previousRawTs = 0;
-    let warmupStartedAt = 0;
-    let warmupFrameCount = 0;
-    let warmupLongFrameCount = 0;
-    let warmupFinished = false;
     let hasRenderedFrame = false;
     let resizeTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -180,7 +157,7 @@ export function AsciiBackgroundThree({
       if (unavailableTriggered || isDisposed) return;
       unavailableTriggered = true;
       disposeThree();
-      onUnavailable();
+      onUnavailableRef.current();
     }
 
     function resizeRenderer(): boolean {
@@ -220,36 +197,6 @@ export function AsciiBackgroundThree({
         hasRenderedFrame = true;
         setIsReady(true);
       }
-
-      if (warmupFinished) {
-        previousRawTs = ts;
-        return;
-      }
-
-      if (warmupStartedAt === 0) {
-        warmupStartedAt = ts;
-      }
-
-      if (previousRawTs !== 0 && ts - previousRawTs > LONG_FRAME_THRESHOLD_MS) {
-        warmupLongFrameCount += 1;
-      }
-      previousRawTs = ts;
-      warmupFrameCount += 1;
-
-      if (ts - warmupStartedAt < WARMUP_DURATION_MS) {
-        return;
-      }
-
-      warmupFinished = true;
-      if (
-        shouldFallbackFromWarmup({
-          frameCount: warmupFrameCount,
-          durationMs: ts - warmupStartedAt,
-          longFrameCount: warmupLongFrameCount,
-        })
-      ) {
-        triggerUnavailable();
-      }
     }
 
     function frame(ts: number) {
@@ -267,28 +214,7 @@ export function AsciiBackgroundThree({
       animId = requestAnimationFrame(frame);
     }
 
-    function onVisibilityChange() {
-      if (isDisposed || unavailableTriggered) return;
-      const env = readEnvironment();
-      if (!isPermanentlyEligible(env)) {
-        triggerUnavailable();
-        return;
-      }
-
-      if (env.isDocumentHidden) {
-        stopLoop();
-        return;
-      }
-
-      const hasSize = resizeRenderer();
-      if (hasSize) {
-        startLoop();
-      } else {
-        stopLoop();
-      }
-    }
-
-    function onMediaChange() {
+    function onEnvironmentChange() {
       if (isDisposed || unavailableTriggered) return;
       const env = readEnvironment();
       if (!isPermanentlyEligible(env)) {
@@ -311,7 +237,7 @@ export function AsciiBackgroundThree({
 
     async function initThree() {
       const env = readEnvironment();
-      if (!shouldUseThreeAscii(env)) {
+      if (!isPermanentlyEligible(env)) {
         triggerUnavailable();
         return;
       }
@@ -323,7 +249,7 @@ export function AsciiBackgroundThree({
       if (isDisposed || unavailableTriggered) return;
 
       const latestEnv = readEnvironment();
-      if (!shouldUseThreeAscii(latestEnv)) {
+      if (!isPermanentlyEligible(latestEnv)) {
         triggerUnavailable();
         return;
       }
@@ -382,7 +308,9 @@ export function AsciiBackgroundThree({
 
       const hasSize = resizeRenderer();
       if (!hasSize) {
-        triggerUnavailable();
+        // Layout can temporarily report zero size during route transitions.
+        // Keep the component alive and let ResizeObserver retry.
+        stopLoop();
         return;
       }
 
@@ -416,20 +344,20 @@ export function AsciiBackgroundThree({
     });
 
     ro.observe(wrapperElement);
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    desktopMedia.addEventListener("change", onMediaChange);
-    reducedMotionMedia.addEventListener("change", onMediaChange);
+    document.addEventListener("visibilitychange", onEnvironmentChange);
+    desktopMedia.addEventListener("change", onEnvironmentChange);
+    reducedMotionMedia.addEventListener("change", onEnvironmentChange);
 
     return () => {
       isDisposed = true;
       if (resizeTimer) clearTimeout(resizeTimer);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-      desktopMedia.removeEventListener("change", onMediaChange);
-      reducedMotionMedia.removeEventListener("change", onMediaChange);
+      document.removeEventListener("visibilitychange", onEnvironmentChange);
+      desktopMedia.removeEventListener("change", onEnvironmentChange);
+      reducedMotionMedia.removeEventListener("change", onEnvironmentChange);
       ro.disconnect();
       disposeThree();
     };
-  }, [onUnavailable]);
+  }, []);
 
   return (
     <div

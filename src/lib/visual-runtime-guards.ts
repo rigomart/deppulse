@@ -27,6 +27,24 @@ export function shouldUseThreeAscii(env: AsciiRuntimeEnvironment): boolean {
   return true;
 }
 
+type NavigatorWithHints = Navigator & {
+  connection?: { saveData?: boolean };
+  deviceMemory?: number;
+};
+
+export function readEnvironment(): AsciiRuntimeEnvironment {
+  const nav = navigator as NavigatorWithHints;
+  return {
+    isDesktop: window.matchMedia("(min-width: 768px)").matches,
+    prefersReducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)")
+      .matches,
+    isDocumentHidden: document.hidden,
+    saveData: nav.connection?.saveData ?? null,
+    hardwareConcurrency: navigator.hardwareConcurrency ?? null,
+    deviceMemory: nav.deviceMemory ?? null,
+  };
+}
+
 export function shouldFallbackFromWarmup(metrics: WarmupMetrics): boolean {
   if (metrics.longFrameCount >= 3) {
     return true;

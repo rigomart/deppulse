@@ -6,7 +6,7 @@ export function Hero() {
   return (
     <Container className="py-8 sm:py-16">
       <div className="relative flex flex-col items-center gap-8 md:flex-row md:items-center md:gap-10">
-        <div className="relative z-10 flex flex-1 flex-col items-center text-center space-y-3 md:items-start md:text-left">
+        <div className="relative z-10 flex flex-1 flex-col items-center text-center space-y-3 md:max-w-[50%] md:items-start md:text-left">
           <div className="flex flex-col items-center space-y-3 animate-in fade-in slide-in-from-bottom-1 duration-300 md:items-start">
             <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
               Is it maintained?
