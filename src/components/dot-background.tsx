@@ -68,9 +68,7 @@ export function DotBackground() {
 
     function isEnvironmentEnabled() {
       return (
-        desktopMedia.matches &&
-        !reducedMotionMedia.matches &&
-        !document.hidden
+        desktopMedia.matches && !reducedMotionMedia.matches && !document.hidden
       );
     }
 
