@@ -1,21 +1,29 @@
 import { SearchForm } from "@/app/_components/search-form";
+import { AsciiBackground } from "@/components/ascii-background";
 import { Container } from "@/components/container";
 import { DeppulseIcon } from "@/components/deppulse-logo";
 
 export function Hero() {
   return (
-    <Container className="flex flex-col items-center text-center space-y-3 py-6">
-      <div className="flex flex-col items-center space-y-4 animate-in fade-in slide-in-from-bottom-1 duration-300">
-        <DeppulseIcon className="size-16 text-muted-foreground" />
-        <h1 className="text-2xl font-extrabold tracking-tight sm:text-4xl">
-          Maintenance Checker
-        </h1>
-      </div>
-      <p className="text-base sm:text-lg text-muted-foreground max-w-[600px] animate-in fade-in duration-300 delay-75 fill-mode-backwards">
-        Quickly assess whether an open-source project is actively maintained.
-      </p>
-      <div className="w-full pt-6 flex justify-center animate-in fade-in duration-300 delay-150 fill-mode-backwards">
-        <SearchForm />
+    <Container className="py-8 sm:py-10">
+      <div className="relative flex flex-col items-center gap-8 md:flex-row md:items-center md:gap-10">
+        <div className="flex flex-1 flex-col items-center text-center space-y-3 md:items-start md:text-left">
+          <div className="flex flex-col items-center space-y-3 animate-in fade-in slide-in-from-bottom-1 duration-300 md:items-start">
+            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+              Is it maintained?
+            </h1>
+          </div>
+          <p className="text-sm sm:text-base text-muted-foreground max-w-[440px] animate-in fade-in duration-300 delay-75 fill-mode-backwards">
+            Paste a GitHub URL to check commit activity, issue responsiveness,
+            and release health. Get a maintenance score from 0 to 100.
+          </p>
+          <div className="w-full pt-3 animate-in fade-in duration-300 delay-150 fill-mode-backwards">
+            <SearchForm />
+          </div>
+        </div>
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 hidden h-[420px] w-[440px] md:block">
+          <AsciiBackground />
+        </div>
       </div>
     </Container>
   );
