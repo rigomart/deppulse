@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getProjectTag } from "@/lib/cache/tags";
 import { getCategoryFromScore } from "@/lib/maintenance";
-import { ensureScoreCompletion } from "@/lib/services/assessment-service";
+import { ensureAssessmentRunCompleted } from "@/lib/services/assessment";
 import { CategoryInfoPopover } from "./category-info-popover";
 
 interface ScoreProps {
@@ -23,7 +23,7 @@ export async function Score({ runId, owner, project }: ScoreProps) {
   cacheLife(ANALYSIS_CACHE_LIFE);
   cacheTag(getProjectTag(owner, project));
 
-  const run = await ensureScoreCompletion(owner, project, runId);
+  const run = await ensureAssessmentRunCompleted(owner, project, runId);
 
   if (run.score === null) {
     // Score calculation incomplete - show placeholder (will be replaced on next visit)

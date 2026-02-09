@@ -3,7 +3,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getProjectTag } from "@/lib/cache/tags";
-import { ensureScoreCompletion } from "@/lib/services/assessment-service";
+import { ensureAssessmentRunCompleted } from "@/lib/services/assessment";
 import { CommitActivityChart } from "./commit-activity-chart";
 
 interface CommitChartContentProps {
@@ -21,7 +21,7 @@ export async function CommitChartContent({
   cacheLife(ANALYSIS_CACHE_LIFE);
   cacheTag(getProjectTag(owner, project));
 
-  const run = await ensureScoreCompletion(owner, project, runId);
+  const run = await ensureAssessmentRunCompleted(owner, project, runId);
   const commitActivity = run.commitActivity;
   const commitsLastYear = commitActivity.reduce(
     (sum, week) => sum + week.commits,

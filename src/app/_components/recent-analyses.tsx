@@ -11,7 +11,7 @@ import { HOMEPAGE_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getRecentAnalysesTag } from "@/lib/cache/tags";
 import { categoryColors } from "@/lib/category-styles";
 import { getCategoryFromScore } from "@/lib/maintenance";
-import { getRecentAnalyses } from "@/lib/services/assessment-service";
+import { listRecentCompletedAssessments } from "@/lib/services/assessment";
 import { formatNumber } from "@/lib/utils";
 
 export async function RecentAnalyses() {
@@ -19,7 +19,7 @@ export async function RecentAnalyses() {
   cacheLife(HOMEPAGE_CACHE_LIFE);
   cacheTag(getRecentAnalysesTag());
 
-  const recentRuns = await getRecentAnalyses(12);
+  const recentRuns = await listRecentCompletedAssessments(12);
 
   if (recentRuns.length === 0) {
     return null;

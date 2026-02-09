@@ -1,7 +1,7 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getProjectTag } from "@/lib/cache/tags";
-import { startAnalysis } from "@/lib/services/assessment-service";
+import { ensureAssessmentRunStarted } from "@/lib/services/assessment";
 import { CommitChart } from "./_components/commit-chart";
 import { MaintenanceHealth } from "./_components/maintenance-health";
 import { ProjectHeader } from "./_components/project-header";
@@ -23,7 +23,7 @@ export default async function ProjectPage({
   cacheLife(ANALYSIS_CACHE_LIFE);
   cacheTag(getProjectTag(owner, project));
 
-  const run = await startAnalysis(owner, project);
+  const run = await ensureAssessmentRunStarted(owner, project);
 
   return (
     <>
