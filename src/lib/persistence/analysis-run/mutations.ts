@@ -1,49 +1,12 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db/drizzle";
 import { analysisRuns } from "@/db/schema";
 import type { AnalysisRun as DomainAnalysisRun } from "@/lib/domain/assessment";
-import { type AnalysisRunWithRepository, mapAnalysisRunRow } from "./mappers";
+import { findAssessmentRunById } from "./queries";
 
-export async function getRunById(
-  id: number,
-): Promise<DomainAnalysisRun | null> {
-  const run = await db.query.analysisRuns.findFirst({
-    where: eq(analysisRuns.id, id),
-    with: { repository: true },
-  });
-
-  return run ? mapAnalysisRunRow(run as AnalysisRunWithRepository) : null;
-}
-
-export async function getLatestRunByRepositoryId(
-  repositoryId: number,
-): Promise<DomainAnalysisRun | null> {
-  const run = await db.query.analysisRuns.findFirst({
-    where: eq(analysisRuns.repositoryId, repositoryId),
-    orderBy: [desc(analysisRuns.startedAt)],
-    with: { repository: true },
-  });
-
-  return run ? mapAnalysisRunRow(run as AnalysisRunWithRepository) : null;
-}
-
-export async function getRunsByRepositoryId(
-  repositoryId: number,
-  limit: number,
-): Promise<DomainAnalysisRun[]> {
-  const runs = await db.query.analysisRuns.findMany({
-    where: eq(analysisRuns.repositoryId, repositoryId),
-    orderBy: [desc(analysisRuns.startedAt)],
-    limit,
-    with: { repository: true },
-  });
-
-  return runs.map((run) => mapAnalysisRunRow(run as AnalysisRunWithRepository));
-}
-
-export async function createRun(input: {
+export async function createAssessmentRun(input: {
   repositoryId: number;
   status: DomainAnalysisRun["status"];
   metrics: DomainAnalysisRun["metrics"] | null;
@@ -73,7 +36,7 @@ export async function createRun(input: {
     })
     .returning();
 
-  const hydrated = await getRunById(run.id);
+  const hydrated = await findAssessmentRunById(run.id);
   if (!hydrated) {
     throw new Error("Failed to load created analysis run.");
   }
@@ -81,7 +44,7 @@ export async function createRun(input: {
   return hydrated;
 }
 
-export async function updateRun(
+export async function updateAssessmentRun(
   id: number,
   updates: {
     status?: DomainAnalysisRun["status"];
@@ -110,23 +73,10 @@ export async function updateRun(
     })
     .where(eq(analysisRuns.id, id));
 
-  const hydrated = await getRunById(id);
+  const hydrated = await findAssessmentRunById(id);
   if (!hydrated) {
     throw new Error("Failed to load updated analysis run.");
   }
 
   return hydrated;
-}
-
-export async function getRecentCompletedRuns(
-  limit: number,
-): Promise<DomainAnalysisRun[]> {
-  const runs = await db.query.analysisRuns.findMany({
-    where: eq(analysisRuns.status, "complete"),
-    orderBy: [desc(analysisRuns.completedAt)],
-    limit,
-    with: { repository: true },
-  });
-
-  return runs.map((run) => mapAnalysisRunRow(run as AnalysisRunWithRepository));
 }

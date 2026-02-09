@@ -1,22 +1,10 @@
 import type { AnalysisRun, Repository } from "@/db/schema";
 import type { AnalysisRun as DomainAnalysisRun } from "@/lib/domain/assessment";
-import type { RepositoryRef } from "@/lib/domain/repository";
+import { mapRepositoryRow } from "../repository/mappers";
 
 export type AnalysisRunWithRepository = AnalysisRun & {
   repository: Repository;
 };
-
-export function mapRepositoryRow(repository: Repository): RepositoryRef {
-  return {
-    id: repository.id,
-    owner: repository.owner,
-    name: repository.name,
-    fullName: repository.fullName,
-    defaultBranch: repository.defaultBranch,
-    createdAt: repository.createdAt,
-    updatedAt: repository.updatedAt,
-  };
-}
 
 export function mapAnalysisRunRow(
   run: AnalysisRunWithRepository,

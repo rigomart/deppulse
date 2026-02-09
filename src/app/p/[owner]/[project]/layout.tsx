@@ -3,7 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getProjectTag } from "@/lib/cache/tags";
 import { getCategoryFromScore } from "@/lib/maintenance";
-import { getLatestRun } from "@/lib/services/assessment-service";
+import { findLatestAssessmentRunBySlug } from "@/lib/services/assessment";
 
 type Props = {
   params: Promise<{ owner: string; project: string }>;
@@ -15,7 +15,7 @@ async function getCachedRunForMetadata(owner: string, project: string) {
   cacheLife(ANALYSIS_CACHE_LIFE);
   cacheTag(getProjectTag(owner, project));
 
-  return getLatestRun(owner, project);
+  return findLatestAssessmentRunBySlug(owner, project);
 }
 
 export async function generateMetadata(
