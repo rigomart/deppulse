@@ -110,6 +110,7 @@ const sampleMetrics = {
   issuesCreatedLastYear: 8,
   commitActivity: [],
   releases: [],
+  readmeContent: null,
   fullName: "acme/widget",
   defaultBranch: "main",
 };

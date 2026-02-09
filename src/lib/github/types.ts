@@ -23,6 +23,7 @@ export interface RepoMetrics {
   medianIssueResolutionDays: number | null;
   openPrsCount: number;
   issuesCreatedLastYear: number;
+  readmeContent: string | null;
   // Historical data for charts (1 year)
   commitActivity: Array<{ week: string; commits: number }>;
   releases: Array<{
@@ -77,6 +78,9 @@ export interface RepoMetricsGraphQLResponse {
         state: "OPEN" | "CLOSED";
       }>;
     };
+    readmeMd: { text: string } | null;
+    readmeLower: { text: string } | null;
+    readmeNoExt: { text: string } | null;
   } | null;
 }
 
