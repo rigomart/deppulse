@@ -20,6 +20,7 @@ export function toMetricsSnapshot(metrics: {
   openPrsCount: MetricsSnapshot["openPrsCount"];
   issuesCreatedLastYear: MetricsSnapshot["issuesCreatedLastYear"];
   releases: MetricsSnapshot["releases"];
+  readmeContent?: MetricsSnapshot["readmeContent"];
 }): MetricsSnapshot {
   return {
     ...metrics,

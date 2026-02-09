@@ -29,6 +29,7 @@ export interface MetricsSnapshot {
   openPrsCount: number;
   issuesCreatedLastYear: number;
   releases: Array<ReleaseInfo>;
+  readmeContent?: string | null;
 }
 
 export interface AnalysisRun {

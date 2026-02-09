@@ -5,6 +5,7 @@ import { ensureAssessmentRunStarted } from "@/lib/services/assessment";
 import { CommitChart } from "./_components/commit-chart";
 import { MaintenanceHealth } from "./_components/maintenance-health";
 import { ProjectHeader } from "./_components/project-header";
+import { ReadmeSection } from "./_components/readme-section";
 import { RecentActivity } from "./_components/recent-activity";
 
 /**
@@ -31,6 +32,7 @@ export default async function ProjectPage({
       <RecentActivity run={run} />
       <CommitChart runId={run.id} owner={owner} project={project} />
       <MaintenanceHealth run={run} />
+      <ReadmeSection run={run} />
     </>
   );
 }

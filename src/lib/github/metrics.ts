@@ -61,6 +61,16 @@ const REPO_METRICS_QUERY = `
           state
         }
       }
+
+      readmeMd: object(expression: "HEAD:README.md") {
+        ... on Blob { text }
+      }
+      readmeLower: object(expression: "HEAD:readme.md") {
+        ... on Blob { text }
+      }
+      readmeNoExt: object(expression: "HEAD:README") {
+        ... on Blob { text }
+      }
     }
   }
 `;
@@ -220,6 +230,11 @@ export async function fetchRepoMetrics(
     medianIssueResolutionDays,
     openPrsCount,
     issuesCreatedLastYear,
+    readmeContent:
+      (r.readmeMd?.text ?? r.readmeLower?.text ?? r.readmeNoExt?.text)?.slice(
+        0,
+        50_000,
+      ) ?? null,
     commitActivity: [], // Fetched separately via streaming charts
     releases,
   };
