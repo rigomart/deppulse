@@ -10,12 +10,22 @@ type Props = {
   children: React.ReactNode;
 };
 
-async function getCachedRunForMetadata(owner: string, project: string) {
+async function getCachedMetadata(owner: string, project: string) {
   "use cache";
   cacheLife(ANALYSIS_CACHE_LIFE);
   cacheTag(getProjectTag(owner, project));
 
-  return findLatestAssessmentRunBySlug(owner, project);
+  const run = await findLatestAssessmentRunBySlug(owner, project);
+  if (!run?.metrics) return null;
+
+  const { score, category } = computeScoreFromMetrics(run.metrics);
+  return {
+    fullName: run.repository.fullName,
+    description: run.metrics.description,
+    score,
+    category,
+    analyzedAt: run.completedAt ?? run.startedAt,
+  };
 }
 
 export async function generateMetadata(
@@ -23,20 +33,18 @@ export async function generateMetadata(
   _parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const { owner, project } = await params;
-  const run = await getCachedRunForMetadata(owner, project);
+  const meta = await getCachedMetadata(owner, project);
 
-  if (!run || !run.metrics) {
+  if (!meta) {
     return {
       title: `${owner}/${project} - Analyzing...`,
     };
   }
 
-  const { score, category } = computeScoreFromMetrics(run.metrics);
-  const title = `${run.repository.fullName} - ${category}`;
-  const analyzedAt = run.completedAt ?? run.startedAt;
-  const description = run.metrics.description
-    ? `${run.metrics.description} Maintenance score: ${score}/100. Last analyzed: ${analyzedAt.toLocaleDateString()}.`
-    : `Maintenance assessment for ${run.repository.fullName}. Score: ${score}/100. Category: ${category}.`;
+  const title = `${meta.fullName} - ${meta.category}`;
+  const description = meta.description
+    ? `${meta.description} Maintenance score: ${meta.score}/100. Last analyzed: ${meta.analyzedAt.toLocaleDateString()}.`
+    : `Maintenance assessment for ${meta.fullName}. Score: ${meta.score}/100. Category: ${meta.category}.`;
 
   return {
     title,

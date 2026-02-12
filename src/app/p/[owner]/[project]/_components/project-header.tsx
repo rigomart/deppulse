@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Container } from "@/components/container";
 import type { AnalysisRun } from "@/lib/domain/assessment";
 import { ProjectInfo } from "./project-info";
@@ -15,7 +16,9 @@ export function ProjectHeader({ run }: ProjectHeaderProps) {
           <ProjectInfo run={run} />
 
           <div className="flex items-start">
-            <Score run={run} />
+            <Suspense>
+              <Score run={run} />
+            </Suspense>
           </div>
         </div>
       </Container>
