@@ -1,77 +1,85 @@
 # Deppulse
 
-**Quickly assess whether an open-source project is actively maintained.**
-
-Deppulse analyzes GitHub repositories and provides a clear maintenance status—Active, Stable, At-Risk, or Abandoned—backed by transparent metrics like commit recency, issue responsiveness, and release cadence.
-
-Paste a repo URL, get an answer in seconds. No signup required.
-
----
-
-## Why It Exists
-
-If you need a dependency for a long-term project, you should know if it's actively maintained. Stars, good docs, and downloads can be misleading. A project can look healthy on paper while maintainers haven't touched it in months.
-
-## How It Works
-
-1. Enter a GitHub repository URL or `owner/repo`
-2. Deppulse fetches recent activity data from GitHub
-3. You get a risk category with the evidence behind it
-
-## Scoring System
-
-Repositories are scored 0-100 based on four categories:
-
-- **Activity** — Commit recency and volume (weighted most heavily)
-- **Responsiveness** — How quickly issues get resolved
-- **Stability** — Release cadence and project age
-- **Community** — Popularity signals (stars, forks)
-
-Thresholds adapt to project maturity—established projects can have longer gaps between commits without penalty, while newer projects are expected to show more frequent activity.
-
-The final score maps to a category: **Healthy**, **Moderate**, **Declining**, or **Inactive**.
-
-For detailed thresholds and weights, see [`src/lib/maintenance-config.ts`](src/lib/maintenance-config.ts).
-
-## Getting Started
-
-### Prerequisites
-
-- [Bun](https://bun.sh/) runtime
-- [Neon](https://neon.tech/) PostgreSQL database
-- GitHub Personal Access Token
-
-### Setup
-
-```bash
-# Install dependencies
-bun install
-
-# Configure environment
-cp .env.example .env.local
-# Edit .env.local with your DATABASE_URL and GITHUB_PAT
-
-# Push database schema
-bun run db:push
-
-# Start development server
-bun run dev
-```
-
-### Scripts
-
-```bash
-bun run dev          # Start dev server
-bun run build        # Production build
-bun run test         # Run tests
-bun run lint         # Lint with Biome
-bun run check-types  # TypeScript checking
-```
+Quickly assess whether an open-source project is actively maintained. [deppulse.rigos.dev](https://deppulse.rigos.dev)
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 with App Router and Cache Components
-- **Database**: Neon PostgreSQL + Drizzle ORM
-- **Styling**: Tailwind CSS v4 + Radix UI
-- **Testing**: Vitest
-- **Runtime**: Bun
+- **Next.js 16** — App Router, React 19, Cache Components, React Compiler
+- **Neon PostgreSQL** — Serverless Postgres with Drizzle ORM
+- **Tailwind CSS v4** — Radix UI primitives, CVA variants
+- **Recharts / Three.js** — Data visualization and animated backgrounds
+- **Vitest** — Unit testing
+- **Biome** — Linting and formatting
+- **Bun** — Package manager and runtime
+
+## How It Works
+
+A user pastes a GitHub URL or `owner/repo`. The app fetches repository data, scores it, and renders the result — all server-side.
+
+**Data fetching** uses a hybrid GitHub API approach. A single GraphQL query pulls repository metadata, issue metrics, releases, and the README in one round-trip. Commit activity comes from the REST API separately because GitHub computes it asynchronously (returns 202 until ready), so the page renders immediately while commit data streams in via a Suspense boundary.
+
+**Scoring** produces a 0–100 maintenance score across four weighted metrics: activity (commit recency and volume), responsiveness (issue resolution time), stability (release cadence, project age), and community (stars/forks). Thresholds adapt to project maturity — a 10-year-old project with 50k stars isn't penalized for going 3 months without a commit, but a 6-month-old project would be. The score maps to a category: Healthy, Moderate, Declining, or Inactive. All weights and thresholds live in [`maintenance-config.ts`](src/lib/maintenance-config.ts).
+
+**Caching** uses Next.js 16 `"use cache"` directives at the page level with a 7-day TTL and tag-based invalidation. Once a project is analyzed, subsequent visits serve the cached result. When the cache expires, the page revalidates in the background while still serving stale content. Each analysis run is also persisted to the database so the homepage can show recent analyses without hitting GitHub.
+
+## Project Structure
+
+```
+src/
+├── app/                          # Pages and routing
+│   ├── page.tsx                  # Homepage — search bar, recent analyses
+│   ├── _components/              # Homepage-only components (underscore = not a route)
+│   └── p/[owner]/[project]/      # Project analysis page, cached per repo
+│       └── _components/          # Score display, charts, README renderer
+├── components/                   # Shared across pages
+│   └── ui/                       # Design system primitives (Radix + CVA)
+├── db/                           # Drizzle schema and database client
+└── lib/
+    ├── cache/                    # Cache lifecycle config, tag helpers, invalidation
+    ├── github/                   # GitHub API — split into GraphQL (metrics) and REST (activity)
+    ├── persistence/              # Database queries — repositories and analysis runs
+    ├── services/                 # Orchestration — start analysis, compute scores, map snapshots
+    ├── maintenance.ts            # Scoring algorithm
+    └── maintenance-config.ts     # All tunable weights, thresholds, and maturity tiers
+migrations/                       # Auto-generated Drizzle SQL migrations, applied on deploy
+```
+
+## Getting Started
+
+```bash
+git clone https://github.com/rigomart9/deppulse.git
+cd deppulse
+bun install
+```
+
+Create `.env.local` with:
+
+```env
+DATABASE_URL=postgresql://...     # Neon connection string
+GITHUB_PAT=ghp_...               # GitHub Personal Access Token
+```
+
+Set up the database and start the dev server:
+
+```bash
+bun run db:push    # Push schema to your Neon database
+bun run dev        # Start at localhost:3000
+```
+
+## Scripts
+
+```bash
+bun run dev            # Start dev server
+bun run build          # Production build
+bun run check-types    # TypeScript type checking
+bun run lint           # Lint and auto-fix with Biome
+bun run test           # Run tests with Vitest
+bun run test:ui        # Vitest UI dashboard
+bun run test:coverage  # Test with coverage report
+
+# Database
+bun run db:generate    # Generate migrations from schema changes
+bun run db:migrate     # Run pending migrations
+bun run db:studio      # Open Drizzle Studio
+bun run db:push        # Push schema directly (dev only)
+```
