@@ -36,6 +36,13 @@
       "when": 1770868471175,
       "tag": "0004_smooth_namor",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1770872904865,
+      "tag": "0005_glossy_sage",
+      "breakpoints": true
     }
   ]
 }
