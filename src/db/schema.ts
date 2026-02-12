@@ -11,12 +11,8 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import type {
-  CommitActivityEntry,
-  MetricsSnapshot,
-} from "@/lib/domain/assessment";
-import type { AnalysisStatus, ScoreBreakdown } from "@/lib/domain/score";
-import type { MaintenanceCategory } from "@/lib/maintenance";
+import type { MetricsSnapshot } from "@/lib/domain/assessment";
+import type { AnalysisStatus } from "@/lib/domain/score";
 
 export const legacyAssessments = pgTable(
   "assessments",
@@ -89,15 +85,9 @@ export const analysisRuns = pgTable(
       .references(() => repositories.id, { onDelete: "cascade" }),
     status: text("status")
       .notNull()
-      .default("metrics_fetched")
+      .default("complete")
       .$type<AnalysisStatus>(),
     metricsJson: jsonb("metrics_json").$type<MetricsSnapshot>(),
-    commitActivityJson: jsonb("commit_activity_json").$type<
-      Array<CommitActivityEntry>
-    >(),
-    scoreBreakdownJson: jsonb("score_breakdown_json").$type<ScoreBreakdown>(),
-    score: integer("score"),
-    category: text("category").$type<MaintenanceCategory>(),
     startedAt: timestamp("started_at").notNull().defaultNow(),
     completedAt: timestamp("completed_at"),
     errorCode: text("error_code"),

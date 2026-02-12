@@ -91,7 +91,6 @@ export function HowItWorks() {
                     <li>
                       Last commit recency ({weights.activity.lastCommit} pts)
                     </li>
-                    <li>Commit volume ({weights.activity.commitVolume} pts)</li>
                   </ul>
                 </div>
                 <div>
@@ -165,11 +164,11 @@ export function HowItWorks() {
                   </li>
                 </ul>
                 <p className="text-sm">
-                  <strong className="text-foreground">Note:</strong> Activity is
-                  weighted heavily ({weights.activity.total}%) because commits
-                  are the strongest signal of ongoing maintenance. Even mature
-                  projects need occasional activity to show they&apos;re not
-                  abandoned.
+                  <strong className="text-foreground">Note:</strong> Activity (
+                  {weights.activity.total}%) and responsiveness (
+                  {weights.responsiveness.total}%) together account for the
+                  majority of the score, because recent commits and issue
+                  resolution are the strongest signals of ongoing maintenance.
                 </p>
               </div>
             </AccordionContent>

@@ -1,7 +1,4 @@
-export {
-  ensureAssessmentRunCompleted,
-  ensureAssessmentRunStarted,
-} from "./mutations";
+export { ensureAssessmentRunStarted } from "./mutations";
 export {
   findLatestAssessmentRunBySlug,
   listAssessmentRunHistoryBySlug,

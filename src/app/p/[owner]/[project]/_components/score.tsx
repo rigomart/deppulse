@@ -1,32 +1,20 @@
-import "server-only";
+"use client";
 
-import { Clock, Loader2 } from "lucide-react";
-import { cacheLife, cacheTag } from "next/cache";
+import { Clock } from "lucide-react";
 import { LocalDate } from "@/components/local-date";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
-import { getProjectTag } from "@/lib/cache/tags";
-import { getCategoryFromScore } from "@/lib/maintenance";
-import { ensureAssessmentRunCompleted } from "@/lib/services/assessment";
+import type { AnalysisRun } from "@/lib/domain/assessment";
+import { computeScoreFromMetrics } from "@/lib/maintenance";
 import { CategoryInfoPopover } from "./category-info-popover";
 
 interface ScoreProps {
-  runId: number;
-  owner: string;
-  project: string;
+  run: AnalysisRun;
 }
 
-export async function Score({ runId, owner, project }: ScoreProps) {
-  "use cache";
-  cacheLife(ANALYSIS_CACHE_LIFE);
-  cacheTag(getProjectTag(owner, project));
-
-  const run = await ensureAssessmentRunCompleted(owner, project, runId);
-
-  if (run.score === null) {
-    // Score calculation incomplete - show placeholder (will be replaced on next visit)
+export function Score({ run }: ScoreProps) {
+  if (!run.metrics) {
     return (
       <Card className="bg-surface-3 w-full sm:w-auto min-w-64">
         <CardContent className="space-y-3">
@@ -36,22 +24,15 @@ export async function Score({ runId, owner, project }: ScoreProps) {
               <p className="text-xl font-semibold text-foreground">--/100</p>
             </div>
             <Badge className="capitalize text-sm border bg-muted text-muted-foreground">
-              <Loader2 className="size-3 mr-1 animate-spin" />
-              Calculating
+              No data
             </Badge>
-          </div>
-          <Separator />
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Clock className="size-3 opacity-70" />
-            <span>Analysis in progress...</span>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  const score = run.score;
-  const category = getCategoryFromScore(score);
+  const { score, category } = computeScoreFromMetrics(run.metrics);
   const analyzedAt = run.completedAt ?? run.startedAt;
 
   return (

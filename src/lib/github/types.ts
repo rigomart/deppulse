@@ -24,8 +24,6 @@ export interface RepoMetrics {
   openPrsCount: number;
   issuesCreatedLastYear: number;
   readmeContent: string | null;
-  // Historical data for charts (1 year)
-  commitActivity: Array<{ week: string; commits: number }>;
   releases: Array<{
     tagName: string;
     name: string | null;
@@ -82,11 +80,4 @@ export interface RepoMetricsGraphQLResponse {
     readmeLower: { text: string } | null;
     readmeNoExt: { text: string } | null;
   } | null;
-}
-
-// GitHub REST API response for commit activity stats
-export interface CommitActivityStats {
-  days: number[]; // Sun-Sat commit counts
-  total: number;
-  week: number; // Unix timestamp
 }

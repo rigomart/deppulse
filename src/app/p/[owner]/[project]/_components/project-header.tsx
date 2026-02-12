@@ -1,17 +1,13 @@
-import { Suspense } from "react";
 import { Container } from "@/components/container";
 import type { AnalysisRun } from "@/lib/domain/assessment";
 import { ProjectInfo } from "./project-info";
 import { Score } from "./score";
-import { ScoreSkeleton } from "./score-skeleton";
 
 interface ProjectHeaderProps {
   run: AnalysisRun;
-  owner: string;
-  project: string;
 }
 
-export function ProjectHeader({ run, owner, project }: ProjectHeaderProps) {
+export function ProjectHeader({ run }: ProjectHeaderProps) {
   return (
     <section className="bg-surface-2">
       <Container className="py-6">
@@ -19,9 +15,7 @@ export function ProjectHeader({ run, owner, project }: ProjectHeaderProps) {
           <ProjectInfo run={run} />
 
           <div className="flex items-start">
-            <Suspense fallback={<ScoreSkeleton />}>
-              <Score runId={run.id} owner={owner} project={project} />
-            </Suspense>
+            <Score run={run} />
           </div>
         </div>
       </Container>

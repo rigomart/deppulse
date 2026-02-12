@@ -2,7 +2,6 @@ import { cacheLife, cacheTag } from "next/cache";
 import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getProjectTag } from "@/lib/cache/tags";
 import { ensureAssessmentRunStarted } from "@/lib/services/assessment";
-import { CommitChart } from "./_components/commit-chart";
 import { MaintenanceHealth } from "./_components/maintenance-health";
 import { ProjectHeader } from "./_components/project-header";
 import { ReadmeSection } from "./_components/readme-section";
@@ -28,9 +27,8 @@ export default async function ProjectPage({
 
   return (
     <>
-      <ProjectHeader run={run} owner={owner} project={project} />
+      <ProjectHeader run={run} />
       <RecentActivity run={run} />
-      <CommitChart runId={run.id} owner={owner} project={project} />
       <MaintenanceHealth run={run} />
       <ReadmeSection run={run} />
     </>

@@ -2,7 +2,7 @@ import type { Metadata, ResolvingMetadata } from "next";
 import { cacheLife, cacheTag } from "next/cache";
 import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getProjectTag } from "@/lib/cache/tags";
-import { getCategoryFromScore } from "@/lib/maintenance";
+import { computeScoreFromMetrics } from "@/lib/maintenance";
 import { findLatestAssessmentRunBySlug } from "@/lib/services/assessment";
 
 type Props = {
@@ -25,18 +25,18 @@ export async function generateMetadata(
   const { owner, project } = await params;
   const run = await getCachedRunForMetadata(owner, project);
 
-  if (!run || run.score === null) {
+  if (!run || !run.metrics) {
     return {
       title: `${owner}/${project} - Analyzing...`,
     };
   }
 
-  const category = run.category ?? getCategoryFromScore(run.score);
+  const { score, category } = computeScoreFromMetrics(run.metrics);
   const title = `${run.repository.fullName} - ${category}`;
   const analyzedAt = run.completedAt ?? run.startedAt;
-  const description = run.metrics?.description
-    ? `${run.metrics.description} Maintenance score: ${run.score}/100. Last analyzed: ${analyzedAt.toLocaleDateString()}.`
-    : `Maintenance assessment for ${run.repository.fullName}. Score: ${run.score}/100. Category: ${category}.`;
+  const description = run.metrics.description
+    ? `${run.metrics.description} Maintenance score: ${score}/100. Last analyzed: ${analyzedAt.toLocaleDateString()}.`
+    : `Maintenance assessment for ${run.repository.fullName}. Score: ${score}/100. Category: ${category}.`;
 
   return {
     title,

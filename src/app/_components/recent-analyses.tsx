@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { HOMEPAGE_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getRecentAnalysesTag } from "@/lib/cache/tags";
 import { categoryColors } from "@/lib/category-styles";
-import { getCategoryFromScore } from "@/lib/maintenance";
+import { computeScoreFromMetrics } from "@/lib/maintenance";
 import { listRecentCompletedAssessments } from "@/lib/services/assessment";
 import { formatNumber } from "@/lib/utils";
 
@@ -33,8 +33,9 @@ export async function RecentAnalyses() {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {recentRuns.map((run) => {
-            const category =
-              run.category ?? getCategoryFromScore(run.score ?? 0);
+            const category = run.metrics
+              ? computeScoreFromMetrics(run.metrics).category
+              : "inactive";
             return (
               <Link
                 key={run.id}

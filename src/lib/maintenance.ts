@@ -1,3 +1,4 @@
+import type { MetricsSnapshot } from "./domain/assessment";
 import {
   MAINTENANCE_CATEGORY_INFO,
   MAINTENANCE_CONFIG,
@@ -20,8 +21,6 @@ function getDaysSince(date: Date | null): number | null {
 export interface MaintenanceInput {
   // Activity metrics
   lastCommitAt: Date | null;
-  /** Weekly commit activity (52 weeks, most recent first) */
-  commitActivity: Array<{ week: string; commits: number }>;
 
   // Responsiveness metrics
   openIssuesPercent: number | null;
@@ -104,31 +103,6 @@ function scoreLastCommit(days: number | null, tier: MaturityTier): number {
 }
 
 /**
- * Scores commit volume based on tier-specific timeframes.
- * Different tiers look at different time windows:
- * - Emerging: 13 weeks (3 months) - recent activity matters most
- * - Growing: 26 weeks (6 months) - balanced view
- * - Mature: 52 weeks (12 months) - allows for gaps
- */
-function scoreCommitVolume(
-  commitActivity: Array<{ week: string; commits: number }>,
-  tier: MaturityTier,
-): number {
-  const maxPoints = MAINTENANCE_CONFIG.weights.activity.commitVolume;
-  const { weeks, thresholds } =
-    MAINTENANCE_CONFIG.maturityTiers[tier].commitVolume;
-
-  // Slice to the tier-specific timeframe (most recent N weeks)
-  const recentActivity = commitActivity.slice(0, weeks);
-  const commits = recentActivity.reduce((sum, week) => sum + week.commits, 0);
-
-  if (commits >= thresholds[0]) return maxPoints;
-  if (commits >= thresholds[1]) return Math.round(maxPoints * 0.45);
-  if (commits >= thresholds[2]) return Math.round(maxPoints * 0.15);
-  return 0;
-}
-
-/**
  * Scores issue resolution time (median days to close issues).
  * No recently closed issues = 0 points (no free points for lack of data).
  */
@@ -200,7 +174,6 @@ function scorePopularity(stars: number, forks: number): number {
 
 /**
  * Determines category from score.
- * Exported for use when computing category from stored score.
  */
 export function getCategoryFromScore(score: number): MaintenanceCategory {
   const { categoryThresholds } = MAINTENANCE_CONFIG;
@@ -239,9 +212,7 @@ export function calculateMaintenanceScore(
   const daysSinceLastRelease = getDaysSince(input.lastReleaseAt);
 
   // Calculate component scores
-  const activityScore =
-    scoreLastCommit(daysSinceLastCommit, maturityTier) +
-    scoreCommitVolume(input.commitActivity, maturityTier);
+  const activityScore = scoreLastCommit(daysSinceLastCommit, maturityTier);
 
   const responsivenessScore = scoreIssueResolution(
     input.medianIssueResolutionDays,
@@ -264,4 +235,29 @@ export function calculateMaintenanceScore(
     category: getCategoryFromScore(score),
     maturityTier,
   };
+}
+
+/**
+ * Computes a maintenance score from a stored MetricsSnapshot.
+ * Handles ISO string → Date conversion so callers don't have to.
+ */
+export function computeScoreFromMetrics(
+  metrics: MetricsSnapshot,
+): MaintenanceResult {
+  return calculateMaintenanceScore({
+    lastCommitAt: metrics.lastCommitAt ? new Date(metrics.lastCommitAt) : null,
+    openIssuesPercent: metrics.openIssuesPercent,
+    medianIssueResolutionDays: metrics.medianIssueResolutionDays,
+    issuesCreatedLastYear: metrics.issuesCreatedLastYear,
+    lastReleaseAt: metrics.lastReleaseAt
+      ? new Date(metrics.lastReleaseAt)
+      : null,
+    repositoryCreatedAt: metrics.repositoryCreatedAt
+      ? new Date(metrics.repositoryCreatedAt)
+      : null,
+    openPrsCount: metrics.openPrsCount,
+    stars: metrics.stars,
+    forks: metrics.forks,
+    isArchived: metrics.isArchived,
+  });
 }
