@@ -25,12 +25,13 @@ export async function ensureAssessmentRunStarted(
     defaultBranch: metrics.defaultBranch ?? null,
   });
 
+  const now = new Date();
   const run = await createAssessmentRun({
     repositoryId: repository.id,
     status: "complete",
     metrics: toMetricsSnapshot(metrics),
-    startedAt: new Date(),
-    completedAt: new Date(),
+    startedAt: now,
+    completedAt: now,
   });
 
   return run;

@@ -136,6 +136,10 @@ describe("assessment mutations", () => {
       expect.objectContaining({
         repositoryId: 99,
         status: "complete",
+        metrics: expect.objectContaining({
+          stars: 10,
+          forks: 5,
+        }),
       }),
     );
   });

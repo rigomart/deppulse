@@ -1,1 +1,1 @@
-export type AnalysisStatus = "metrics_fetched" | "complete" | "failed";
+export type AnalysisStatus = "complete" | "failed";
