@@ -13,8 +13,8 @@ export function Hero() {
             </h1>
           </div>
           <p className="text-sm sm:text-base text-muted-foreground max-w-[440px] animate-in fade-in duration-300 delay-75 fill-mode-backwards">
-            Paste a GitHub URL to check commit activity, issue responsiveness,
-            and release health.
+            Paste a GitHub URL to check maintenance activity, issue
+            responsiveness, and release health.
           </p>
           <div className="w-full pt-3 animate-in fade-in duration-300 delay-150 fill-mode-backwards">
             <SearchForm />

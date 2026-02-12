@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     template: "%s | Deppulse",
   },
   description:
-    "Quickly assess whether an open-source project is actively maintained. Get maintenance risk scores, commit activity metrics, and issue responsiveness data for GitHub repositories.",
+    "Quickly assess whether an open-source project is actively maintained. Get maintenance risk scores and issue responsiveness data for GitHub repositories.",
   keywords: [
     "open source",
     "github",

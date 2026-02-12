@@ -19,15 +19,10 @@ export type MaintenanceCategory =
  * Thresholds for activity metrics, varying by maturity tier.
  *
  * commitDays: [100%, 50%, 20%, 5%] - days since last commit
- * commitVolume: commits within tier-specific timeframe
  * releaseDays: [100%, 50%, 15%] - days since last release
  */
 interface TierThresholds {
   commitDays: [number, number, number, number];
-  commitVolume: {
-    weeks: number;
-    thresholds: [number, number, number];
-  };
   releaseDays: [number, number, number];
 }
 
@@ -38,7 +33,7 @@ interface MaintenanceConfig {
     declining: number;
   };
   weights: {
-    activity: { total: number; lastCommit: number; commitVolume: number };
+    activity: { total: number; lastCommit: number };
     responsiveness: { total: number; issueResolution: number };
     stability: { total: number; releaseRecency: number; projectAge: number };
     community: { total: number; popularity: number };
@@ -86,22 +81,21 @@ export const MAINTENANCE_CONFIG: MaintenanceConfig = {
   // Points allocation (must sum to 100)
   weights: {
     activity: {
-      total: 70, // Activity is primary signal - no commits = not maintained
+      total: 35, // Last commit recency
       lastCommit: 35, // Days since last commit (max 35 pts)
-      commitVolume: 35, // Commit count in timeframe (max 35 pts)
     },
     responsiveness: {
-      total: 15,
-      issueResolution: 15, // Median days to close issues (max 15 pts)
+      total: 30,
+      issueResolution: 30, // Median days to close issues (max 30 pts)
     },
     stability: {
-      total: 10,
-      releaseRecency: 5, // Days since last release (max 5 pts)
-      projectAge: 5, // Years since creation (max 5 pts)
+      total: 20,
+      releaseRecency: 10, // Days since last release (max 10 pts)
+      projectAge: 10, // Years since creation (max 10 pts)
     },
     community: {
-      total: 5,
-      popularity: 5, // stars + forks*2 (max 5 pts)
+      total: 15,
+      popularity: 15, // stars + forks*2 (max 15 pts)
     },
   },
 
@@ -111,11 +105,6 @@ export const MAINTENANCE_CONFIG: MaintenanceConfig = {
     emerging: {
       // Days since last commit: [100%, 50%, 20%, 5%] points
       commitDays: [30, 60, 120, 180],
-      commitVolume: {
-        weeks: 13, // Look at last 3 months
-        // Commits needed for [100%, 45%, 15%] points
-        thresholds: [15, 8, 3],
-      },
       // Days since last release: [100%, 50%, 15%] points
       releaseDays: [60, 120, 180],
     },
@@ -123,20 +112,12 @@ export const MAINTENANCE_CONFIG: MaintenanceConfig = {
     // Growing: 2-5 years OR 1k-10k popularity - moderate expectations
     growing: {
       commitDays: [45, 90, 150, 270],
-      commitVolume: {
-        weeks: 26, // Look at last 6 months
-        thresholds: [35, 18, 6],
-      },
       releaseDays: [60, 150, 270],
     },
 
     // Mature: 5+ years OR 10k+ popularity - maintenance mode is acceptable
     mature: {
       commitDays: [120, 180, 365, 730],
-      commitVolume: {
-        weeks: 52, // Look at full year
-        thresholds: [18, 9, 3],
-      },
       releaseDays: [180, 365, 730],
     },
   },
