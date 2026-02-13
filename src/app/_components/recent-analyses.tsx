@@ -10,8 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { HOMEPAGE_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getRecentAnalysesTag } from "@/lib/cache/tags";
 import { categoryColors } from "@/lib/category-styles";
-import { computeScoreFromMetrics } from "@/lib/maintenance";
-import { listRecentCompletedAssessments } from "@/lib/services/assessment";
+import { computeScoreFromMetrics } from "@/core/maintenance";
+import { listRecentCompletedAssessments } from "@/core/assessment";
 import { formatNumber } from "@/lib/utils";
 
 export async function RecentAnalyses() {

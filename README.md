@@ -16,9 +16,15 @@ Quickly assess whether an open-source project is actively maintained. [deppulse.
 
 A user pastes a GitHub URL or `owner/repo`. The app fetches repository data, scores it, and renders the result — all server-side.
 
-**Data fetching** uses a hybrid GitHub API approach. A single GraphQL query pulls repository metadata, issue metrics, releases, and the README in one round-trip. Commit activity comes from the REST API separately because GitHub computes it asynchronously (returns 202 until ready), so the page renders immediately while commit data streams in via a Suspense boundary.
+**Data fetching** uses a single GitHub GraphQL query to pull repository metadata, issue metrics, releases, and README content. It also pulls light recent-activity counters (commits and merged PRs in the last 90 days) used by strictness rules.
 
-**Scoring** produces a 0–100 maintenance score across four weighted metrics: activity (commit recency and volume), responsiveness (issue resolution time), stability (release cadence, project age), and community (stars/forks). Thresholds adapt to project maturity — a 10-year-old project with 50k stars isn't penalized for going 3 months without a commit, but a 6-month-old project would be. The score maps to a category: Healthy, Moderate, Declining, or Inactive. All weights and thresholds live in [`maintenance-config.ts`](src/lib/maintenance-config.ts).
+**Scoring** uses a strict quality × freshness model:
+- **Quality (0-100):** issue health, release cadence, community, maturity, and activity breadth.
+- **Freshness multiplier (0-1):** based on days since latest commit, merged PR, or release.
+- **Expected activity tiers (high/medium/low):** large or active repos are penalized harder when stale.
+- **Hard caps:** high-expected repos with long inactivity windows cannot score above fixed ceilings.
+
+Scores map to a category: Healthy, Moderate, Declining, or Inactive. Raw metrics are stored, and scores are always recalculated with the current scoring rules.
 
 **Caching** uses Next.js 16 `"use cache"` directives at the page level with a 7-day TTL and tag-based invalidation. Once a project is analyzed, subsequent visits serve the cached result. When the cache expires, the page revalidates in the background while still serving stale content. Each analysis run is also persisted to the database so the homepage can show recent analyses without hitting GitHub.
 
@@ -33,14 +39,18 @@ src/
 │       └── _components/          # Score display, charts, README renderer
 ├── components/                   # Shared across pages
 │   └── ui/                       # Design system primitives (Radix + CVA)
+├── core/                         # Domain and business rules
+│   ├── assessment/               # Analysis orchestration and snapshot mapping
+│   ├── maintenance/              # Score APIs + config consumed by UI
+│   └── scoring/                  # Scoring engine (profiles, signals, quality, freshness)
 ├── db/                           # Drizzle schema and database client
+├── adapters/                     # External integrations
+│   ├── github/                   # GitHub GraphQL client + metrics mapping
+│   └── persistence/              # Database adapters (repositories + analysis runs)
 └── lib/
     ├── cache/                    # Cache lifecycle config, tag helpers, invalidation
-    ├── github/                   # GitHub API — split into GraphQL (metrics) and REST (activity)
-    ├── persistence/              # Database queries — repositories and analysis runs
-    ├── services/                 # Orchestration — start analysis, compute scores, map snapshots
-    ├── maintenance.ts            # Scoring algorithm
-    └── maintenance-config.ts     # All tunable weights, thresholds, and maturity tiers
+    ├── domain/                   # Shared domain types
+    └── utils/logger/parsing      # Shared helpers
 migrations/                       # Auto-generated Drizzle SQL migrations, applied on deploy
 ```
 

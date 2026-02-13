@@ -1,14 +1,14 @@
 import "server-only";
 
-import { subYears } from "date-fns";
-import { logger } from "../logger";
+import { subDays, subYears } from "date-fns";
+import { logger } from "@/lib/logger";
 import { graphqlWithAuth } from "./client";
 import { parseGraphQLRateLimit } from "./rate-limit";
 import type { RepoMetrics, RepoMetricsGraphQLResponse } from "./types";
 
 // GraphQL query to fetch all repository metrics in a single request
 const REPO_METRICS_QUERY = `
-  query RepoMetrics($owner: String!, $repo: String!) {
+  query RepoMetrics($owner: String!, $repo: String!, $recentActivitySince: GitTimestamp!) {
     rateLimit {
       limit
       remaining
@@ -31,8 +31,11 @@ const REPO_METRICS_QUERY = `
         name
         target {
           ... on Commit {
-            history(first: 1) {
+            latestCommit: history(first: 1) {
               nodes { committedDate }
+            }
+            recentCommitHistory: history(first: 1, since: $recentActivitySince) {
+              totalCount
             }
           }
         }
@@ -53,6 +56,9 @@ const REPO_METRICS_QUERY = `
 
       openPRs: pullRequests(states: OPEN) { totalCount }
       lastMergedPR: pullRequests(states: MERGED, first: 1, orderBy: {field: UPDATED_AT, direction: DESC}) {
+        nodes { mergedAt }
+      }
+      mergedPRsRecent: pullRequests(states: MERGED, first: 50, orderBy: {field: UPDATED_AT, direction: DESC}) {
         nodes { mergedAt }
       }
 
@@ -104,12 +110,13 @@ export async function fetchRepoMetrics(
   repo: string,
 ): Promise<RepoMetrics> {
   const graphqlStartTime = Date.now();
+  const recentActivitySince = subDays(new Date(), 90);
 
   let data: RepoMetricsGraphQLResponse;
   try {
     data = await graphqlWithAuth<RepoMetricsGraphQLResponse>(
       REPO_METRICS_QUERY,
-      { owner, repo },
+      { owner, repo, recentActivitySince: recentActivitySince.toISOString() },
     );
   } catch (error) {
     const graphqlDuration = Date.now() - graphqlStartTime;
@@ -142,8 +149,10 @@ export async function fetchRepoMetrics(
 
   // Extract latest commit date
   const latestCommitDate =
-    r.defaultBranchRef?.target?.history?.nodes?.[0]?.committedDate;
+    r.defaultBranchRef?.target?.latestCommit?.nodes?.[0]?.committedDate;
   const lastCommitAt = latestCommitDate ? new Date(latestCommitDate) : null;
+  const commitsLast90Days =
+    r.defaultBranchRef?.target?.recentCommitHistory?.totalCount ?? 0;
 
   // Latest release date
   const lastReleaseAt = r.latestRelease?.publishedAt
@@ -172,6 +181,9 @@ export async function fetchRepoMetrics(
   // Last merged PR date
   const lastMergedPrDate = r.lastMergedPR?.nodes?.[0]?.mergedAt;
   const lastMergedPrAt = lastMergedPrDate ? new Date(lastMergedPrDate) : null;
+  const mergedPrsLast90Days = r.mergedPRsRecent.nodes.filter((pr) => {
+    return new Date(pr.mergedAt).getTime() >= recentActivitySince.getTime();
+  }).length;
 
   // Process recent issues for resolution time and velocity (1 year)
   const oneYearAgo = subYears(new Date(), 1);
@@ -232,6 +244,8 @@ export async function fetchRepoMetrics(
     medianIssueResolutionDays,
     openPrsCount,
     issuesCreatedLastYear,
+    commitsLast90Days,
+    mergedPrsLast90Days,
     readmeContent:
       (r.readmeMd?.text ?? r.readmeLower?.text ?? r.readmeNoExt?.text)?.slice(
         0,

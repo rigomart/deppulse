@@ -1,7 +1,7 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getProjectTag } from "@/lib/cache/tags";
-import { ensureAssessmentRunStarted } from "@/lib/services/assessment";
+import { ensureAssessmentRunStarted } from "@/core/assessment";
 import { MaintenanceHealth } from "./_components/maintenance-health";
 import { ProjectHeader } from "./_components/project-header";
 import { ReadmeSection } from "./_components/readme-section";

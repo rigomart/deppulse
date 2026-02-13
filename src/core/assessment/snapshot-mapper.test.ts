@@ -29,6 +29,8 @@ describe("toMetricsSnapshot", () => {
       medianIssueResolutionDays: 2,
       openPrsCount: 3,
       issuesCreatedLastYear: 4,
+      commitsLast90Days: 8,
+      mergedPrsLast90Days: 5,
       releases: [],
     });
 
@@ -39,6 +41,8 @@ describe("toMetricsSnapshot", () => {
     expect(snapshot.lastReleaseAt).toBe(lastReleaseAt.toISOString());
     expect(snapshot.lastClosedIssueAt).toBe(lastClosedIssueAt.toISOString());
     expect(snapshot.lastMergedPrAt).toBe(lastMergedPrAt.toISOString());
+    expect(snapshot.commitsLast90Days).toBe(8);
+    expect(snapshot.mergedPrsLast90Days).toBe(5);
   });
 
   it("preserves null date fields", () => {
@@ -62,6 +66,8 @@ describe("toMetricsSnapshot", () => {
       medianIssueResolutionDays: null,
       openPrsCount: 0,
       issuesCreatedLastYear: 0,
+      commitsLast90Days: 0,
+      mergedPrsLast90Days: 0,
       releases: [],
     });
 
@@ -70,5 +76,7 @@ describe("toMetricsSnapshot", () => {
     expect(snapshot.lastReleaseAt).toBeNull();
     expect(snapshot.lastClosedIssueAt).toBeNull();
     expect(snapshot.lastMergedPrAt).toBeNull();
+    expect(snapshot.commitsLast90Days).toBe(0);
+    expect(snapshot.mergedPrsLast90Days).toBe(0);
   });
 });

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { AnalysisRun } from "@/lib/domain/assessment";
-import { computeScoreFromMetrics } from "@/lib/maintenance";
+import { computeScoreFromMetrics } from "@/core/maintenance";
 import { CategoryInfoPopover } from "./category-info-popover";
 
 interface ScoreProps {

@@ -20,6 +20,8 @@ export function toMetricsSnapshot(metrics: {
   medianIssueResolutionDays: MetricsSnapshot["medianIssueResolutionDays"];
   openPrsCount: MetricsSnapshot["openPrsCount"];
   issuesCreatedLastYear: MetricsSnapshot["issuesCreatedLastYear"];
+  commitsLast90Days: MetricsSnapshot["commitsLast90Days"];
+  mergedPrsLast90Days: MetricsSnapshot["mergedPrsLast90Days"];
   releases: MetricsSnapshot["releases"];
   readmeContent?: MetricsSnapshot["readmeContent"];
 }): MetricsSnapshot {
