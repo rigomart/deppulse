@@ -7,11 +7,11 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { listRecentCompletedAssessments } from "@/core/assessment";
+import { computeScoreFromMetrics } from "@/core/maintenance";
 import { HOMEPAGE_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getRecentAnalysesTag } from "@/lib/cache/tags";
 import { categoryColors } from "@/lib/category-styles";
-import { computeScoreFromMetrics } from "@/core/maintenance";
-import { listRecentCompletedAssessments } from "@/core/assessment";
 import { formatNumber } from "@/lib/utils";
 
 export async function RecentAnalyses() {

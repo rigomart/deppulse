@@ -6,9 +6,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { categoryColors } from "@/lib/category-styles";
 import { MAINTENANCE_CONFIG } from "@/core/maintenance";
 import type { FreshnessStep } from "@/core/scoring/types";
+import { categoryColors } from "@/lib/category-styles";
 
 const {
   categoryThresholds,

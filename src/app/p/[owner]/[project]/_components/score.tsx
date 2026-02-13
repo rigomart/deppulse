@@ -5,8 +5,8 @@ import { LocalDate } from "@/components/local-date";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import type { AnalysisRun } from "@/lib/domain/assessment";
 import { computeScoreFromMetrics } from "@/core/maintenance";
+import type { AnalysisRun } from "@/lib/domain/assessment";
 import { CategoryInfoPopover } from "./category-info-popover";
 
 interface ScoreProps {

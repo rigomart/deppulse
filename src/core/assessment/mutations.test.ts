@@ -22,10 +22,10 @@ vi.mock("./queries", () => ({
   findLatestAssessmentRunBySlug: vi.fn(),
 }));
 
-import { isAnalysisFresh } from "@/lib/cache/analysis-cache";
 import { fetchRepoMetrics } from "@/adapters/github";
 import { createAssessmentRun } from "@/adapters/persistence/analysis-run";
 import { upsertRepository } from "@/adapters/persistence/repository";
+import { isAnalysisFresh } from "@/lib/cache/analysis-cache";
 import { findLatestAssessmentRunBySlug } from "./queries";
 
 function makeRun(overrides: Partial<AnalysisRun> = {}): AnalysisRun {

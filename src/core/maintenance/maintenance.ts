@@ -1,8 +1,4 @@
 import type { MetricsSnapshot } from "@/lib/domain/assessment";
-import {
-  MAINTENANCE_CATEGORY_INFO,
-  type MaintenanceCategory,
-} from "./maintenance-config";
 import { calculateScore } from "../scoring";
 import type {
   ScoreBreakdown,
@@ -10,6 +6,10 @@ import type {
   ScoringInput,
   ScoringProfileId,
 } from "../scoring/types";
+import {
+  MAINTENANCE_CATEGORY_INFO,
+  type MaintenanceCategory,
+} from "./maintenance-config";
 
 export type { MaintenanceCategory };
 export type { ScoreOptions, ScoringProfileId };
