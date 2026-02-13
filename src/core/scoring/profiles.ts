@@ -93,8 +93,8 @@ export const STRICT_BALANCED_PROFILE: ScoringProfile = {
   },
   hardCaps: {
     high: [
-      { afterDays: 365, maxScore: 20 },
       { afterDays: 180, maxScore: 35 },
+      { afterDays: 365, maxScore: 20 },
     ],
   },
 };

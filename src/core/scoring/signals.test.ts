@@ -80,4 +80,18 @@ describe("scoring signals", () => {
       "low",
     );
   });
+
+  it("classifies as high expected when stars alone meet high threshold", () => {
+    const popularButQuiet = makeInput({
+      stars: 3_000,
+      commitsLast90Days: 0,
+      mergedPrsLast90Days: 0,
+      issuesCreatedLastYear: 0,
+      openPrsCount: 0,
+    });
+
+    expect(
+      determineExpectedActivityTier(popularButQuiet, STRICT_BALANCED_PROFILE),
+    ).toBe("high");
+  });
 });

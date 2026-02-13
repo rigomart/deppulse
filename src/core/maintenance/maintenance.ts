@@ -17,6 +17,7 @@ export { MAINTENANCE_CATEGORY_INFO };
 
 /**
  * Input metrics for maintenance score calculation.
+ * Kept separate from `ScoringInput` to preserve a stable maintenance-facing API.
  */
 export interface MaintenanceInput {
   // Activity signals
@@ -75,10 +76,7 @@ export function calculateMaintenanceScore(
   input: MaintenanceInput,
   options?: ScoreOptions,
 ): MaintenanceResult {
-  const result = calculateScore(toScoringInput(input), {
-    profileId: options?.profileId,
-    now: options?.now,
-  });
+  const result = calculateScore(toScoringInput(input), options);
 
   return {
     score: result.score,

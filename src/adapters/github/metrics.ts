@@ -55,7 +55,7 @@ const REPO_METRICS_QUERY = `
       closedIssues: issues(states: CLOSED) { totalCount }
 
       openPRs: pullRequests(states: OPEN) { totalCount }
-      lastMergedPR: pullRequests(states: MERGED, first: 1, orderBy: {field: UPDATED_AT, direction: DESC}) {
+      lastMergedPR: pullRequests(states: MERGED, first: 1, orderBy: {field: CREATED_AT, direction: DESC}) {
         nodes { mergedAt }
       }
       mergedPRsRecent: pullRequests(states: MERGED, first: 50, orderBy: {field: UPDATED_AT, direction: DESC}) {

@@ -9,9 +9,16 @@ import {
 } from "./maintenance";
 
 const NOW = new Date("2026-02-13T00:00:00.000Z");
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function daysAgo(days: number): Date {
-  return new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000);
+  return new Date(NOW.getTime() - days * DAY_MS);
+}
+
+function yearsAgo(years: number): Date {
+  const date = new Date(NOW);
+  date.setUTCFullYear(date.getUTCFullYear() - years);
+  return date;
 }
 
 function makeInput(
@@ -93,7 +100,7 @@ describe("maintenance scoring", () => {
         openIssuesPercent: 29.3,
         medianIssueResolutionDays: 20,
         stars: 3_246,
-        repositoryCreatedAt: new Date("2022-07-23"),
+        repositoryCreatedAt: yearsAgo(3),
         releasesLastYear: 7,
         commitsLast90Days: 0,
         mergedPrsLast90Days: 0,

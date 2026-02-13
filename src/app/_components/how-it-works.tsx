@@ -16,8 +16,42 @@ const {
   hardCaps,
   quality,
 } = MAINTENANCE_CONFIG;
-const highCap180 = hardCaps.high.find((cap) => cap.afterDays === 180);
-const highCap365 = hardCaps.high.find((cap) => cap.afterDays === 365);
+
+type FreshnessStep = (typeof freshnessMultipliers.high)[number];
+
+function formatFreshnessRange(
+  step: FreshnessStep,
+  index: number,
+  steps: readonly FreshnessStep[],
+): string {
+  if (Number.isFinite(step.maxDays)) {
+    return `<=${step.maxDays}d`;
+  }
+
+  const previousFiniteStep = [...steps]
+    .slice(0, index)
+    .reverse()
+    .find((candidate) => Number.isFinite(candidate.maxDays));
+
+  return `${previousFiniteStep?.maxDays ?? 0}+d`;
+}
+
+function formatFreshnessTimeline(steps: readonly FreshnessStep[]): string {
+  return steps
+    .map((step, index, allSteps) => {
+      if (!step) return null;
+
+      const range = formatFreshnessRange(step, index, allSteps);
+      return `${range} (${step.multiplier}x)`;
+    })
+    .filter((entry): entry is string => entry !== null)
+    .join(", ");
+}
+
+const highExpectedHardCapText = [...hardCaps.high]
+  .sort((a, b) => a.afterDays - b.afterDays)
+  .map((cap) => `over ${cap.afterDays} days caps score at ${cap.maxScore}`)
+  .join(", and ");
 
 export function HowItWorks() {
   return (
@@ -177,37 +211,22 @@ export function HowItWorks() {
                 <div className="text-sm space-y-2">
                   <p>
                     <strong className="text-foreground">High expected:</strong>{" "}
-                    ≤30d ({freshnessMultipliers.high[0].multiplier}x), ≤90d (
-                    {freshnessMultipliers.high[1].multiplier}x), ≤180d (
-                    {freshnessMultipliers.high[2].multiplier}x), ≤365d (
-                    {freshnessMultipliers.high[3].multiplier}x), 365+d (
-                    {freshnessMultipliers.high[4].multiplier}x)
+                    {formatFreshnessTimeline(freshnessMultipliers.high)}
                   </p>
                   <p>
                     <strong className="text-foreground">
                       Medium expected:
                     </strong>{" "}
-                    ≤45d ({freshnessMultipliers.medium[0].multiplier}x), ≤120d (
-                    {freshnessMultipliers.medium[1].multiplier}x), ≤180d (
-                    {freshnessMultipliers.medium[2].multiplier}x), ≤365d (
-                    {freshnessMultipliers.medium[3].multiplier}x), 365+d (
-                    {freshnessMultipliers.medium[4].multiplier}x)
+                    {formatFreshnessTimeline(freshnessMultipliers.medium)}
                   </p>
                   <p>
                     <strong className="text-foreground">Low expected:</strong>{" "}
-                    ≤90d ({freshnessMultipliers.low[0].multiplier}x), ≤180d (
-                    {freshnessMultipliers.low[1].multiplier}x), ≤365d (
-                    {freshnessMultipliers.low[2].multiplier}x), ≤730d (
-                    {freshnessMultipliers.low[3].multiplier}x), 730+d (
-                    {freshnessMultipliers.low[4].multiplier}x)
+                    {formatFreshnessTimeline(freshnessMultipliers.low)}
                   </p>
                 </div>
                 <p className="text-sm">
-                  Extra cap for high-expected repositories: over{" "}
-                  {highCap180?.afterDays ?? 180} days caps score at{" "}
-                  {highCap180?.maxScore ?? 35}, and over{" "}
-                  {highCap365?.afterDays ?? 365} days caps score at{" "}
-                  {highCap365?.maxScore ?? 20}.
+                  Extra cap for high-expected repositories:{" "}
+                  {highExpectedHardCapText}.
                 </p>
               </div>
             </AccordionContent>

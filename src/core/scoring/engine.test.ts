@@ -58,6 +58,26 @@ describe("scoring engine", () => {
     expect(result.score).toBeLessThanOrEqual(20);
   });
 
+  it("applies strongest inactivity multiplier to popular but stale repositories", () => {
+    const result = calculateScore(
+      makeInput({
+        lastCommitAt: daysAgo(420),
+        lastMergedPrAt: null,
+        lastReleaseAt: null,
+        stars: 3_000,
+        commitsLast90Days: 0,
+        mergedPrsLast90Days: 0,
+        issuesCreatedLastYear: 0,
+        openPrsCount: 0,
+      }),
+      { now: NOW },
+    );
+
+    expect(result.breakdown.expectedActivityTier).toBe("high");
+    expect(result.breakdown.freshnessMultiplier).toBe(0.05);
+    expect(result.score).toBeLessThanOrEqual(20);
+  });
+
   it("allows low-expected stable utilities to stay moderate at similar inactivity", () => {
     const result = calculateScore(
       makeInput({
