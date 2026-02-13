@@ -8,6 +8,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { categoryColors } from "@/lib/category-styles";
 import { MAINTENANCE_CONFIG } from "@/core/maintenance";
+import type { FreshnessStep } from "@/core/scoring/types";
 
 const {
   categoryThresholds,
@@ -16,8 +17,6 @@ const {
   hardCaps,
   quality,
 } = MAINTENANCE_CONFIG;
-
-type FreshnessStep = (typeof freshnessMultipliers.high)[number];
 
 function formatFreshnessRange(
   step: FreshnessStep,

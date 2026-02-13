@@ -4,7 +4,14 @@ import { subDays, subYears } from "date-fns";
 import { logger } from "@/lib/logger";
 import { graphqlWithAuth } from "./client";
 import { parseGraphQLRateLimit } from "./rate-limit";
-import type { RepoMetrics, RepoMetricsGraphQLResponse } from "./types";
+import type {
+  MergedPrsPageGraphQLResponse,
+  MergedPullRequestsConnection,
+  RepoMetrics,
+  RepoMetricsGraphQLResponse,
+} from "./types";
+
+const MERGED_PRS_PAGE_SIZE = 100;
 
 // GraphQL query to fetch all repository metrics in a single request
 const REPO_METRICS_QUERY = `
@@ -58,8 +65,15 @@ const REPO_METRICS_QUERY = `
       lastMergedPR: pullRequests(states: MERGED, first: 1, orderBy: {field: CREATED_AT, direction: DESC}) {
         nodes { mergedAt }
       }
-      mergedPRsRecent: pullRequests(states: MERGED, first: 50, orderBy: {field: UPDATED_AT, direction: DESC}) {
-        nodes { mergedAt }
+      mergedPRsRecent: pullRequests(states: MERGED, first: ${MERGED_PRS_PAGE_SIZE}, orderBy: {field: UPDATED_AT, direction: DESC}) {
+        nodes {
+          mergedAt
+          updatedAt
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
       }
 
       # Fetch issues for activity chart and metrics (1 year)
@@ -84,6 +98,23 @@ const REPO_METRICS_QUERY = `
   }
 `;
 
+const MERGED_PRS_PAGE_QUERY = `
+  query RepoMergedPrsPage($owner: String!, $repo: String!, $after: String!) {
+    repository(owner: $owner, name: $repo) {
+      mergedPRsRecent: pullRequests(states: MERGED, first: ${MERGED_PRS_PAGE_SIZE}, after: $after, orderBy: {field: UPDATED_AT, direction: DESC}) {
+        nodes {
+          mergedAt
+          updatedAt
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
+    }
+  }
+`;
+
 function getMedian(numbers: number[]): number | null {
   if (numbers.length === 0) return null;
   const sorted = [...numbers].sort((a, b) => a - b);
@@ -91,6 +122,58 @@ function getMedian(numbers: number[]): number | null {
   return sorted.length % 2 !== 0
     ? sorted[mid]
     : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function countMergedPrsAtOrAfter(
+  connection: MergedPullRequestsConnection,
+  cutoffMs: number,
+): number {
+  return connection.nodes.filter(
+    (pr) => new Date(pr.mergedAt).getTime() >= cutoffMs,
+  ).length;
+}
+
+function getOldestUpdatedAtMs(
+  connection: MergedPullRequestsConnection,
+): number | null {
+  const oldestInPage = connection.nodes[connection.nodes.length - 1];
+  if (!oldestInPage) return null;
+  return new Date(oldestInPage.updatedAt).getTime();
+}
+
+async function countMergedPrsLast90Days(
+  owner: string,
+  repo: string,
+  recentActivitySince: Date,
+  firstPage: MergedPullRequestsConnection,
+): Promise<number> {
+  const cutoffMs = recentActivitySince.getTime();
+  let total = countMergedPrsAtOrAfter(firstPage, cutoffMs);
+  let hasNextPage = firstPage.pageInfo.hasNextPage;
+  let cursor = firstPage.pageInfo.endCursor;
+  let oldestUpdatedAtMs = getOldestUpdatedAtMs(firstPage);
+
+  while (
+    hasNextPage &&
+    cursor &&
+    (oldestUpdatedAtMs === null || oldestUpdatedAtMs >= cutoffMs)
+  ) {
+    const pageData = await graphqlWithAuth<MergedPrsPageGraphQLResponse>(
+      MERGED_PRS_PAGE_QUERY,
+      { owner, repo, after: cursor },
+    );
+    const page = pageData.repository?.mergedPRsRecent;
+    if (!page) {
+      break;
+    }
+
+    total += countMergedPrsAtOrAfter(page, cutoffMs);
+    hasNextPage = page.pageInfo.hasNextPage;
+    cursor = page.pageInfo.endCursor;
+    oldestUpdatedAtMs = getOldestUpdatedAtMs(page);
+  }
+
+  return total;
 }
 
 /**
@@ -181,9 +264,12 @@ export async function fetchRepoMetrics(
   // Last merged PR date
   const lastMergedPrDate = r.lastMergedPR?.nodes?.[0]?.mergedAt;
   const lastMergedPrAt = lastMergedPrDate ? new Date(lastMergedPrDate) : null;
-  const mergedPrsLast90Days = r.mergedPRsRecent.nodes.filter((pr) => {
-    return new Date(pr.mergedAt).getTime() >= recentActivitySince.getTime();
-  }).length;
+  const mergedPrsLast90Days = await countMergedPrsLast90Days(
+    owner,
+    repo,
+    recentActivitySince,
+    r.mergedPRsRecent,
+  );
 
   // Process recent issues for resolution time and velocity (1 year)
   const oneYearAgo = subYears(new Date(), 1);

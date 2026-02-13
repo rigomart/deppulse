@@ -40,6 +40,7 @@ describe("scoring engine", () => {
 
     expect(result.breakdown.expectedActivityTier).toBe("high");
     expect(result.breakdown.daysSinceMostRecentActivity).toBe(220);
+    expect(result.score).toBeGreaterThanOrEqual(1);
     expect(result.score).toBeLessThanOrEqual(35);
   });
 
@@ -55,6 +56,7 @@ describe("scoring engine", () => {
 
     expect(result.breakdown.expectedActivityTier).toBe("high");
     expect(result.breakdown.daysSinceMostRecentActivity).toBe(420);
+    expect(result.score).toBeGreaterThanOrEqual(1);
     expect(result.score).toBeLessThanOrEqual(20);
   });
 
@@ -75,6 +77,7 @@ describe("scoring engine", () => {
 
     expect(result.breakdown.expectedActivityTier).toBe("high");
     expect(result.breakdown.freshnessMultiplier).toBe(0.05);
+    expect(result.score).toBeGreaterThanOrEqual(1);
     expect(result.score).toBeLessThanOrEqual(20);
   });
 

@@ -42,6 +42,21 @@ export interface GraphQLRateLimitResponse {
   resetAt: string;
 }
 
+export interface PullRequestPageInfo {
+  hasNextPage: boolean;
+  endCursor: string | null;
+}
+
+export interface MergedPullRequestNode {
+  mergedAt: string;
+  updatedAt: string;
+}
+
+export interface MergedPullRequestsConnection {
+  nodes: MergedPullRequestNode[];
+  pageInfo: PullRequestPageInfo;
+}
+
 export interface RepoMetricsGraphQLResponse {
   rateLimit: GraphQLRateLimitResponse;
   repository: {
@@ -76,9 +91,7 @@ export interface RepoMetricsGraphQLResponse {
     lastMergedPR: {
       nodes: Array<{ mergedAt: string }>;
     };
-    mergedPRsRecent: {
-      nodes: Array<{ mergedAt: string }>;
-    };
+    mergedPRsRecent: MergedPullRequestsConnection;
     recentIssues: {
       nodes: Array<{
         createdAt: string;
@@ -89,5 +102,11 @@ export interface RepoMetricsGraphQLResponse {
     readmeMd: { text: string } | null;
     readmeLower: { text: string } | null;
     readmeNoExt: { text: string } | null;
+  } | null;
+}
+
+export interface MergedPrsPageGraphQLResponse {
+  repository: {
+    mergedPRsRecent: MergedPullRequestsConnection;
   } | null;
 }
