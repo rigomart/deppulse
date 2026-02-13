@@ -3,38 +3,26 @@ import {
   MAINTENANCE_CATEGORY_INFO,
   MAINTENANCE_CONFIG,
   type MaintenanceCategory,
-  type MaturityTier,
 } from "./maintenance-config";
 
-export type { MaintenanceCategory, MaturityTier };
+export type { MaintenanceCategory };
 export { MAINTENANCE_CATEGORY_INFO };
-
-/** Calculates days since a date, or null if date is null. */
-function getDaysSince(date: Date | null): number | null {
-  if (!date) return null;
-  return Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
-}
 
 /**
  * Input metrics for maintenance score calculation.
  */
 export interface MaintenanceInput {
-  // Activity metrics
+  // Engagement signals (dates of last activity per channel)
   lastCommitAt: Date | null;
+  lastMergedPrAt: Date | null;
+  lastReleaseAt: Date | null;
 
-  // Responsiveness metrics
+  // Quality signals
   openIssuesPercent: number | null;
   medianIssueResolutionDays: number | null;
-  issuesCreatedLastYear: number;
-
-  // Stability metrics
-  lastReleaseAt: Date | null;
-  repositoryCreatedAt: Date | null;
-
-  // Community metrics
-  openPrsCount: number;
   stars: number;
-  forks: number;
+  repositoryCreatedAt: Date | null;
+  releasesLastYear: number;
 
   // Special case
   isArchived: boolean;
@@ -46,72 +34,71 @@ export interface MaintenanceInput {
 export interface MaintenanceResult {
   score: number;
   category: MaintenanceCategory;
-  maturityTier: MaturityTier;
 }
 
+// --- Engagement ---
+
 /**
- * Determines the maturity tier of a repository based on age and popularity.
+ * Computes the engagement factor (0-1) based on the most recent
+ * maintenance activity across all channels.
  */
-export function determineMaturityTier(
-  createdAt: Date | null,
-  stars: number,
-  forks: number,
-): MaturityTier {
-  const { maturityCriteria } = MAINTENANCE_CONFIG;
+export function computeEngagementFactor(input: MaintenanceInput): number {
+  const dates = [
+    input.lastCommitAt,
+    input.lastMergedPrAt,
+    input.lastReleaseAt,
+  ].filter((d): d is Date => d !== null);
 
-  const now = Date.now();
-  const createdTime =
-    createdAt?.getTime() ?? now - 2 * 365 * 24 * 60 * 60 * 1000;
-  const ageYears = (now - createdTime) / (365.25 * 24 * 60 * 60 * 1000);
-
-  const popularitySignal = stars + forks * 2;
-
-  // Mature: 5+ years OR 10k+ popularity (established projects deserve lenient thresholds)
-  if (
-    ageYears >= maturityCriteria.matureMinAgeYears ||
-    popularitySignal >= maturityCriteria.matureMinStars
-  ) {
-    return "mature";
+  if (dates.length === 0) {
+    return MAINTENANCE_CONFIG.engagementThresholds.at(-1)?.factor ?? 0.25;
   }
 
-  // Growing: 2+ years OR 1k+ stars
-  if (
-    ageYears >= maturityCriteria.growingMinAgeYears ||
-    popularitySignal >= maturityCriteria.growingMinStars
-  ) {
-    return "growing";
+  const mostRecentMs = Math.max(...dates.map((d) => d.getTime()));
+  const daysSince = Math.floor(
+    (Date.now() - mostRecentMs) / (1000 * 60 * 60 * 24),
+  );
+
+  for (const { maxDays, factor } of MAINTENANCE_CONFIG.engagementThresholds) {
+    if (daysSince <= maxDays) return factor;
   }
 
-  return "emerging";
+  return MAINTENANCE_CONFIG.engagementThresholds.at(-1)?.factor ?? 0.25;
 }
 
+// --- Quality dimensions ---
+
 /**
- * Scores last commit recency based on maturity tier thresholds.
- * Returns points from 0 to weights.activity.lastCommit
+ * Scores open issues ratio. Null = neutral (50%).
  */
-function scoreLastCommit(days: number | null, tier: MaturityTier): number {
-  const maxPoints = MAINTENANCE_CONFIG.weights.activity.lastCommit;
-  const thresholds = MAINTENANCE_CONFIG.maturityTiers[tier].commitDays;
+function scoreOpenIssuesRatio(percent: number | null): number {
+  const maxPoints = MAINTENANCE_CONFIG.quality.issueHealth.openRatio;
+  const thresholds = MAINTENANCE_CONFIG.openIssuesRatio;
 
-  if (days === null) return 0; // No commits = no points
+  if (percent === null) return Math.round(maxPoints * 0.5);
 
-  if (days <= thresholds[0]) return maxPoints;
-  if (days <= thresholds[1]) return Math.round(maxPoints * 0.5);
-  if (days <= thresholds[2]) return Math.round(maxPoints * 0.2);
-  if (days <= thresholds[3]) return Math.round(maxPoints * 0.05);
+  if (percent <= thresholds.excellent) return maxPoints;
+  if (percent <= thresholds.good) return Math.round(maxPoints * 0.7);
+  if (percent <= thresholds.fair) return Math.round(maxPoints * 0.4);
+  if (percent <= thresholds.poor) return Math.round(maxPoints * 0.15);
   return 0;
 }
 
 /**
- * Scores issue resolution time (median days to close issues).
- * No recently closed issues = 0 points (no free points for lack of data).
+ * Scores issue resolution speed.
+ * Null with open issues = 0 pts (no data is a bad sign).
+ * Null with no open issues = neutral (50%).
  */
-function scoreIssueResolution(days: number | null): number {
-  const maxPoints = MAINTENANCE_CONFIG.weights.responsiveness.issueResolution;
+function scoreIssueResolution(
+  days: number | null,
+  openIssuesPercent: number | null,
+): number {
+  const maxPoints = MAINTENANCE_CONFIG.quality.issueHealth.resolutionSpeed;
   const thresholds = MAINTENANCE_CONFIG.issueResolution;
 
-  // No recently closed issues = no evidence of responsiveness
-  if (days === null) return 0;
+  if (days === null) {
+    const hasOpenIssues = openIssuesPercent !== null && openIssuesPercent > 0;
+    return hasOpenIssues ? 0 : Math.round(maxPoints * 0.5);
+  }
 
   if (days <= thresholds.excellent) return maxPoints;
   if (days <= thresholds.good) return Math.round(maxPoints * 0.8);
@@ -121,55 +108,89 @@ function scoreIssueResolution(days: number | null): number {
 }
 
 /**
- * Scores release recency based on maturity tier thresholds.
- * No releases = 0 points (well-maintained projects use releases).
+ * Scores release cadence (releases per year).
  */
-function scoreReleaseRecency(days: number | null, tier: MaturityTier): number {
-  const maxPoints = MAINTENANCE_CONFIG.weights.stability.releaseRecency;
-  const thresholds = MAINTENANCE_CONFIG.maturityTiers[tier].releaseDays;
+function scoreReleaseCadence(releasesLastYear: number): number {
+  const maxPoints = MAINTENANCE_CONFIG.quality.releaseHealth.cadence;
+  const thresholds = MAINTENANCE_CONFIG.releaseCadence;
 
-  // No releases = no evidence of release management
-  if (days === null) return 0;
-
-  if (days <= thresholds[0]) return maxPoints;
-  if (days <= thresholds[1]) return Math.round(maxPoints * 0.5);
-  if (days <= thresholds[2]) return Math.round(maxPoints * 0.15);
+  if (releasesLastYear >= thresholds.excellent) return maxPoints;
+  if (releasesLastYear >= thresholds.good) return Math.round(maxPoints * 0.75);
+  if (releasesLastYear >= thresholds.fair) return Math.round(maxPoints * 0.4);
   return 0;
 }
 
 /**
- * Scores project age (older = more stable/proven).
+ * Scores popularity based on stars.
+ */
+function scorePopularity(stars: number): number {
+  const maxPoints = MAINTENANCE_CONFIG.quality.community.stars;
+  const thresholds = MAINTENANCE_CONFIG.popularity;
+
+  if (stars >= thresholds.excellent) return maxPoints;
+  if (stars >= thresholds.good) return Math.round(maxPoints * 0.85);
+  if (stars >= thresholds.fair) return Math.round(maxPoints * 0.7);
+  if (stars >= thresholds.poor) return Math.round(maxPoints * 0.5);
+  if (stars >= thresholds.minimal) return Math.round(maxPoints * 0.3);
+  return Math.round(maxPoints * 0.1);
+}
+
+/**
+ * Scores project age (older = more established).
  */
 function scoreProjectAge(createdAt: Date | null): number {
-  const maxPoints = MAINTENANCE_CONFIG.weights.stability.projectAge;
+  const maxPoints = MAINTENANCE_CONFIG.quality.maturity.age;
   const thresholds = MAINTENANCE_CONFIG.projectAge;
 
-  if (!createdAt) return Math.round(maxPoints * 0.5); // Unknown age = neutral
+  if (!createdAt) return Math.round(maxPoints * 0.5);
 
   const ageYears =
     (Date.now() - createdAt.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
 
   if (ageYears >= thresholds.mature) return maxPoints;
   if (ageYears >= thresholds.established) return Math.round(maxPoints * 0.8);
-  if (ageYears >= thresholds.growing) return Math.round(maxPoints * 0.5);
-  if (ageYears >= thresholds.new) return Math.round(maxPoints * 0.25);
-  return Math.round(maxPoints * 0.1); // Very new projects still get some points
+  if (ageYears >= thresholds.growing) return Math.round(maxPoints * 0.6);
+  if (ageYears >= thresholds.new) return Math.round(maxPoints * 0.3);
+  return Math.round(maxPoints * 0.1);
 }
 
 /**
- * Scores popularity based on stars and forks.
+ * Scores activity breadth: how many maintenance channels showed
+ * activity in the last year (commits, PR merges, releases).
  */
-function scorePopularity(stars: number, forks: number): number {
-  const maxPoints = MAINTENANCE_CONFIG.weights.community.popularity;
-  const thresholds = MAINTENANCE_CONFIG.popularity;
-  const signal = stars + forks * 2;
+function scoreActivityBreadth(input: MaintenanceInput): number {
+  const maxPoints = MAINTENANCE_CONFIG.quality.activityBreadth.total;
+  const oneYearMs = 365 * 24 * 60 * 60 * 1000;
+  const cutoff = Date.now() - oneYearMs;
 
-  if (signal >= thresholds.excellent) return maxPoints;
-  if (signal >= thresholds.good) return Math.round(maxPoints * 0.85);
-  if (signal >= thresholds.fair) return Math.round(maxPoints * 0.7);
-  if (signal >= thresholds.poor) return Math.round(maxPoints * 0.5);
-  if (signal >= thresholds.minimal) return Math.round(maxPoints * 0.3);
-  return Math.round(maxPoints * 0.1); // Any project gets minimal points
+  let activeChannels = 0;
+  if (input.lastCommitAt && input.lastCommitAt.getTime() > cutoff)
+    activeChannels++;
+  if (input.lastMergedPrAt && input.lastMergedPrAt.getTime() > cutoff)
+    activeChannels++;
+  if (input.lastReleaseAt && input.lastReleaseAt.getTime() > cutoff)
+    activeChannels++;
+
+  // 0 channels = 0, 1 = 35%, 2 = 70%, 3 = 100%
+  const fractions = [0, 0.35, 0.7, 1.0];
+  return Math.round(maxPoints * fractions[activeChannels]);
+}
+
+/**
+ * Computes the quality score (0-100) across all dimensions.
+ */
+export function computeQualityScore(input: MaintenanceInput): number {
+  return (
+    scoreOpenIssuesRatio(input.openIssuesPercent) +
+    scoreIssueResolution(
+      input.medianIssueResolutionDays,
+      input.openIssuesPercent,
+    ) +
+    scoreReleaseCadence(input.releasesLastYear) +
+    scorePopularity(input.stars) +
+    scoreProjectAge(input.repositoryCreatedAt) +
+    scoreActivityBreadth(input)
+  );
 }
 
 /**
@@ -186,78 +207,57 @@ export function getCategoryFromScore(score: number): MaintenanceCategory {
 
 /**
  * Calculates the maintenance score for a repository.
- * Higher score = better maintained (0-100 scale).
+ *
+ * Score = quality × engagement
+ * - Quality (0-100): issue health, release cadence, community, maturity, activity breadth
+ * - Engagement (0-1): how recently ANY maintenance activity occurred
  */
 export function calculateMaintenanceScore(
   input: MaintenanceInput,
 ): MaintenanceResult {
   // Hard override: archived repos always score 0
   if (input.isArchived) {
-    return {
-      score: 0,
-      category: "inactive",
-      maturityTier: "mature", // Archived repos were typically mature
-    };
+    return { score: 0, category: "inactive" };
   }
 
-  // Determine maturity tier for threshold adjustments
-  const maturityTier = determineMaturityTier(
-    input.repositoryCreatedAt,
-    input.stars,
-    input.forks,
-  );
-
-  // Derive days from dates for internal scoring functions
-  const daysSinceLastCommit = getDaysSince(input.lastCommitAt);
-  const daysSinceLastRelease = getDaysSince(input.lastReleaseAt);
-
-  // Calculate component scores
-  const activityScore = scoreLastCommit(daysSinceLastCommit, maturityTier);
-
-  const responsivenessScore = scoreIssueResolution(
-    input.medianIssueResolutionDays,
-  );
-
-  const stabilityScore =
-    scoreReleaseRecency(daysSinceLastRelease, maturityTier) +
-    scoreProjectAge(input.repositoryCreatedAt);
-
-  const communityScore = scorePopularity(input.stars, input.forks);
-
-  // Total score (capped at 100)
-  const score = Math.min(
-    100,
-    activityScore + responsivenessScore + stabilityScore + communityScore,
-  );
+  const engagement = computeEngagementFactor(input);
+  const quality = computeQualityScore(input);
+  const score = Math.min(100, Math.round(quality * engagement));
 
   return {
     score,
     category: getCategoryFromScore(score),
-    maturityTier,
   };
 }
 
 /**
  * Computes a maintenance score from a stored MetricsSnapshot.
- * Handles ISO string → Date conversion so callers don't have to.
+ * Handles ISO string → Date conversion and derived metric computation.
  */
 export function computeScoreFromMetrics(
   metrics: MetricsSnapshot,
 ): MaintenanceResult {
+  // Count releases in the last year
+  const oneYearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
+  const releasesLastYear = metrics.releases.filter(
+    (r) => new Date(r.publishedAt).getTime() > oneYearAgo,
+  ).length;
+
   return calculateMaintenanceScore({
     lastCommitAt: metrics.lastCommitAt ? new Date(metrics.lastCommitAt) : null,
-    openIssuesPercent: metrics.openIssuesPercent,
-    medianIssueResolutionDays: metrics.medianIssueResolutionDays,
-    issuesCreatedLastYear: metrics.issuesCreatedLastYear,
+    lastMergedPrAt: metrics.lastMergedPrAt
+      ? new Date(metrics.lastMergedPrAt)
+      : null,
     lastReleaseAt: metrics.lastReleaseAt
       ? new Date(metrics.lastReleaseAt)
       : null,
+    openIssuesPercent: metrics.openIssuesPercent,
+    medianIssueResolutionDays: metrics.medianIssueResolutionDays,
+    stars: metrics.stars,
     repositoryCreatedAt: metrics.repositoryCreatedAt
       ? new Date(metrics.repositoryCreatedAt)
       : null,
-    openPrsCount: metrics.openPrsCount,
-    stars: metrics.stars,
-    forks: metrics.forks,
+    releasesLastYear,
     isArchived: metrics.isArchived,
   });
 }

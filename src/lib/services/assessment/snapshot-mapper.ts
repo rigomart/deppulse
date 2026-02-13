@@ -13,6 +13,7 @@ export function toMetricsSnapshot(metrics: {
   lastCommitAt: Date | null;
   lastReleaseAt: Date | null;
   lastClosedIssueAt: Date | null;
+  lastMergedPrAt: Date | null;
   openIssuesPercent: MetricsSnapshot["openIssuesPercent"];
   openIssuesCount: MetricsSnapshot["openIssuesCount"];
   closedIssuesCount: MetricsSnapshot["closedIssuesCount"];
@@ -35,6 +36,9 @@ export function toMetricsSnapshot(metrics: {
       : null,
     lastClosedIssueAt: metrics.lastClosedIssueAt
       ? metrics.lastClosedIssueAt.toISOString()
+      : null,
+    lastMergedPrAt: metrics.lastMergedPrAt
+      ? metrics.lastMergedPrAt.toISOString()
       : null,
   };
 }

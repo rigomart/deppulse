@@ -1,12 +1,13 @@
 /**
  * Centralized configuration for the maintenance scoring algorithm.
- * All thresholds and weights are defined here for easy tuning.
+ *
+ * Scoring model: engagement × quality
+ * - Engagement (0-1): How recently was there ANY maintenance activity?
+ * - Quality (0-100): How good is the maintenance across dimensions?
+ * - Final score = round(quality × engagement)
  *
  * Scoring implementation: see maintenance.ts
  */
-
-/** Repository maturity affects which thresholds are applied */
-export type MaturityTier = "emerging" | "growing" | "mature";
 
 /** Final score category based on total points */
 export type MaintenanceCategory =
@@ -15,41 +16,27 @@ export type MaintenanceCategory =
   | "declining" // 25-44: Signs of declining maintenance
   | "inactive"; // 0-24: No recent activity
 
-/**
- * Thresholds for activity metrics, varying by maturity tier.
- *
- * commitDays: [100%, 50%, 20%, 5%] - days since last commit
- * releaseDays: [100%, 50%, 15%] - days since last release
- */
-interface TierThresholds {
-  commitDays: [number, number, number, number];
-  releaseDays: [number, number, number];
-}
-
 interface MaintenanceConfig {
   categoryThresholds: {
     healthy: number;
     moderate: number;
     declining: number;
   };
-  weights: {
-    activity: { total: number; lastCommit: number };
-    responsiveness: { total: number; issueResolution: number };
-    stability: { total: number; releaseRecency: number; projectAge: number };
-    community: { total: number; popularity: number };
-  };
-  maturityTiers: {
-    emerging: TierThresholds;
-    growing: TierThresholds;
-    mature: TierThresholds;
-  };
-  maturityCriteria: {
-    matureMinAgeYears: number;
-    matureMinStars: number;
-    growingMinAgeYears: number;
-    growingMinStars: number;
+  engagementThresholds: Array<{ maxDays: number; factor: number }>;
+  quality: {
+    issueHealth: { total: number; openRatio: number; resolutionSpeed: number };
+    releaseHealth: { total: number; cadence: number };
+    community: { total: number; stars: number };
+    maturity: { total: number; age: number };
+    activityBreadth: { total: number };
   };
   issueResolution: {
+    excellent: number;
+    good: number;
+    fair: number;
+    poor: number;
+  };
+  openIssuesRatio: {
     excellent: number;
     good: number;
     fair: number;
@@ -68,6 +55,11 @@ interface MaintenanceConfig {
     growing: number;
     new: number;
   };
+  releaseCadence: {
+    excellent: number;
+    good: number;
+    fair: number;
+  };
 }
 
 export const MAINTENANCE_CONFIG: MaintenanceConfig = {
@@ -78,59 +70,41 @@ export const MAINTENANCE_CONFIG: MaintenanceConfig = {
     declining: 25, // 25-44, below = inactive
   },
 
-  // Points allocation (must sum to 100)
-  weights: {
-    activity: {
-      total: 35, // Last commit recency
-      lastCommit: 35, // Days since last commit (max 35 pts)
+  // Engagement factor: days since most recent maintenance activity → multiplier
+  // Checks: lastCommitAt, lastMergedPrAt, lastReleaseAt
+  engagementThresholds: [
+    { maxDays: 90, factor: 1.0 },
+    { maxDays: 180, factor: 0.8 },
+    { maxDays: 365, factor: 0.5 },
+    { maxDays: 730, factor: 0.2 },
+    { maxDays: Infinity, factor: 0.1 },
+  ],
+
+  // Quality dimensions (must sum to 100)
+  quality: {
+    issueHealth: {
+      total: 30, // Issue backlog + resolution quality
+      openRatio: 15, // Open issues as % of total (max 15 pts)
+      resolutionSpeed: 15, // Median days to close issues (max 15 pts)
     },
-    responsiveness: {
-      total: 30,
-      issueResolution: 30, // Median days to close issues (max 30 pts)
-    },
-    stability: {
-      total: 20,
-      releaseRecency: 10, // Days since last release (max 10 pts)
-      projectAge: 10, // Years since creation (max 10 pts)
+    releaseHealth: {
+      total: 25,
+      cadence: 25, // Releases per year (max 25 pts)
     },
     community: {
       total: 15,
-      popularity: 15, // stars + forks*2 (max 15 pts)
+      stars: 15, // Stars (max 15 pts)
+    },
+    maturity: {
+      total: 10,
+      age: 10, // Years since creation (max 10 pts)
+    },
+    activityBreadth: {
+      total: 20, // How many channels show activity in last year (max 20 pts)
     },
   },
 
-  // Thresholds vary by project maturity - mature projects can have gaps
-  maturityTiers: {
-    // Emerging: <2 years AND <1k popularity - expects frequent activity
-    emerging: {
-      // Days since last commit: [100%, 50%, 20%, 5%] points
-      commitDays: [30, 60, 120, 180],
-      // Days since last release: [100%, 50%, 15%] points
-      releaseDays: [60, 120, 180],
-    },
-
-    // Growing: 2-5 years OR 1k-10k popularity - moderate expectations
-    growing: {
-      commitDays: [45, 90, 150, 270],
-      releaseDays: [60, 150, 270],
-    },
-
-    // Mature: 5+ years OR 10k+ popularity - maintenance mode is acceptable
-    mature: {
-      commitDays: [120, 180, 365, 730],
-      releaseDays: [180, 365, 730],
-    },
-  },
-
-  // How to classify repository maturity (uses popularity = stars + forks*2)
-  maturityCriteria: {
-    matureMinAgeYears: 5, // 5+ years OR
-    matureMinStars: 10000, // 10k+ popularity
-    growingMinAgeYears: 2, // 2+ years OR
-    growingMinStars: 1000, // 1k+ popularity
-  },
-
-  // Median issue resolution time thresholds (days) → [100%, 80%, 50%, 25%] points
+  // Median issue resolution time thresholds (days) → [100%, 80%, 50%, 25%]
   issueResolution: {
     excellent: 7,
     good: 14,
@@ -138,21 +112,36 @@ export const MAINTENANCE_CONFIG: MaintenanceConfig = {
     poor: 60,
   },
 
-  // Popularity thresholds (stars + forks*2) → [100%, 85%, 70%, 50%, 30%] points
+  // Open issues ratio thresholds (%) → [100%, 70%, 40%, 15%, 0%]
+  openIssuesRatio: {
+    excellent: 20,
+    good: 40,
+    fair: 60,
+    poor: 80,
+  },
+
+  // Popularity thresholds (stars) → [100%, 85%, 70%, 50%, 30%]
   popularity: {
-    excellent: 50000,
-    good: 10000,
-    fair: 1000,
-    poor: 100,
+    excellent: 25000,
+    good: 5000,
+    fair: 500,
+    poor: 50,
     minimal: 10,
   },
 
-  // Project age thresholds (years) → [100%, 80%, 50%, 25%] points
+  // Project age thresholds (years) → [100%, 80%, 60%, 30%]
   projectAge: {
     mature: 5,
     established: 3,
     growing: 1,
     new: 0.5,
+  },
+
+  // Release cadence thresholds (releases per year) → [100%, 75%, 40%]
+  releaseCadence: {
+    excellent: 6,
+    good: 3,
+    fair: 1,
   },
 };
 

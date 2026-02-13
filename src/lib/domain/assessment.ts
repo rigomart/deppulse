@@ -20,6 +20,7 @@ export interface MetricsSnapshot {
   lastCommitAt: string | null;
   lastReleaseAt: string | null;
   lastClosedIssueAt: string | null;
+  lastMergedPrAt: string | null;
   openIssuesPercent: number | null;
   openIssuesCount: number;
   closedIssuesCount: number;

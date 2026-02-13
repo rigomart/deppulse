@@ -7,6 +7,7 @@ describe("toMetricsSnapshot", () => {
     const lastCommitAt = new Date("2024-02-01T00:00:00.000Z");
     const lastReleaseAt = new Date("2024-03-01T00:00:00.000Z");
     const lastClosedIssueAt = new Date("2024-04-01T00:00:00.000Z");
+    const lastMergedPrAt = new Date("2024-03-15T00:00:00.000Z");
 
     const snapshot = toMetricsSnapshot({
       description: "repo",
@@ -21,6 +22,7 @@ describe("toMetricsSnapshot", () => {
       lastCommitAt,
       lastReleaseAt,
       lastClosedIssueAt,
+      lastMergedPrAt,
       openIssuesPercent: 10,
       openIssuesCount: 1,
       closedIssuesCount: 9,
@@ -36,6 +38,7 @@ describe("toMetricsSnapshot", () => {
     expect(snapshot.lastCommitAt).toBe(lastCommitAt.toISOString());
     expect(snapshot.lastReleaseAt).toBe(lastReleaseAt.toISOString());
     expect(snapshot.lastClosedIssueAt).toBe(lastClosedIssueAt.toISOString());
+    expect(snapshot.lastMergedPrAt).toBe(lastMergedPrAt.toISOString());
   });
 
   it("preserves null date fields", () => {
@@ -52,6 +55,7 @@ describe("toMetricsSnapshot", () => {
       lastCommitAt: null,
       lastReleaseAt: null,
       lastClosedIssueAt: null,
+      lastMergedPrAt: null,
       openIssuesPercent: null,
       openIssuesCount: 0,
       closedIssuesCount: 0,
@@ -65,5 +69,6 @@ describe("toMetricsSnapshot", () => {
     expect(snapshot.lastCommitAt).toBeNull();
     expect(snapshot.lastReleaseAt).toBeNull();
     expect(snapshot.lastClosedIssueAt).toBeNull();
+    expect(snapshot.lastMergedPrAt).toBeNull();
   });
 });

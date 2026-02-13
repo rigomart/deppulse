@@ -52,6 +52,9 @@ const REPO_METRICS_QUERY = `
       closedIssues: issues(states: CLOSED) { totalCount }
 
       openPRs: pullRequests(states: OPEN) { totalCount }
+      lastMergedPR: pullRequests(states: MERGED, first: 1, orderBy: {field: UPDATED_AT, direction: DESC}) {
+        nodes { mergedAt }
+      }
 
       # Fetch issues for activity chart and metrics (1 year)
       recentIssues: issues(first: 100, orderBy: {field: CREATED_AT, direction: DESC}) {
@@ -166,6 +169,10 @@ export async function fetchRepoMetrics(
   // Open PRs (exact count)
   const openPrsCount = r.openPRs.totalCount;
 
+  // Last merged PR date
+  const lastMergedPrDate = r.lastMergedPR?.nodes?.[0]?.mergedAt;
+  const lastMergedPrAt = lastMergedPrDate ? new Date(lastMergedPrDate) : null;
+
   // Process recent issues for resolution time and velocity (1 year)
   const oneYearAgo = subYears(new Date(), 1);
   const closedIssueResolutionDays: number[] = [];
@@ -218,6 +225,7 @@ export async function fetchRepoMetrics(
     lastCommitAt,
     lastReleaseAt,
     lastClosedIssueAt,
+    lastMergedPrAt,
     openIssuesPercent,
     openIssuesCount,
     closedIssuesCount,

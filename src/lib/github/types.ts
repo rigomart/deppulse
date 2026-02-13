@@ -17,6 +17,7 @@ export interface RepoMetrics {
   lastCommitAt: Date | null;
   lastReleaseAt: Date | null;
   lastClosedIssueAt: Date | null;
+  lastMergedPrAt: Date | null;
   openIssuesPercent: number | null;
   openIssuesCount: number;
   closedIssuesCount: number;
@@ -69,6 +70,9 @@ export interface RepoMetricsGraphQLResponse {
     openIssues: { totalCount: number };
     closedIssues: { totalCount: number };
     openPRs: { totalCount: number };
+    lastMergedPR: {
+      nodes: Array<{ mergedAt: string }>;
+    };
     recentIssues: {
       nodes: Array<{
         createdAt: string;
