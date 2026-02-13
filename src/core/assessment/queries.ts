@@ -1,12 +1,12 @@
 import "server-only";
 
-import type { AnalysisRun } from "@/lib/domain/assessment";
 import {
   findLatestAssessmentRunByRepositoryId,
   listAssessmentRunsByRepositoryId,
   listRecentCompletedAssessmentRuns,
 } from "@/adapters/persistence/analysis-run";
 import { findRepositoryByFullName } from "@/adapters/persistence/repository";
+import type { AnalysisRun } from "@/lib/domain/assessment";
 
 export async function findLatestAssessmentRunBySlug(
   owner: string,

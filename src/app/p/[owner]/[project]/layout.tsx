@@ -1,9 +1,9 @@
 import type { Metadata, ResolvingMetadata } from "next";
 import { cacheLife, cacheTag } from "next/cache";
+import { findLatestAssessmentRunBySlug } from "@/core/assessment";
+import { computeScoreFromMetrics } from "@/core/maintenance";
 import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getProjectTag } from "@/lib/cache/tags";
-import { computeScoreFromMetrics } from "@/core/maintenance";
-import { findLatestAssessmentRunBySlug } from "@/core/assessment";
 
 type Props = {
   params: Promise<{ owner: string; project: string }>;

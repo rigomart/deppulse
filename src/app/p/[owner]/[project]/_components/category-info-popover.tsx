@@ -7,11 +7,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { categoryColors } from "@/lib/category-styles";
 import {
   MAINTENANCE_CATEGORY_INFO,
   type MaintenanceCategory,
 } from "@/core/maintenance";
+import { categoryColors } from "@/lib/category-styles";
 import { cn } from "@/lib/utils";
 
 interface CategoryInfoPopoverProps {
