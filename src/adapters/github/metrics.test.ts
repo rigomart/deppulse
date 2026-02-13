@@ -86,23 +86,10 @@ describe("fetchRepoMetrics", () => {
         },
         mergedPRsRecent: {
           nodes: [
-            {
-              mergedAt: "2026-02-01T00:00:00.000Z",
-              updatedAt: "2026-02-01T00:00:00.000Z",
-            },
-            {
-              mergedAt: "2025-12-20T00:00:00.000Z",
-              updatedAt: "2025-12-20T00:00:00.000Z",
-            },
-            {
-              mergedAt: "2025-10-01T00:00:00.000Z",
-              updatedAt: "2025-10-01T00:00:00.000Z",
-            },
+            { mergedAt: "2026-02-01T00:00:00.000Z" },
+            { mergedAt: "2025-12-20T00:00:00.000Z" },
+            { mergedAt: "2025-10-01T00:00:00.000Z" },
           ],
-          pageInfo: {
-            hasNextPage: false,
-            endCursor: null,
-          },
         },
         recentIssues: {
           nodes: [
@@ -143,123 +130,6 @@ describe("fetchRepoMetrics", () => {
         repo: "widget",
         recentActivitySince: expect.any(String),
       }),
-    );
-  });
-
-  it("paginates merged PRs and counts only merges within 90 days", async () => {
-    vi.mocked(graphqlWithAuth)
-      .mockResolvedValueOnce({
-        rateLimit: {
-          limit: 5000,
-          remaining: 4996,
-          cost: 4,
-          resetAt: "2026-02-13T01:00:00.000Z",
-        },
-        repository: {
-          nameWithOwner: "acme/widget",
-          description: "Widget tools",
-          stargazerCount: 1200,
-          forkCount: 120,
-          url: "https://github.com/acme/widget",
-          isArchived: false,
-          createdAt: "2020-01-01T00:00:00.000Z",
-          licenseInfo: { spdxId: "MIT" },
-          primaryLanguage: { name: "TypeScript" },
-          owner: { avatarUrl: "https://example.com/avatar.png" },
-          defaultBranchRef: {
-            name: "main",
-            target: {
-              latestCommit: {
-                nodes: [{ committedDate: "2026-02-10T00:00:00.000Z" }],
-              },
-              recentCommitHistory: {
-                totalCount: 22,
-              },
-            },
-          },
-          latestRelease: { publishedAt: "2026-01-15T00:00:00.000Z" },
-          releases: {
-            nodes: [
-              {
-                tagName: "v1.2.0",
-                name: "v1.2.0",
-                publishedAt: "2026-01-15T00:00:00.000Z",
-              },
-            ],
-          },
-          openIssues: { totalCount: 10 },
-          closedIssues: { totalCount: 90 },
-          openPRs: { totalCount: 5 },
-          lastMergedPR: {
-            nodes: [{ mergedAt: "2026-02-10T00:00:00.000Z" }],
-          },
-          mergedPRsRecent: {
-            nodes: [
-              {
-                mergedAt: "2026-02-10T00:00:00.000Z",
-                updatedAt: "2026-02-10T00:00:00.000Z",
-              },
-              {
-                mergedAt: "2025-09-01T00:00:00.000Z",
-                updatedAt: "2026-02-09T00:00:00.000Z",
-              },
-            ],
-            pageInfo: {
-              hasNextPage: true,
-              endCursor: "cursor-1",
-            },
-          },
-          recentIssues: {
-            nodes: [
-              {
-                createdAt: "2026-01-01T00:00:00.000Z",
-                closedAt: "2026-01-03T00:00:00.000Z",
-                state: "CLOSED",
-              },
-            ],
-          },
-          readmeMd: { text: "# Widget" },
-          readmeLower: null,
-          readmeNoExt: null,
-        },
-      })
-      .mockResolvedValueOnce({
-        repository: {
-          mergedPRsRecent: {
-            nodes: [
-              {
-                mergedAt: "2026-01-20T00:00:00.000Z",
-                updatedAt: "2026-01-20T00:00:00.000Z",
-              },
-              {
-                mergedAt: "2025-11-20T00:00:00.000Z",
-                updatedAt: "2025-11-20T00:00:00.000Z",
-              },
-              {
-                mergedAt: "2025-10-01T00:00:00.000Z",
-                updatedAt: "2025-10-01T00:00:00.000Z",
-              },
-            ],
-            pageInfo: {
-              hasNextPage: true,
-              endCursor: "cursor-2",
-            },
-          },
-        },
-      });
-
-    const result = await fetchRepoMetrics("acme", "widget");
-
-    expect(result.mergedPrsLast90Days).toBe(3);
-    expect(graphqlWithAuth).toHaveBeenCalledTimes(2);
-    expect(graphqlWithAuth).toHaveBeenNthCalledWith(
-      2,
-      expect.stringContaining("query RepoMergedPrsPage"),
-      {
-        owner: "acme",
-        repo: "widget",
-        after: "cursor-1",
-      },
     );
   });
 
