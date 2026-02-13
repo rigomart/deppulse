@@ -20,12 +20,15 @@ export interface MetricsSnapshot {
   lastCommitAt: string | null;
   lastReleaseAt: string | null;
   lastClosedIssueAt: string | null;
+  lastMergedPrAt: string | null;
   openIssuesPercent: number | null;
   openIssuesCount: number;
   closedIssuesCount: number;
   medianIssueResolutionDays: number | null;
   openPrsCount: number;
   issuesCreatedLastYear: number;
+  commitsLast90Days: number;
+  mergedPrsLast90Days: number;
   releases: Array<ReleaseInfo>;
   readmeContent?: string | null;
 }

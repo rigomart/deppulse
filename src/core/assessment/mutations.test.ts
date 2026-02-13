@@ -6,15 +6,15 @@ vi.mock("@/lib/cache/analysis-cache", () => ({
   isAnalysisFresh: vi.fn(),
 }));
 
-vi.mock("@/lib/github", () => ({
+vi.mock("@/adapters/github", () => ({
   fetchRepoMetrics: vi.fn(),
 }));
 
-vi.mock("@/lib/persistence/analysis-run", () => ({
+vi.mock("@/adapters/persistence/analysis-run", () => ({
   createAssessmentRun: vi.fn(),
 }));
 
-vi.mock("@/lib/persistence/repository", () => ({
+vi.mock("@/adapters/persistence/repository", () => ({
   upsertRepository: vi.fn(),
 }));
 
@@ -23,9 +23,9 @@ vi.mock("./queries", () => ({
 }));
 
 import { isAnalysisFresh } from "@/lib/cache/analysis-cache";
-import { fetchRepoMetrics } from "@/lib/github";
-import { createAssessmentRun } from "@/lib/persistence/analysis-run";
-import { upsertRepository } from "@/lib/persistence/repository";
+import { fetchRepoMetrics } from "@/adapters/github";
+import { createAssessmentRun } from "@/adapters/persistence/analysis-run";
+import { upsertRepository } from "@/adapters/persistence/repository";
 import { findLatestAssessmentRunBySlug } from "./queries";
 
 function makeRun(overrides: Partial<AnalysisRun> = {}): AnalysisRun {
@@ -54,12 +54,15 @@ function makeRun(overrides: Partial<AnalysisRun> = {}): AnalysisRun {
       lastCommitAt: "2024-02-01T00:00:00.000Z",
       lastReleaseAt: "2024-03-01T00:00:00.000Z",
       lastClosedIssueAt: "2024-04-01T00:00:00.000Z",
+      lastMergedPrAt: "2024-03-15T00:00:00.000Z",
       openIssuesPercent: 20,
       openIssuesCount: 4,
       closedIssuesCount: 16,
       medianIssueResolutionDays: 3,
       openPrsCount: 2,
       issuesCreatedLastYear: 8,
+      commitsLast90Days: 6,
+      mergedPrsLast90Days: 4,
       releases: [],
     },
     startedAt: new Date("2024-01-01T00:00:00.000Z"),
@@ -83,12 +86,15 @@ const sampleMetrics = {
   lastCommitAt: new Date("2024-02-01T00:00:00.000Z"),
   lastReleaseAt: new Date("2024-03-01T00:00:00.000Z"),
   lastClosedIssueAt: new Date("2024-04-01T00:00:00.000Z"),
+  lastMergedPrAt: new Date("2024-03-15T00:00:00.000Z"),
   openIssuesPercent: 20,
   openIssuesCount: 4,
   closedIssuesCount: 16,
   medianIssueResolutionDays: 3,
   openPrsCount: 2,
   issuesCreatedLastYear: 8,
+  commitsLast90Days: 6,
+  mergedPrsLast90Days: 4,
   releases: [],
   readmeContent: null,
   fullName: "acme/widget",

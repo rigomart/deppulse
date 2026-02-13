@@ -5,8 +5,8 @@ import {
   findLatestAssessmentRunByRepositoryId,
   listAssessmentRunsByRepositoryId,
   listRecentCompletedAssessmentRuns,
-} from "@/lib/persistence/analysis-run";
-import { findRepositoryByFullName } from "@/lib/persistence/repository";
+} from "@/adapters/persistence/analysis-run";
+import { findRepositoryByFullName } from "@/adapters/persistence/repository";
 
 export async function findLatestAssessmentRunBySlug(
   owner: string,

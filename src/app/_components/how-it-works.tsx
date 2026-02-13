@@ -7,9 +7,50 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { categoryColors } from "@/lib/category-styles";
-import { MAINTENANCE_CONFIG } from "@/lib/maintenance-config";
+import { MAINTENANCE_CONFIG } from "@/core/maintenance";
+import type { FreshnessStep } from "@/core/scoring/types";
 
-const { categoryThresholds, weights, maturityCriteria } = MAINTENANCE_CONFIG;
+const {
+  categoryThresholds,
+  expectedActivityCriteria,
+  freshnessMultipliers,
+  hardCaps,
+  quality,
+} = MAINTENANCE_CONFIG;
+
+function formatFreshnessRange(
+  step: FreshnessStep,
+  index: number,
+  steps: readonly FreshnessStep[],
+): string {
+  if (Number.isFinite(step.maxDays)) {
+    return `<=${step.maxDays}d`;
+  }
+
+  const previousFiniteStep = [...steps]
+    .slice(0, index)
+    .reverse()
+    .find((candidate) => Number.isFinite(candidate.maxDays));
+
+  return `${previousFiniteStep?.maxDays ?? 0}+d`;
+}
+
+function formatFreshnessTimeline(steps: readonly FreshnessStep[]): string {
+  return steps
+    .map((step, index, allSteps) => {
+      if (!step) return null;
+
+      const range = formatFreshnessRange(step, index, allSteps);
+      return `${range} (${step.multiplier}x)`;
+    })
+    .filter((entry): entry is string => entry !== null)
+    .join(", ");
+}
+
+const highExpectedHardCapText = [...hardCaps.high]
+  .sort((a, b) => a.afterDays - b.afterDays)
+  .map((cap) => `over ${cap.afterDays} days caps score at ${cap.maxScore}`)
+  .join(", and ");
 
 export function HowItWorks() {
   return (
@@ -23,9 +64,18 @@ export function HowItWorks() {
             <AccordionContent>
               <div className="space-y-3">
                 <p className="text-muted-foreground">
-                  Repositories receive a maintenance score from 0-100 based on
-                  activity, responsiveness, stability, and community signals.
-                  Higher scores indicate healthier maintenance.
+                  Repositories receive a maintenance score from 0-100 using
+                  <strong> quality </strong>
+                  and
+                  <strong> freshness</strong>. Quality measures issue health,
+                  release behavior, community size, project maturity, and
+                  activity breadth. Freshness is a multiplier based on how
+                  recent the latest commit, merged PR, or release is.
+                </p>
+                <p className="text-muted-foreground">
+                  For repositories that are expected to be active, stale
+                  activity also triggers hard score caps so old activity cannot
+                  hide current risk.
                 </p>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
@@ -35,8 +85,7 @@ export function HowItWorks() {
                       Healthy
                     </Badge>
                     <span className="text-muted-foreground">
-                      {categoryThresholds.healthy}-100: Actively maintained with
-                      strong community engagement
+                      {categoryThresholds.healthy}-100: actively maintained
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
@@ -47,8 +96,8 @@ export function HowItWorks() {
                     </Badge>
                     <span className="text-muted-foreground">
                       {categoryThresholds.moderate}-
-                      {categoryThresholds.healthy - 1}: Adequately maintained or
-                      stable utility
+                      {categoryThresholds.healthy - 1}: acceptable but monitor
+                      updates
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
@@ -59,8 +108,8 @@ export function HowItWorks() {
                     </Badge>
                     <span className="text-muted-foreground">
                       {categoryThresholds.declining}-
-                      {categoryThresholds.moderate - 1}: Signs of declining
-                      maintenance, evaluate alternatives
+                      {categoryThresholds.moderate - 1}: signs of maintenance
+                      decline
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
@@ -70,8 +119,8 @@ export function HowItWorks() {
                       Inactive
                     </Badge>
                     <span className="text-muted-foreground">
-                      0-{categoryThresholds.declining - 1}: No recent activity.
-                      Could be stable/feature-complete or unmaintained
+                      0-{categoryThresholds.declining - 1}: likely inactive or
+                      abandoned
                     </span>
                   </li>
                 </ul>
@@ -85,43 +134,61 @@ export function HowItWorks() {
               <div className="space-y-4">
                 <div>
                   <h4 className="font-medium text-foreground mb-1">
-                    Activity ({weights.activity.total}%)
+                    Quality Factors (100 pts total)
                   </h4>
                   <ul className="space-y-1 text-sm text-muted-foreground">
                     <li>
-                      Last commit recency ({weights.activity.lastCommit} pts)
+                      Issue Health ({quality.issueHealth.total} pts): open issue
+                      ratio ({quality.issueHealth.openRatio} pts) + resolution
+                      speed ({quality.issueHealth.resolutionSpeed} pts)
+                    </li>
+                    <li>
+                      Release Health ({quality.releaseHealth.total} pts):
+                      release cadence
+                    </li>
+                    <li>Community ({quality.community.total} pts): stars</li>
+                    <li>Maturity ({quality.maturity.total} pts): repo age</li>
+                    <li>
+                      Activity Breadth ({quality.activityBreadth.total} pts):
+                      active channels in the last year
                     </li>
                   </ul>
                 </div>
                 <div>
                   <h4 className="font-medium text-foreground mb-1">
-                    Responsiveness ({weights.responsiveness.total}%)
+                    Expected Activity Tier
                   </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Strictness adapts to repository expectations.
+                  </p>
                   <ul className="space-y-1 text-sm text-muted-foreground">
                     <li>
-                      Issue resolution time (
-                      {weights.responsiveness.issueResolution} pts)
+                      <strong className="text-foreground">High expected</strong>
+                      : any of commits 90d ≥
+                      {expectedActivityCriteria.high.commitsLast90Days}, merged
+                      PRs 90d ≥
+                      {expectedActivityCriteria.high.mergedPrsLast90Days},
+                      issues/year ≥
+                      {expectedActivityCriteria.high.issuesCreatedLastYear},
+                      open PRs ≥ {expectedActivityCriteria.high.openPrsCount},
+                      stars ≥ {expectedActivityCriteria.high.stars}
                     </li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-medium text-foreground mb-1">
-                    Stability ({weights.stability.total}%)
-                  </h4>
-                  <ul className="space-y-1 text-sm text-muted-foreground">
                     <li>
-                      Release recency ({weights.stability.releaseRecency} pts)
+                      <strong className="text-foreground">
+                        Medium expected
+                      </strong>
+                      : any of commits 90d ≥
+                      {expectedActivityCriteria.medium.commitsLast90Days},
+                      merged PRs 90d ≥
+                      {expectedActivityCriteria.medium.mergedPrsLast90Days},
+                      issues/year ≥
+                      {expectedActivityCriteria.medium.issuesCreatedLastYear},
+                      open PRs ≥ {expectedActivityCriteria.medium.openPrsCount},
+                      stars ≥ {expectedActivityCriteria.medium.stars}
                     </li>
-                    <li>Project age ({weights.stability.projectAge} pts)</li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-medium text-foreground mb-1">
-                    Community ({weights.community.total}%)
-                  </h4>
-                  <ul className="space-y-1 text-sm text-muted-foreground">
                     <li>
-                      Stars and forks ({weights.community.popularity} pts)
+                      <strong className="text-foreground">Low expected</strong>:
+                      everything else
                     </li>
                   </ul>
                 </div>
@@ -131,44 +198,34 @@ export function HowItWorks() {
 
           <AccordionItem value="item-3">
             <AccordionTrigger>
-              How does maturity affect scoring?
+              How severe are stale-project penalties?
             </AccordionTrigger>
             <AccordionContent>
               <div className="space-y-3 text-muted-foreground">
                 <p>
-                  Projects are classified into three maturity tiers based on age
-                  and popularity. Mature projects get relaxed thresholds,
-                  recognizing that stable utilities may not need frequent
-                  updates.
+                  Freshness uses days since the most recent activity (commit,
+                  merged PR, or release). Expected-active repositories are
+                  penalized more aggressively.
                 </p>
-                <ul className="space-y-1 text-sm">
-                  <li>
-                    <strong className="text-foreground">Emerging</strong>: Less
-                    than {maturityCriteria.growingMinAgeYears} years old and
-                    under {(maturityCriteria.growingMinStars / 1000).toFixed(0)}
-                    k stars. Strictest thresholds.
-                  </li>
-                  <li>
-                    <strong className="text-foreground">Growing</strong>:{" "}
-                    {maturityCriteria.growingMinAgeYears}-
-                    {maturityCriteria.matureMinAgeYears} years old or{" "}
-                    {(maturityCriteria.growingMinStars / 1000).toFixed(0)}k-
-                    {(maturityCriteria.matureMinStars / 1000).toFixed(0)}k
-                    stars. Moderate thresholds.
-                  </li>
-                  <li>
-                    <strong className="text-foreground">Mature</strong>:{" "}
-                    {maturityCriteria.matureMinAgeYears}+ years old or{" "}
-                    {(maturityCriteria.matureMinStars / 1000).toFixed(0)}k+
-                    stars. Relaxed thresholds for feature-complete projects.
-                  </li>
-                </ul>
+                <div className="text-sm space-y-2">
+                  <p>
+                    <strong className="text-foreground">High expected:</strong>{" "}
+                    {formatFreshnessTimeline(freshnessMultipliers.high)}
+                  </p>
+                  <p>
+                    <strong className="text-foreground">
+                      Medium expected:
+                    </strong>{" "}
+                    {formatFreshnessTimeline(freshnessMultipliers.medium)}
+                  </p>
+                  <p>
+                    <strong className="text-foreground">Low expected:</strong>{" "}
+                    {formatFreshnessTimeline(freshnessMultipliers.low)}
+                  </p>
+                </div>
                 <p className="text-sm">
-                  <strong className="text-foreground">Note:</strong> Activity (
-                  {weights.activity.total}%) and responsiveness (
-                  {weights.responsiveness.total}%) together account for the
-                  majority of the score, because recent commits and issue
-                  resolution are the strongest signals of ongoing maintenance.
+                  Extra cap for high-expected repositories:{" "}
+                  {highExpectedHardCapText}.
                 </p>
               </div>
             </AccordionContent>
@@ -181,41 +238,30 @@ export function HowItWorks() {
             <AccordionContent>
               <div className="space-y-3 text-muted-foreground">
                 <p>
-                  This tool is intentionally more aggressive about penalizing
-                  inactivity than alternatives like Snyk Advisor or npm package
-                  scores. Here&apos;s why:
+                  This tool is intentionally strict for stale expected-active
+                  repos. Popularity does not override inactivity.
                 </p>
                 <ul className="space-y-2 text-sm">
                   <li>
                     <strong className="text-foreground">
-                      Stars don&apos;t equal maintenance.
+                      Strong history is not enough.
                     </strong>{" "}
-                    Popular projects can become abandoned. A project with 50k
-                    stars but no commits in 2 years and 200 open issues is a
-                    liability, not an asset.
+                    A project can be excellent historically but risky if
+                    maintenance has gone quiet.
                   </li>
                   <li>
                     <strong className="text-foreground">
-                      Dependencies are attack vectors.
+                      Dependency risk grows with inactivity.
                     </strong>{" "}
-                    Unmaintained packages don&apos;t receive security patches.
-                    Better to know early than after a vulnerability is
-                    discovered.
+                    Stale projects are slower to patch bugs and security issues.
                   </li>
                   <li>
                     <strong className="text-foreground">
-                      Proactive over reactive.
+                      Early warning is the goal.
                     </strong>{" "}
-                    Other tools wait until a project is clearly dead. We flag
-                    warning signs earlier so you can plan migrations before
-                    they&apos;re urgent.
+                    The score highlights risk before a project is fully dead.
                   </li>
                 </ul>
-                <p className="text-sm">
-                  The goal is to surface potential risks, not to definitively
-                  label projects. Use the score as one input in your dependency
-                  decisions, alongside your own evaluation.
-                </p>
               </div>
             </AccordionContent>
           </AccordionItem>

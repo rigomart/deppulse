@@ -13,12 +13,15 @@ export function toMetricsSnapshot(metrics: {
   lastCommitAt: Date | null;
   lastReleaseAt: Date | null;
   lastClosedIssueAt: Date | null;
+  lastMergedPrAt: Date | null;
   openIssuesPercent: MetricsSnapshot["openIssuesPercent"];
   openIssuesCount: MetricsSnapshot["openIssuesCount"];
   closedIssuesCount: MetricsSnapshot["closedIssuesCount"];
   medianIssueResolutionDays: MetricsSnapshot["medianIssueResolutionDays"];
   openPrsCount: MetricsSnapshot["openPrsCount"];
   issuesCreatedLastYear: MetricsSnapshot["issuesCreatedLastYear"];
+  commitsLast90Days: MetricsSnapshot["commitsLast90Days"];
+  mergedPrsLast90Days: MetricsSnapshot["mergedPrsLast90Days"];
   releases: MetricsSnapshot["releases"];
   readmeContent?: MetricsSnapshot["readmeContent"];
 }): MetricsSnapshot {
@@ -35,6 +38,9 @@ export function toMetricsSnapshot(metrics: {
       : null,
     lastClosedIssueAt: metrics.lastClosedIssueAt
       ? metrics.lastClosedIssueAt.toISOString()
+      : null,
+    lastMergedPrAt: metrics.lastMergedPrAt
+      ? metrics.lastMergedPrAt.toISOString()
       : null,
   };
 }

@@ -1,4 +1,4 @@
-import type { RateLimit } from "../logger";
+import type { RateLimit } from "@/lib/logger";
 
 export type { RateLimit };
 
@@ -17,12 +17,15 @@ export interface RepoMetrics {
   lastCommitAt: Date | null;
   lastReleaseAt: Date | null;
   lastClosedIssueAt: Date | null;
+  lastMergedPrAt: Date | null;
   openIssuesPercent: number | null;
   openIssuesCount: number;
   closedIssuesCount: number;
   medianIssueResolutionDays: number | null;
   openPrsCount: number;
   issuesCreatedLastYear: number;
+  commitsLast90Days: number;
+  mergedPrsLast90Days: number;
   readmeContent: string | null;
   releases: Array<{
     tagName: string;
@@ -55,7 +58,8 @@ export interface RepoMetricsGraphQLResponse {
     defaultBranchRef: {
       name: string;
       target: {
-        history: { nodes: Array<{ committedDate: string }> };
+        latestCommit: { nodes: Array<{ committedDate: string }> };
+        recentCommitHistory: { totalCount: number };
       };
     } | null;
     latestRelease: { publishedAt: string } | null;
@@ -69,6 +73,12 @@ export interface RepoMetricsGraphQLResponse {
     openIssues: { totalCount: number };
     closedIssues: { totalCount: number };
     openPRs: { totalCount: number };
+    lastMergedPR: {
+      nodes: Array<{ mergedAt: string }>;
+    };
+    mergedPRsRecent: {
+      nodes: Array<{ mergedAt: string }>;
+    };
     recentIssues: {
       nodes: Array<{
         createdAt: string;

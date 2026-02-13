@@ -2,9 +2,9 @@ import "server-only";
 
 import { isAnalysisFresh } from "@/lib/cache/analysis-cache";
 import type { AnalysisRun } from "@/lib/domain/assessment";
-import { fetchRepoMetrics } from "@/lib/github";
-import { createAssessmentRun } from "@/lib/persistence/analysis-run";
-import { upsertRepository } from "@/lib/persistence/repository";
+import { fetchRepoMetrics } from "@/adapters/github";
+import { createAssessmentRun } from "@/adapters/persistence/analysis-run";
+import { upsertRepository } from "@/adapters/persistence/repository";
 import { findLatestAssessmentRunBySlug } from "./queries";
 import { toMetricsSnapshot } from "./snapshot-mapper";
 

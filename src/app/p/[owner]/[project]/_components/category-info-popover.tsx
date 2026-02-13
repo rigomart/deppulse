@@ -11,7 +11,7 @@ import { categoryColors } from "@/lib/category-styles";
 import {
   MAINTENANCE_CATEGORY_INFO,
   type MaintenanceCategory,
-} from "@/lib/maintenance";
+} from "@/core/maintenance";
 import { cn } from "@/lib/utils";
 
 interface CategoryInfoPopoverProps {

@@ -5,13 +5,13 @@ import {
   listRecentCompletedAssessments,
 } from "./queries";
 
-vi.mock("@/lib/persistence/analysis-run", () => ({
+vi.mock("@/adapters/persistence/analysis-run", () => ({
   findLatestAssessmentRunByRepositoryId: vi.fn(),
   listRecentCompletedAssessmentRuns: vi.fn(),
   listAssessmentRunsByRepositoryId: vi.fn(),
 }));
 
-vi.mock("@/lib/persistence/repository", () => ({
+vi.mock("@/adapters/persistence/repository", () => ({
   findRepositoryByFullName: vi.fn(),
 }));
 
@@ -19,8 +19,8 @@ import {
   findLatestAssessmentRunByRepositoryId,
   listAssessmentRunsByRepositoryId,
   listRecentCompletedAssessmentRuns,
-} from "@/lib/persistence/analysis-run";
-import { findRepositoryByFullName } from "@/lib/persistence/repository";
+} from "@/adapters/persistence/analysis-run";
+import { findRepositoryByFullName } from "@/adapters/persistence/repository";
 
 function makeRun(id: number, repositoryId: number) {
   return {
