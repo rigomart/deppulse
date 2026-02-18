@@ -439,6 +439,29 @@ export async function triggerAnalysisRunProcessing(input: {
   lockToken?: string | null;
 }): Promise<void> {
   if (featureFlags.analysisV2Workflow) {
+    try {
+      const [{ start }, { analyzeRepositoryWorkflow }] = await Promise.all([
+        import("workflow/api"),
+        import("@/workflows/analyze-repository"),
+      ]);
+
+      const workflowRun = await start(analyzeRepositoryWorkflow, [
+        input.runId,
+        input.lockToken ?? null,
+      ]);
+      await updateAssessmentRun(input.runId, {
+        workflowId: workflowRun.runId,
+        updatedAt: new Date(),
+      });
+      return;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.warn("Workflow start failed. Falling back to local processor.", {
+        runId: input.runId,
+        error: message,
+      });
+    }
+
     const workflowEndpoint = process.env.ANALYSIS_V2_WORKFLOW_ENDPOINT;
     const workflowToken = process.env.ANALYSIS_V2_WORKFLOW_TOKEN;
 

@@ -6,6 +6,7 @@ Quickly assess whether an open-source project is actively maintained. [deppulse.
 
 - **Next.js 16** — App Router, React 19, Cache Components, React Compiler
 - **Neon PostgreSQL** — Serverless Postgres with Drizzle ORM
+- **Workflow DevKit** — Durable background workflow execution
 - **Tailwind CSS v4** — Radix UI primitives, CVA variants
 - **Recharts / Three.js** — Data visualization and animated backgrounds
 - **Vitest** — Unit testing
@@ -67,6 +68,18 @@ Create `.env.local` with:
 ```env
 DATABASE_URL=postgresql://...     # Neon connection string
 GITHUB_PAT=ghp_...               # GitHub Personal Access Token
+
+# Feature flags
+ANALYSIS_V2_WRITE_PATH=true
+ANALYSIS_V2_WORKFLOW=true
+ANALYSIS_V2_POLLING=true
+ANALYSIS_V2_READ_MODEL=true
+ANALYSIS_V2_DIRECT_VISIT_FALLBACK=true
+
+# Optional fallbacks / integration
+ANALYSIS_V2_FALLBACK_RUNNER=false
+ANALYSIS_V2_WORKFLOW_ENDPOINT=    # Optional external workflow endpoint
+ANALYSIS_V2_WORKFLOW_TOKEN=       # Optional auth token
 ```
 
 Set up the database and start the dev server:
