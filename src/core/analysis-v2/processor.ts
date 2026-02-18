@@ -64,6 +64,24 @@ function updateCommitActivity(
   };
 }
 
+type CommitActivityAttemptOutcome =
+  | {
+      type: "success";
+      attempts: number;
+      snapshot: MetricsSnapshot;
+    }
+  | {
+      type: "partial";
+      attempts: number;
+      snapshot: MetricsSnapshot;
+      errorCode: string;
+      errorMessage: string;
+    }
+  | {
+      type: "retry";
+      delaySeconds: number;
+    };
+
 async function syncProjectViewFromRun(input: {
   repositoryId: number;
   runId: number;
@@ -283,6 +301,194 @@ async function resolveCommitActivity(
     snapshot: workingSnapshot,
     attempts: COMMIT_ACTIVITY_MAX_ATTEMPTS,
   };
+}
+
+export async function attemptCommitActivityFetch(
+  runId: number,
+  attemptNumber: number,
+): Promise<CommitActivityAttemptOutcome> {
+  const run = await findAssessmentRunById(runId);
+  if (!run) {
+    throw new Error("Analysis run not found.");
+  }
+
+  const snapshot = run.metrics;
+  if (!snapshot) {
+    throw new Error("Run is missing metrics before commit activity step.");
+  }
+
+  const owner = run.repository.owner;
+  const project = run.repository.name;
+  const now = new Date();
+  const result = await fetchCommitActivity(owner, project);
+
+  if (result.status === 200) {
+    const workingSnapshot = updateCommitActivity(snapshot, {
+      state: "ready",
+      attempts: attemptNumber,
+      lastAttemptedAt: now.toISOString(),
+      errorMessage: null,
+      weekly: mapCommitActivityWeeks(result.weeks),
+    });
+
+    await updateAssessmentRun(run.id, {
+      status: "running",
+      runState: "running",
+      progressStep: "commit_activity",
+      attemptCount: attemptNumber,
+      nextRetryAt: null,
+      updatedAt: now,
+      metrics: workingSnapshot,
+    });
+
+    await syncProjectViewFromRun({
+      repositoryId: run.repository.id,
+      runId: run.id,
+      runState: "running",
+      progressStep: "commit_activity",
+      snapshot: workingSnapshot,
+      analyzedAt: null,
+    });
+
+    return {
+      type: "success",
+      attempts: attemptNumber,
+      snapshot: workingSnapshot,
+    };
+  }
+
+  if (result.status === 403 || result.status === 404) {
+    const workingSnapshot = updateCommitActivity(snapshot, {
+      state: "failed",
+      attempts: attemptNumber,
+      lastAttemptedAt: now.toISOString(),
+      errorMessage:
+        "GitHub commit activity is currently unavailable for this repository.",
+      weekly: [],
+    });
+
+    await updateAssessmentRun(run.id, {
+      status: "running",
+      runState: "running",
+      progressStep: "commit_activity",
+      attemptCount: attemptNumber,
+      nextRetryAt: null,
+      updatedAt: now,
+      metrics: workingSnapshot,
+    });
+
+    await syncProjectViewFromRun({
+      repositoryId: run.repository.id,
+      runId: run.id,
+      runState: "running",
+      progressStep: "commit_activity",
+      snapshot: workingSnapshot,
+      analyzedAt: null,
+    });
+
+    return {
+      type: "partial",
+      attempts: attemptNumber,
+      snapshot: workingSnapshot,
+      errorCode: "commit_activity_unavailable",
+      errorMessage:
+        "GitHub commit activity is currently unavailable for this repository.",
+    };
+  }
+
+  if (attemptNumber >= COMMIT_ACTIVITY_MAX_ATTEMPTS) {
+    const workingSnapshot = updateCommitActivity(snapshot, {
+      state: "failed",
+      attempts: attemptNumber,
+      lastAttemptedAt: now.toISOString(),
+      errorMessage:
+        "Commit activity did not become available before retry limit was reached.",
+      weekly: [],
+    });
+
+    await updateAssessmentRun(run.id, {
+      status: "running",
+      runState: "running",
+      progressStep: "commit_activity",
+      attemptCount: attemptNumber,
+      nextRetryAt: null,
+      updatedAt: now,
+      metrics: workingSnapshot,
+    });
+
+    await syncProjectViewFromRun({
+      repositoryId: run.repository.id,
+      runId: run.id,
+      runState: "running",
+      progressStep: "commit_activity",
+      snapshot: workingSnapshot,
+      analyzedAt: null,
+    });
+
+    return {
+      type: "partial",
+      attempts: attemptNumber,
+      snapshot: workingSnapshot,
+      errorCode: "commit_activity_retry_limit",
+      errorMessage:
+        "Commit activity did not become available before retry limit was reached.",
+    };
+  }
+
+  const delaySeconds = COMMIT_ACTIVITY_RETRY_DELAYS_SECONDS[attemptNumber - 1];
+  const nextRetryAt = new Date(now.getTime() + delaySeconds * 1000);
+  const workingSnapshot = updateCommitActivity(snapshot, {
+    state: "pending",
+    attempts: attemptNumber,
+    lastAttemptedAt: now.toISOString(),
+    weekly: [],
+  });
+
+  await updateAssessmentRun(run.id, {
+    status: "running",
+    runState: "waiting_retry",
+    progressStep: "commit_activity",
+    attemptCount: attemptNumber,
+    nextRetryAt,
+    updatedAt: now,
+    metrics: workingSnapshot,
+  });
+
+  await syncProjectViewFromRun({
+    repositoryId: run.repository.id,
+    runId: run.id,
+    runState: "waiting_retry",
+    progressStep: "commit_activity",
+    snapshot: workingSnapshot,
+    analyzedAt: null,
+  });
+
+  return { type: "retry", delaySeconds };
+}
+
+export async function finalizeRunFromCommitOutcome(input: {
+  runId: number;
+  status: "complete" | "partial";
+  snapshot: MetricsSnapshot;
+  attempts: number;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+}): Promise<void> {
+  const run = await findAssessmentRunById(input.runId);
+  if (!run) return;
+
+  await finalizeRunAndInvalidate({
+    runId: run.id,
+    repositoryId: run.repository.id,
+    owner: run.repository.owner,
+    project: run.repository.name,
+    status: input.status,
+    runState: input.status,
+    metrics: input.snapshot,
+    attemptCount: input.attempts,
+    errorCode: input.errorCode ?? null,
+    errorMessage: input.errorMessage ?? null,
+  });
 }
 
 export async function processAnalysisRun(
