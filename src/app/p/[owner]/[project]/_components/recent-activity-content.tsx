@@ -6,11 +6,13 @@ import { CheckCircle2, GitCommit, GitPullRequest, Tag } from "lucide-react";
 import {
   CartesianGrid,
   LabelList,
+  ReferenceLine,
   Scatter,
   ScatterChart,
   XAxis,
   YAxis,
 } from "recharts";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   type ChartConfig,
   ChartContainer,
@@ -127,14 +129,16 @@ function CustomTooltip({
   );
 }
 
+interface MetricDef {
+  date: string | null;
+  label: string;
+  icon: LucideIcon;
+}
+
 export function RecentActivityContent({ run }: RecentActivityContentProps) {
   const metrics = run.metrics;
 
-  const rawMetrics: Array<{
-    date: string | null;
-    label: string;
-    icon: LucideIcon;
-  }> = [
+  const rawMetrics: MetricDef[] = [
     {
       date: metrics?.lastCommitAt ?? null,
       label: "Last Commit",
@@ -154,7 +158,7 @@ export function RecentActivityContent({ run }: RecentActivityContentProps) {
   ];
 
   const filtered = rawMetrics
-    .filter((m): m is typeof m & { date: string } => m.date !== null)
+    .filter((m): m is MetricDef & { date: string } => m.date !== null)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const yStep = filtered.length > 1 ? 5 / (filtered.length - 1) : 0;
   const points: TimelinePoint[] = filtered.map((m, i) => {
@@ -168,10 +172,6 @@ export function RecentActivityContent({ run }: RecentActivityContentProps) {
       date: d,
     };
   });
-
-  const missingLabels = rawMetrics
-    .filter((m) => m.date === null)
-    .map((m) => m.label);
 
   if (points.length === 0) {
     return (
@@ -201,12 +201,12 @@ export function RecentActivityContent({ run }: RecentActivityContentProps) {
       : format(new Date(ts), "MMM ''yy");
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <ChartContainer
         config={chartConfig}
         className="aspect-auto h-[200px] w-full"
       >
-        <ScatterChart margin={{ top: 40, right: 20, bottom: 0, left: 20 }}>
+        <ScatterChart margin={{ top: 30, right: 20, bottom: 0, left: 20 }}>
           <CartesianGrid
             vertical
             horizontal={false}
@@ -224,17 +224,58 @@ export function RecentActivityContent({ run }: RecentActivityContentProps) {
             tick={{ fontSize: 12, fill: "var(--foreground)" }}
           />
           <YAxis type="number" dataKey="y" domain={[0, 6]} hide />
+          <ReferenceLine
+            x={rangeEnd}
+            stroke="var(--muted-foreground)"
+            strokeDasharray="4 4"
+            label={{
+              value: "Today",
+              position: "top",
+              fill: "var(--muted-foreground)",
+              fontSize: 11,
+            }}
+          />
           <ChartTooltip cursor={false} content={<CustomTooltip />} />
           <Scatter data={points} shape={<TimelineMarker />}>
             <LabelList dataKey="label" content={<TimelineLabel />} />
           </Scatter>
         </ScatterChart>
       </ChartContainer>
-      {missingLabels.length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          No data: {missingLabels.join(", ")}
-        </p>
-      )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {rawMetrics.map((m) => {
+          const Icon = m.icon;
+          const d = m.date ? new Date(m.date) : null;
+          const recency = d ? getRecency(d) : null;
+          const color = recency
+            ? recencyColor[recency]
+            : "var(--muted-foreground)";
+          return (
+            <Card key={m.label} className="py-0 gap-0">
+              <CardContent className="py-2.5 px-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Icon className="size-3.5 shrink-0" style={{ color }} />
+                  <span className="text-xs font-medium text-foreground truncate">
+                    {m.label}
+                  </span>
+                </div>
+                {d ? (
+                  <>
+                    <p className="text-sm font-semibold text-foreground">
+                      {format(d, "MMM d, yyyy")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(d, { addSuffix: true })}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">N/A</p>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
