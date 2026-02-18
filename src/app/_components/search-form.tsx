@@ -2,10 +2,9 @@
 
 import { Loader2, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { parseProject } from "@/lib/parse-project";
 
 /**
  * Render a search form for analyzing a GitHub repository.
@@ -16,25 +15,44 @@ import { parseProject } from "@/lib/parse-project";
 export function SearchForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
     const formData = new FormData(e.currentTarget);
     const query = formData.get("query") as string;
 
-    const parsed = parseProject(query);
-    if (!parsed) {
-      setError("Invalid format. Use 'owner/repository' or GitHub URL.");
-      return;
-    }
+    setIsPending(true);
+    try {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query }),
+      });
 
-    const { owner, project } = parsed;
-    startTransition(() => {
-      router.push(`/p/${owner}/${project}`);
-    });
+      const data = (await response.json().catch(() => null)) as {
+        error?: string;
+        redirectTo?: string;
+      } | null;
+
+      if (!response.ok || !data?.redirectTo) {
+        setError(
+          data?.error ??
+            "Could not start analysis. Please verify the repository format.",
+        );
+        return;
+      }
+
+      router.push(data.redirectTo);
+    } catch {
+      setError("Could not start analysis right now. Please try again.");
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (

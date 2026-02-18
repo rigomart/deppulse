@@ -1,9 +1,11 @@
 import type { Metadata, ResolvingMetadata } from "next";
 import { cacheLife, cacheTag } from "next/cache";
+import { findProjectViewBySlug } from "@/adapters/persistence/project-view";
 import { findLatestAssessmentRunBySlug } from "@/core/assessment";
 import { computeScoreFromMetrics } from "@/core/maintenance";
 import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getProjectTag } from "@/lib/cache/tags";
+import { featureFlags } from "@/lib/config/feature-flags";
 
 type Props = {
   params: Promise<{ owner: string; project: string }>;
@@ -16,15 +18,20 @@ async function getCachedMetadata(owner: string, project: string) {
   cacheTag(getProjectTag(owner, project));
 
   const run = await findLatestAssessmentRunBySlug(owner, project);
-  if (!run?.metrics) return null;
+  const view = featureFlags.analysisV2ReadModel
+    ? await findProjectViewBySlug(owner, project)
+    : null;
+  const metrics = view?.snapshotJson ?? run?.metrics;
+  if (!metrics) return null;
 
-  const { score, category } = computeScoreFromMetrics(run.metrics);
+  const { score, category } = computeScoreFromMetrics(metrics);
   return {
-    fullName: run.repository.fullName,
-    description: run.metrics.description,
+    fullName: run?.repository.fullName ?? `${owner}/${project}`,
+    description: metrics.description,
     score,
     category,
-    analyzedAt: run.completedAt ?? run.startedAt,
+    analyzedAt:
+      view?.analyzedAt ?? run?.completedAt ?? run?.startedAt ?? new Date(),
   };
 }
 

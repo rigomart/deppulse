@@ -1,8 +1,12 @@
 import "server-only";
 
-import { updateTag } from "next/cache";
-import { getProjectTag } from "./tags";
+import { revalidateTag } from "next/cache";
+import { getProjectTag, getRecentAnalysesTag } from "./tags";
 
 export function invalidateProjectCache(owner: string, project: string): void {
-  updateTag(getProjectTag(owner, project));
+  revalidateTag(getProjectTag(owner, project), "max");
+}
+
+export function invalidateRecentAnalysesCache(): void {
+  revalidateTag(getRecentAnalysesTag(), "max");
 }

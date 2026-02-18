@@ -43,6 +43,13 @@
       "when": 1770872904865,
       "tag": "0005_glossy_sage",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1771453416488,
+      "tag": "0006_great_archangel",
+      "breakpoints": true
     }
   ]
 }
