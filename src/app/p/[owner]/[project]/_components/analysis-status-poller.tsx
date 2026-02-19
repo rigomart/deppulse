@@ -50,7 +50,7 @@ export function AnalysisStatusPoller({
   run,
 }: AnalysisStatusPollerProps) {
   const router = useRouter();
-  const hasRefreshed = useRef(false);
+  const refreshAttempts = useRef(0);
   const [timedOut, setTimedOut] = useState(false);
   const initialState = run.runState ?? run.status;
 
@@ -62,6 +62,7 @@ export function AnalysisStatusPoller({
     let timer: ReturnType<typeof setTimeout> | null = null;
     let pollAttempts = 0;
     const MAX_POLL_ATTEMPTS = 120;
+    const MAX_REFRESH_ATTEMPTS = 6;
 
     const poll = async () => {
       pollAttempts += 1;
@@ -86,11 +87,17 @@ export function AnalysisStatusPoller({
         const { state, viewReady } = parseStatusPayload(payload);
         const interval = state === "waiting_retry" ? 5000 : 2000;
 
-        if ((viewReady || isTerminal(state)) && !hasRefreshed.current) {
-          hasRefreshed.current = true;
+        if (viewReady || isTerminal(state)) {
+          refreshAttempts.current += 1;
           router.refresh();
+
+          if (!cancelled && refreshAttempts.current < MAX_REFRESH_ATTEMPTS) {
+            timer = setTimeout(poll, 1500);
+          }
           return;
         }
+
+        refreshAttempts.current = 0;
 
         if (!cancelled) {
           timer = setTimeout(poll, interval);
