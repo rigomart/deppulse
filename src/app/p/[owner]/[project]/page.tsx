@@ -57,35 +57,11 @@ export default async function ProjectPage({
     }
   }
 
-  const safeRun: AnalysisRun =
-    run ??
-    ({
-      id: 0,
-      repository: {
-        id: 0,
-        owner,
-        name: project,
-        fullName: `${owner}/${project}`,
-        defaultBranch: null,
-        createdAt: new Date(0),
-        updatedAt: new Date(0),
-      },
-      status: "running",
-      runState: "queued",
-      progressStep: "bootstrap",
-      attemptCount: 0,
-      nextRetryAt: null,
-      lockToken: null,
-      lockedAt: null,
-      workflowId: null,
-      triggerSource: "system",
-      updatedAt: new Date(),
-      metrics: null,
-      startedAt: new Date(),
-      completedAt: null,
-      errorCode: null,
-      errorMessage: null,
-    } satisfies AnalysisRun);
+  if (!run) {
+    throw new Error("Failed to load analysis run.");
+  }
+
+  const safeRun: AnalysisRun = run;
 
   return (
     <>

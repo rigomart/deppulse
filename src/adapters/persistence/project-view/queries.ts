@@ -22,7 +22,9 @@ export async function findProjectViewBySlug(
   project: string,
 ): Promise<ProjectView | null> {
   // Intentionally uncached: called in active analysis flows where stale reads are harmful.
-  const fullName = `${owner}/${project}`;
+  const normalizedOwner = owner.trim().toLowerCase();
+  const normalizedProject = project.trim().toLowerCase();
+  const fullName = `${normalizedOwner}/${normalizedProject}`;
   const repository = await findRepositoryByFullName(fullName);
   if (!repository) return null;
 

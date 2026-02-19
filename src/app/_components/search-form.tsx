@@ -26,11 +26,17 @@ function parseAnalyzeResponse(payload: unknown): {
   return { error, redirectTo };
 }
 
+function isSafeRedirectPath(value: string): boolean {
+  if (!value.startsWith("/")) return false;
+  if (value.startsWith("//")) return false;
+  return !/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(value);
+}
+
 /**
  * Render a search form for analyzing a GitHub repository.
  *
- * Validates an "owner/project" string or GitHub URL, then navigates
- * to the project page where analysis will be triggered.
+ * Sends a repository query to the analyze API, then navigates
+ * to the returned project page on success.
  */
 export function SearchForm() {
   const router = useRouter();
@@ -68,6 +74,12 @@ export function SearchForm() {
           data.error ??
             "Could not start analysis. Please verify the repository format.",
         );
+        setIsPending(false);
+        return;
+      }
+
+      if (!isSafeRedirectPath(data.redirectTo)) {
+        setError("Could not start analysis right now. Please try again.");
         setIsPending(false);
         return;
       }

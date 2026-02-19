@@ -16,6 +16,8 @@ interface ApiLogContext {
   service: string;
   endpoint: string;
   durationMs: number;
+  status?: number;
+  error?: string;
   cost?: number;
   rateLimit?: RateLimit;
 }
@@ -56,6 +58,14 @@ export const logger = {
       `${ctx.service} API: ${ctx.endpoint}`,
       `duration=${formatDuration(ctx.durationMs)}`,
     ];
+
+    if (ctx.status !== undefined) {
+      parts.push(`status=${ctx.status}`);
+    }
+
+    if (ctx.error) {
+      parts.push(`error=${ctx.error}`);
+    }
 
     if (ctx.cost !== undefined) {
       parts.push(`cost=${ctx.cost}`);

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { logger } from "@/lib/logger";
-import type { CommitActivityResult } from "./types";
+import type { CommitActivityResult, CommitActivityWeekResponse } from "./types";
 
 function getAuthHeaders(): HeadersInit {
   if (!process.env.GITHUB_PAT) {
@@ -15,18 +15,36 @@ function getAuthHeaders(): HeadersInit {
   };
 }
 
+function isCommitActivityWeekResponse(
+  value: unknown,
+): value is CommitActivityWeekResponse {
+  if (!value || typeof value !== "object") return false;
+
+  if (!("week" in value) || typeof value.week !== "number") return false;
+  if (!("total" in value) || typeof value.total !== "number") return false;
+  if (!("days" in value) || !Array.isArray(value.days)) return false;
+
+  return (
+    value.days.length === 7 &&
+    value.days.every((day) => typeof day === "number")
+  );
+}
+
 export async function fetchCommitActivity(
   owner: string,
   repo: string,
 ): Promise<CommitActivityResult> {
   const startedAt = Date.now();
   const endpoint = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/stats/commit_activity`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
     const response = await fetch(endpoint, {
       method: "GET",
       headers: getAuthHeaders(),
       cache: "no-store",
+      signal: controller.signal,
     });
 
     const durationMs = Date.now() - startedAt;
@@ -40,8 +58,9 @@ export async function fetchCommitActivity(
 
     logger.api({
       service: "GitHub",
-      endpoint: `REST CommitActivity (${owner}/${repo}) status=${response.status}`,
+      endpoint: `REST CommitActivity (${owner}/${repo})`,
       durationMs,
+      status: response.status,
     });
 
     if (normalizedStatus !== 200) {
@@ -50,25 +69,25 @@ export async function fetchCommitActivity(
 
     const payload: unknown = await response.json();
     const weeks = Array.isArray(payload)
-      ? payload.filter((week) => {
-          return (
-            typeof week.week === "number" &&
-            typeof week.total === "number" &&
-            Array.isArray(week.days) &&
-            week.days.length === 7
-          );
-        })
+      ? payload.filter((week): week is CommitActivityWeekResponse =>
+          isCommitActivityWeekResponse(week),
+        )
       : [];
 
     return { status: 200, weeks };
   } catch (error) {
     const durationMs = Date.now() - startedAt;
+    const isAbort = error instanceof Error && error.name === "AbortError";
     const message = error instanceof Error ? error.message : String(error);
     logger.api({
       service: "GitHub",
-      endpoint: `REST CommitActivity (${owner}/${repo}) error=${message}`,
+      endpoint: `REST CommitActivity (${owner}/${repo})`,
       durationMs,
+      status: isAbort ? 408 : 500,
+      error: isAbort ? "Request timed out" : message,
     });
     return { status: 500, weeks: [] };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

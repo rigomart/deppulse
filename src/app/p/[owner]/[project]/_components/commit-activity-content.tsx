@@ -22,21 +22,29 @@ const chartConfig: ChartConfig = {
   },
 };
 
-function ChartSkeleton({ message }: { message: string }) {
+function ChartPlaceholder({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-[220px] w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/50">
+      {children}
+    </div>
+  );
+}
+
+function ChartSkeleton({ message }: { message: string }) {
+  return (
+    <ChartPlaceholder>
       <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/60" />
       <p className="text-sm text-muted-foreground">{message}</p>
-    </div>
+    </ChartPlaceholder>
   );
 }
 
 function ChartEmpty({ message }: { message: string }) {
   return (
-    <div className="flex h-[220px] w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/50">
+    <ChartPlaceholder>
       <BarChart3 className="h-8 w-8 text-muted-foreground/40" />
       <p className="text-sm text-muted-foreground">{message}</p>
-    </div>
+    </ChartPlaceholder>
   );
 }
 
@@ -56,6 +64,10 @@ export function CommitActivityContent({ run }: CommitActivityContentProps) {
         }
       />
     );
+  }
+
+  if (commitActivity.state !== "ready") {
+    return <ChartSkeleton message="Loading commit history..." />;
   }
 
   const points = commitActivity.weekly.map((week) => ({

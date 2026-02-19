@@ -1,4 +1,5 @@
 import { getProjectAnalysisStatus } from "@/core/analysis";
+import { logger } from "@/lib/logger";
 
 export async function GET(
   _request: Request,
@@ -30,9 +31,11 @@ export async function GET(
       viewReady: status.viewReady,
     });
   } catch (error) {
-    const details = error instanceof Error ? error.message : String(error);
+    logger.error("Failed to fetch project status", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return Response.json(
-      { error: "Failed to fetch project status", details },
+      { error: "Failed to fetch project status" },
       { status: 500 },
     );
   }

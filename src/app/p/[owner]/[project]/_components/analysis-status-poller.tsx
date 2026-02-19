@@ -79,7 +79,9 @@ export function AnalysisStatusPoller({
           },
         );
         if (!response.ok) {
-          timer = setTimeout(poll, 5000);
+          if (!cancelled) {
+            timer = setTimeout(poll, 5000);
+          }
           return;
         }
 

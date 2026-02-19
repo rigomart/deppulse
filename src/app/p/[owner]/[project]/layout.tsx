@@ -5,11 +5,23 @@ import { findLatestAssessmentRunBySlug } from "@/core/assessment";
 import { computeScoreFromMetrics } from "@/core/maintenance";
 import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getProjectTag } from "@/lib/cache/tags";
+import type { MetricsSnapshot } from "@/lib/domain/assessment";
 
 type Props = {
   params: Promise<{ owner: string; project: string }>;
   children: React.ReactNode;
 };
+
+function hasScoreInputs(metrics: unknown): metrics is MetricsSnapshot {
+  if (!metrics || typeof metrics !== "object") return false;
+
+  return (
+    "commitsLast90Days" in metrics &&
+    typeof metrics.commitsLast90Days === "number" &&
+    "mergedPrsLast90Days" in metrics &&
+    typeof metrics.mergedPrsLast90Days === "number"
+  );
+}
 
 async function getCachedMetadata(owner: string, project: string) {
   "use cache";
@@ -19,7 +31,7 @@ async function getCachedMetadata(owner: string, project: string) {
   const run = await findLatestAssessmentRunBySlug(owner, project);
   const view = await findProjectViewBySlug(owner, project);
   const metrics = view?.snapshotJson ?? run?.metrics;
-  if (!metrics) return null;
+  if (!hasScoreInputs(metrics)) return null;
 
   const { score, category } = computeScoreFromMetrics(metrics);
   return {
@@ -46,7 +58,7 @@ export async function generateMetadata(
 
   const title = `${meta.fullName} - ${meta.category}`;
   const analyzedAtText = meta.analyzedAt
-    ? ` Last analyzed: ${meta.analyzedAt.toLocaleDateString()}.`
+    ? ` Last analyzed: ${meta.analyzedAt.toLocaleDateString("en-US")}.`
     : "";
   const description = meta.description
     ? `${meta.description} Maintenance score: ${meta.score}/100.${analyzedAtText}`
