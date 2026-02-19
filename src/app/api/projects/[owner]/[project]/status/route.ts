@@ -1,4 +1,4 @@
-import { getProjectAnalysisStatus } from "@/core/analysis-v2";
+import { getProjectAnalysisStatus } from "@/core/analysis";
 
 export async function GET(
   _request: Request,

@@ -14,7 +14,6 @@ import {
   invalidateProjectCache,
   invalidateRecentAnalysesCache,
 } from "@/lib/cache/invalidation";
-import { featureFlags } from "@/lib/config/feature-flags";
 import type {
   CommitActivity,
   CommitActivityWeek,
@@ -94,8 +93,6 @@ async function syncProjectViewFromRun(input: {
   snapshot: MetricsSnapshot | null;
   analyzedAt: Date | null;
 }): Promise<void> {
-  if (!featureFlags.analysisV2ReadModel) return;
-
   try {
     await upsertProjectView({
       repositoryId: input.repositoryId,
@@ -142,31 +139,29 @@ async function finalizeRunAndInvalidate(input: {
     errorMessage: input.errorMessage ?? null,
   });
 
-  if (featureFlags.analysisV2ReadModel) {
-    try {
-      await syncProjectViewFromRun({
-        repositoryId: input.repositoryId,
-        runId: input.runId,
-        runState: input.runState,
-        progressStep: "finalize",
-        snapshot: input.metrics,
-        analyzedAt: now,
-      });
+  try {
+    await syncProjectViewFromRun({
+      repositoryId: input.repositoryId,
+      runId: input.runId,
+      runState: input.runState,
+      progressStep: "finalize",
+      snapshot: input.metrics,
+      analyzedAt: now,
+    });
 
-      const weeks = input.metrics?.commitActivity?.weekly ?? [];
-      await replaceCommitActivityPoints({
-        repositoryId: input.repositoryId,
-        runId: input.runId,
-        weeks,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      logger.warn("Read-model commit activity write failed", {
-        runId: input.runId,
-        repositoryId: input.repositoryId,
-        error: message,
-      });
-    }
+    const weeks = input.metrics?.commitActivity?.weekly ?? [];
+    await replaceCommitActivityPoints({
+      repositoryId: input.repositoryId,
+      runId: input.runId,
+      weeks,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn("Read-model commit activity write failed", {
+      runId: input.runId,
+      repositoryId: input.repositoryId,
+      error: message,
+    });
   }
 
   try {

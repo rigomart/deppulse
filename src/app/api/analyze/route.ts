@@ -3,9 +3,7 @@ import {
   primeRunWithBaseMetrics,
   startOrReuseAnalysisRun,
   triggerAnalysisRunProcessing,
-} from "@/core/analysis-v2";
-import { ensureAssessmentRunStarted } from "@/core/assessment";
-import { featureFlags } from "@/lib/config/feature-flags";
+} from "@/core/analysis";
 import { parseProject } from "@/lib/parse-project";
 
 export async function POST(request: Request) {
@@ -29,26 +27,6 @@ export async function POST(request: Request) {
       },
       { status: 400 },
     );
-  }
-
-  if (!featureFlags.analysisV2WritePath) {
-    const run = await ensureAssessmentRunStarted(
-      parsedProject.owner,
-      parsedProject.project,
-    );
-    return Response.json({
-      repository: {
-        owner: run.repository.owner,
-        project: run.repository.name,
-        fullName: run.repository.fullName,
-      },
-      run: {
-        id: run.id,
-        state: run.runState ?? run.status,
-        startedAt: run.startedAt.toISOString(),
-      },
-      redirectTo: `/p/${run.repository.owner}/${run.repository.name}`,
-    });
   }
 
   const { run, created } = await startOrReuseAnalysisRun({

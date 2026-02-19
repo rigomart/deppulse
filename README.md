@@ -68,12 +68,6 @@ Create `.env.local` with:
 ```env
 DATABASE_URL=postgresql://...     # Neon connection string
 GITHUB_PAT=ghp_...               # GitHub Personal Access Token
-
-# Feature flags
-ANALYSIS_V2_WRITE_PATH=true
-ANALYSIS_V2_POLLING=true
-ANALYSIS_V2_READ_MODEL=true
-ANALYSIS_V2_DIRECT_VISIT_FALLBACK=true
 ```
 
 Set up the database and start the dev server:

@@ -5,14 +5,10 @@ import {
   primeRunWithBaseMetrics,
   startOrReuseAnalysisRun,
   triggerAnalysisRunProcessing,
-} from "@/core/analysis-v2";
-import {
-  ensureAssessmentRunStarted,
-  findLatestAssessmentRunBySlug,
-} from "@/core/assessment";
+} from "@/core/analysis";
+import { findLatestAssessmentRunBySlug } from "@/core/assessment";
 import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getProjectTag } from "@/lib/cache/tags";
-import { featureFlags } from "@/lib/config/feature-flags";
 import type { AnalysisRun } from "@/lib/domain/assessment";
 import { AnalysisStatusPoller } from "./_components/analysis-status-poller";
 import { CommitActivity } from "./_components/commit-activity";
@@ -39,39 +35,33 @@ export default async function ProjectPage({
   cacheLife(ANALYSIS_CACHE_LIFE);
   cacheTag(getProjectTag(owner, project));
 
-  let run: AnalysisRun | null = null;
+  let run = await findLatestAssessmentRunBySlug(owner, project);
 
-  if (featureFlags.analysisV2WritePath) {
-    run = await findLatestAssessmentRunBySlug(owner, project);
-
-    if (!run && featureFlags.analysisV2DirectVisitFallback) {
-      const started = await startOrReuseAnalysisRun({
-        owner,
-        project,
-        triggerSource: "direct_visit",
-      });
-      run =
-        (started.created
-          ? await primeRunWithBaseMetrics(
-              started.run.id,
-              started.run.lockToken ?? null,
-            ).catch(() => started.run)
-          : started.run) ?? started.run;
-      if (started.created) {
-        const runForProcessing = run ?? started.run;
-        after(async () => {
-          await triggerAnalysisRunProcessing({
-            runId: runForProcessing.id,
-            lockToken: runForProcessing.lockToken ?? null,
-          });
+  if (!run) {
+    const started = await startOrReuseAnalysisRun({
+      owner,
+      project,
+      triggerSource: "direct_visit",
+    });
+    run =
+      (started.created
+        ? await primeRunWithBaseMetrics(
+            started.run.id,
+            started.run.lockToken ?? null,
+          ).catch(() => started.run)
+        : started.run) ?? started.run;
+    if (started.created) {
+      const runForProcessing = run ?? started.run;
+      after(async () => {
+        await triggerAnalysisRunProcessing({
+          runId: runForProcessing.id,
+          lockToken: runForProcessing.lockToken ?? null,
         });
-      }
+      });
     }
-  } else {
-    run = await ensureAssessmentRunStarted(owner, project);
   }
 
-  if (run && featureFlags.analysisV2ReadModel) {
+  if (run) {
     const view = await findProjectViewBySlug(owner, project);
     if (view) {
       run = {
@@ -117,9 +107,7 @@ export default async function ProjectPage({
 
   return (
     <>
-      {featureFlags.analysisV2Polling && (
-        <AnalysisStatusPoller owner={owner} project={project} run={safeRun} />
-      )}
+      <AnalysisStatusPoller owner={owner} project={project} run={safeRun} />
       <ProjectHeader run={safeRun} />
       <RecentActivity run={safeRun} />
       <CommitActivity run={safeRun} />

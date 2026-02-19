@@ -5,7 +5,6 @@ import { findLatestAssessmentRunBySlug } from "@/core/assessment";
 import { computeScoreFromMetrics } from "@/core/maintenance";
 import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getProjectTag } from "@/lib/cache/tags";
-import { featureFlags } from "@/lib/config/feature-flags";
 
 type Props = {
   params: Promise<{ owner: string; project: string }>;
@@ -18,9 +17,7 @@ async function getCachedMetadata(owner: string, project: string) {
   cacheTag(getProjectTag(owner, project));
 
   const run = await findLatestAssessmentRunBySlug(owner, project);
-  const view = featureFlags.analysisV2ReadModel
-    ? await findProjectViewBySlug(owner, project)
-    : null;
+  const view = await findProjectViewBySlug(owner, project);
   const metrics = view?.snapshotJson ?? run?.metrics;
   if (!metrics) return null;
 

@@ -1,5 +1,5 @@
 import { FatalError, getStepMetadata, RetryableError } from "workflow";
-import { COMMIT_ACTIVITY_MAX_ATTEMPTS } from "@/core/analysis-v2/constants";
+import { COMMIT_ACTIVITY_MAX_ATTEMPTS } from "@/core/analysis/constants";
 
 export async function analyzeRepositoryWorkflow(
   runId: number,
@@ -17,7 +17,7 @@ export async function analyzeRepositoryWorkflow(
 async function primeRunStep(runId: number, lockToken: string | null) {
   "use step";
 
-  const { primeRunWithBaseMetrics } = await import("@/core/analysis-v2");
+  const { primeRunWithBaseMetrics } = await import("@/core/analysis");
   const run = await primeRunWithBaseMetrics(runId, lockToken);
   if (!run) {
     throw new FatalError("Analysis run not found.");
@@ -36,7 +36,7 @@ async function resolveCommitActivityStep(runId: number) {
 
   const metadata = getStepMetadata();
   const { attemptCommitActivityFetch } = await import(
-    "@/core/analysis-v2/processor"
+    "@/core/analysis/processor"
   );
   const outcome = await attemptCommitActivityFetch(runId, metadata.attempt);
 
@@ -57,7 +57,7 @@ async function finalizeRunStep(
   "use step";
 
   const { finalizeRunFromCommitOutcome } = await import(
-    "@/core/analysis-v2/processor"
+    "@/core/analysis/processor"
   );
 
   if (outcome.type === "success") {
