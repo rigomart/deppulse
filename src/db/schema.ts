@@ -106,52 +106,16 @@ export const projectViews = pgTable(
   (table) => [index("project_views_latest_run_idx").on(table.latestRunId)],
 );
 
-export const commitActivityPoints = pgTable(
-  "commit_activity_points",
-  {
-    id: serial("id").primaryKey(),
-    repositoryId: integer("repository_id")
-      .notNull()
-      .references(() => repositories.id, { onDelete: "cascade" }),
-    runId: integer("run_id").references(() => analysisRuns.id, {
-      onDelete: "set null",
-    }),
-    weekStart: timestamp("week_start").notNull(),
-    totalCommits: integer("total_commits").notNull().default(0),
-    day0: integer("day_0").notNull().default(0),
-    day1: integer("day_1").notNull().default(0),
-    day2: integer("day_2").notNull().default(0),
-    day3: integer("day_3").notNull().default(0),
-    day4: integer("day_4").notNull().default(0),
-    day5: integer("day_5").notNull().default(0),
-    day6: integer("day_6").notNull().default(0),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-  },
-  (table) => [
-    index("commit_activity_points_repository_idx").on(table.repositoryId),
-    index("commit_activity_points_run_idx").on(table.runId),
-    uniqueIndex("commit_activity_points_repository_week_idx").on(
-      table.repositoryId,
-      table.weekStart,
-    ),
-  ],
-);
-
 export const repositoriesRelations = relations(repositories, ({ many }) => ({
   runs: many(analysisRuns),
-  commitActivityPoints: many(commitActivityPoints),
 }));
 
-export const analysisRunsRelations = relations(
-  analysisRuns,
-  ({ one, many }) => ({
-    repository: one(repositories, {
-      fields: [analysisRuns.repositoryId],
-      references: [repositories.id],
-    }),
-    commitActivityPoints: many(commitActivityPoints),
+export const analysisRunsRelations = relations(analysisRuns, ({ one }) => ({
+  repository: one(repositories, {
+    fields: [analysisRuns.repositoryId],
+    references: [repositories.id],
   }),
-);
+}));
 
 export const projectViewsRelations = relations(projectViews, ({ one }) => ({
   repository: one(repositories, {
@@ -164,25 +128,9 @@ export const projectViewsRelations = relations(projectViews, ({ one }) => ({
   }),
 }));
 
-export const commitActivityPointsRelations = relations(
-  commitActivityPoints,
-  ({ one }) => ({
-    repository: one(repositories, {
-      fields: [commitActivityPoints.repositoryId],
-      references: [repositories.id],
-    }),
-    run: one(analysisRuns, {
-      fields: [commitActivityPoints.runId],
-      references: [analysisRuns.id],
-    }),
-  }),
-);
-
 export type Repository = typeof repositories.$inferSelect;
 export type NewRepository = typeof repositories.$inferInsert;
 export type AnalysisRun = typeof analysisRuns.$inferSelect;
 export type NewAnalysisRun = typeof analysisRuns.$inferInsert;
 export type ProjectView = typeof projectViews.$inferSelect;
 export type NewProjectView = typeof projectViews.$inferInsert;
-export type CommitActivityPoint = typeof commitActivityPoints.$inferSelect;
-export type NewCommitActivityPoint = typeof commitActivityPoints.$inferInsert;

@@ -1,4 +1,4 @@
-export { replaceCommitActivityPoints, upsertProjectView } from "./mutations";
+export { upsertProjectView } from "./mutations";
 export {
   findProjectViewByRepositoryId,
   findProjectViewBySlug,

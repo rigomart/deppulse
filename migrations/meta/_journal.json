@@ -50,6 +50,13 @@
       "when": 1771453416488,
       "tag": "0006_great_archangel",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1771468696767,
+      "tag": "0007_luxuriant_cloak",
+      "breakpoints": true
     }
   ]
 }

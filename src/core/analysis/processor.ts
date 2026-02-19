@@ -5,10 +5,7 @@ import {
   findAssessmentRunById,
   updateAssessmentRun,
 } from "@/adapters/persistence/analysis-run";
-import {
-  replaceCommitActivityPoints,
-  upsertProjectView,
-} from "@/adapters/persistence/project-view";
+import { upsertProjectView } from "@/adapters/persistence/project-view";
 import { toMetricsSnapshot } from "@/core/assessment/snapshot-mapper";
 import {
   invalidateProjectCache,
@@ -148,16 +145,9 @@ async function finalizeRunAndInvalidate(input: {
       snapshot: input.metrics,
       analyzedAt: now,
     });
-
-    const weeks = input.metrics?.commitActivity?.weekly ?? [];
-    await replaceCommitActivityPoints({
-      repositoryId: input.repositoryId,
-      runId: input.runId,
-      weeks,
-    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    logger.warn("Read-model commit activity write failed", {
+    logger.warn("Project view finalize sync failed", {
       runId: input.runId,
       repositoryId: input.repositoryId,
       error: message,
