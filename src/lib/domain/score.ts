@@ -1,1 +1,6 @@
-export type AnalysisStatus = "complete" | "failed";
+export type AnalysisStatus =
+  | "queued"
+  | "running"
+  | "partial"
+  | "complete"
+  | "failed";

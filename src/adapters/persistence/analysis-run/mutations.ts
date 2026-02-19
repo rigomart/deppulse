@@ -9,8 +9,17 @@ import { findAssessmentRunById } from "./queries";
 export async function createAssessmentRun(input: {
   repositoryId: number;
   status: DomainAnalysisRun["status"];
+  runState?: DomainAnalysisRun["runState"];
+  progressStep?: DomainAnalysisRun["progressStep"];
+  attemptCount?: number;
+  nextRetryAt?: Date | null;
+  lockToken?: string | null;
+  lockedAt?: Date | null;
+  workflowId?: string | null;
+  triggerSource?: DomainAnalysisRun["triggerSource"];
   metrics: DomainAnalysisRun["metrics"] | null;
   startedAt?: Date;
+  updatedAt?: Date;
   completedAt?: Date | null;
   errorCode?: string | null;
   errorMessage?: string | null;
@@ -20,8 +29,17 @@ export async function createAssessmentRun(input: {
     .values({
       repositoryId: input.repositoryId,
       status: input.status,
+      runState: input.runState ?? "complete",
+      progressStep: input.progressStep ?? "finalize",
+      attemptCount: input.attemptCount ?? 0,
+      nextRetryAt: input.nextRetryAt ?? null,
+      lockToken: input.lockToken ?? null,
+      lockedAt: input.lockedAt ?? null,
+      workflowId: input.workflowId ?? null,
+      triggerSource: input.triggerSource ?? "system",
       metricsJson: input.metrics ?? undefined,
       startedAt: input.startedAt ?? new Date(),
+      updatedAt: input.updatedAt ?? new Date(),
       completedAt: input.completedAt ?? null,
       errorCode: input.errorCode ?? null,
       errorMessage: input.errorMessage ?? null,
@@ -40,7 +58,16 @@ export async function updateAssessmentRun(
   id: number,
   updates: {
     status?: DomainAnalysisRun["status"];
+    runState?: DomainAnalysisRun["runState"];
+    progressStep?: DomainAnalysisRun["progressStep"];
+    attemptCount?: number;
+    nextRetryAt?: Date | null;
+    lockToken?: string | null;
+    lockedAt?: Date | null;
+    workflowId?: string | null;
+    triggerSource?: DomainAnalysisRun["triggerSource"];
     metrics?: DomainAnalysisRun["metrics"] | null;
+    updatedAt?: Date;
     completedAt?: Date | null;
     errorCode?: string | null;
     errorMessage?: string | null;
@@ -50,10 +77,21 @@ export async function updateAssessmentRun(
     .update(analysisRuns)
     .set({
       status: updates.status,
-      metricsJson: updates.metrics ?? undefined,
-      completedAt: updates.completedAt ?? undefined,
-      errorCode: updates.errorCode ?? undefined,
-      errorMessage: updates.errorMessage ?? undefined,
+      runState: updates.runState,
+      progressStep: updates.progressStep,
+      attemptCount: updates.attemptCount,
+      nextRetryAt: updates.nextRetryAt,
+      lockToken: updates.lockToken,
+      lockedAt: updates.lockedAt,
+      workflowId: updates.workflowId,
+      triggerSource: updates.triggerSource,
+      updatedAt: updates.updatedAt ?? new Date(),
+      ...("metrics" in updates ? { metricsJson: updates.metrics } : {}),
+      ...("completedAt" in updates ? { completedAt: updates.completedAt } : {}),
+      ...("errorCode" in updates ? { errorCode: updates.errorCode } : {}),
+      ...("errorMessage" in updates
+        ? { errorMessage: updates.errorMessage }
+        : {}),
     })
     .where(eq(analysisRuns.id, id));
 

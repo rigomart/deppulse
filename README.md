@@ -6,6 +6,7 @@ Quickly assess whether an open-source project is actively maintained. [deppulse.
 
 - **Next.js 16** — App Router, React 19, Cache Components, React Compiler
 - **Neon PostgreSQL** — Serverless Postgres with Drizzle ORM
+- **Workflow DevKit** — Durable background workflow execution
 - **Tailwind CSS v4** — Radix UI primitives, CVA variants
 - **Recharts / Three.js** — Data visualization and animated backgrounds
 - **Vitest** — Unit testing

@@ -34,6 +34,17 @@ export interface RepoMetrics {
   }>;
 }
 
+export interface CommitActivityWeekResponse {
+  week: number;
+  total: number;
+  days: [number, number, number, number, number, number, number];
+}
+
+export interface CommitActivityResult {
+  status: 200 | 202 | 403 | 404 | 500;
+  weeks: CommitActivityWeekResponse[];
+}
+
 // GraphQL rate limit response shape
 export interface GraphQLRateLimitResponse {
   limit: number;

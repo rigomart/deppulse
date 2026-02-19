@@ -1,6 +1,6 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/drizzle";
 import { analysisRuns } from "@/db/schema";
 import type { AnalysisRun as DomainAnalysisRun } from "@/lib/domain/assessment";
@@ -29,6 +29,21 @@ export async function findLatestAssessmentRunByRepositoryId(
   return run ? mapAnalysisRunRow(run as AnalysisRunWithRepository) : null;
 }
 
+export async function findActiveAssessmentRunByRepositoryId(
+  repositoryId: number,
+): Promise<DomainAnalysisRun | null> {
+  const run = await db.query.analysisRuns.findFirst({
+    where: and(
+      eq(analysisRuns.repositoryId, repositoryId),
+      inArray(analysisRuns.runState, ["queued", "running", "waiting_retry"]),
+    ),
+    orderBy: [desc(analysisRuns.startedAt)],
+    with: { repository: true },
+  });
+
+  return run ? mapAnalysisRunRow(run as AnalysisRunWithRepository) : null;
+}
+
 export async function listAssessmentRunsByRepositoryId(
   repositoryId: number,
   limit: number,
@@ -47,7 +62,7 @@ export async function listRecentCompletedAssessmentRuns(
   limit: number,
 ): Promise<DomainAnalysisRun[]> {
   const runs = await db.query.analysisRuns.findMany({
-    where: eq(analysisRuns.status, "complete"),
+    where: inArray(analysisRuns.status, ["complete", "partial"]),
     orderBy: [desc(analysisRuns.completedAt)],
     limit,
     with: { repository: true },

@@ -1,14 +1,27 @@
 import type { Metadata, ResolvingMetadata } from "next";
 import { cacheLife, cacheTag } from "next/cache";
+import { findProjectViewBySlug } from "@/adapters/persistence/project-view";
 import { findLatestAssessmentRunBySlug } from "@/core/assessment";
 import { computeScoreFromMetrics } from "@/core/maintenance";
 import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
 import { getProjectTag } from "@/lib/cache/tags";
+import type { MetricsSnapshot } from "@/lib/domain/assessment";
 
 type Props = {
   params: Promise<{ owner: string; project: string }>;
   children: React.ReactNode;
 };
+
+function hasScoreInputs(metrics: unknown): metrics is MetricsSnapshot {
+  if (!metrics || typeof metrics !== "object") return false;
+
+  return (
+    "commitsLast90Days" in metrics &&
+    typeof metrics.commitsLast90Days === "number" &&
+    "mergedPrsLast90Days" in metrics &&
+    typeof metrics.mergedPrsLast90Days === "number"
+  );
+}
 
 async function getCachedMetadata(owner: string, project: string) {
   "use cache";
@@ -16,15 +29,17 @@ async function getCachedMetadata(owner: string, project: string) {
   cacheTag(getProjectTag(owner, project));
 
   const run = await findLatestAssessmentRunBySlug(owner, project);
-  if (!run?.metrics) return null;
+  const view = await findProjectViewBySlug(owner, project);
+  const metrics = view?.snapshotJson ?? run?.metrics;
+  if (!hasScoreInputs(metrics)) return null;
 
-  const { score, category } = computeScoreFromMetrics(run.metrics);
+  const { score, category } = computeScoreFromMetrics(metrics);
   return {
-    fullName: run.repository.fullName,
-    description: run.metrics.description,
+    fullName: run?.repository.fullName ?? `${owner}/${project}`,
+    description: metrics.description,
     score,
     category,
-    analyzedAt: run.completedAt ?? run.startedAt,
+    analyzedAt: view?.analyzedAt ?? run?.completedAt ?? run?.startedAt ?? null,
   };
 }
 
@@ -42,9 +57,12 @@ export async function generateMetadata(
   }
 
   const title = `${meta.fullName} - ${meta.category}`;
+  const analyzedAtText = meta.analyzedAt
+    ? ` Last analyzed: ${meta.analyzedAt.toLocaleDateString("en-US")}.`
+    : "";
   const description = meta.description
-    ? `${meta.description} Maintenance score: ${meta.score}/100. Last analyzed: ${meta.analyzedAt.toLocaleDateString()}.`
-    : `Maintenance assessment for ${meta.fullName}. Score: ${meta.score}/100. Category: ${meta.category}.`;
+    ? `${meta.description} Maintenance score: ${meta.score}/100.${analyzedAtText}`
+    : `Maintenance assessment for ${meta.fullName}. Score: ${meta.score}/100. Category: ${meta.category}.${analyzedAtText}`;
 
   return {
     title,

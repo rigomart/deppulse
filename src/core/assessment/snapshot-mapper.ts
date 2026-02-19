@@ -24,6 +24,7 @@ export function toMetricsSnapshot(metrics: {
   mergedPrsLast90Days: MetricsSnapshot["mergedPrsLast90Days"];
   releases: MetricsSnapshot["releases"];
   readmeContent?: MetricsSnapshot["readmeContent"];
+  commitActivity?: MetricsSnapshot["commitActivity"];
 }): MetricsSnapshot {
   return {
     ...metrics,

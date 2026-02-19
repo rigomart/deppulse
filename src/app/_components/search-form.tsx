@@ -2,39 +2,93 @@
 
 import { Loader2, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { parseProject } from "@/lib/parse-project";
+
+function parseAnalyzeResponse(payload: unknown): {
+  error: string | null;
+  redirectTo: string | null;
+} {
+  if (!payload || typeof payload !== "object") {
+    return { error: null, redirectTo: null };
+  }
+
+  const error =
+    "error" in payload && typeof payload.error === "string"
+      ? payload.error
+      : null;
+  const redirectTo =
+    "redirectTo" in payload && typeof payload.redirectTo === "string"
+      ? payload.redirectTo
+      : null;
+
+  return { error, redirectTo };
+}
+
+function isSafeRedirectPath(value: string): boolean {
+  if (!value.startsWith("/")) return false;
+  if (value.startsWith("//")) return false;
+  return !/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(value);
+}
 
 /**
  * Render a search form for analyzing a GitHub repository.
  *
- * Validates an "owner/project" string or GitHub URL, then navigates
- * to the project page where analysis will be triggered.
+ * Sends a repository query to the analyze API, then navigates
+ * to the returned project page on success.
  */
 export function SearchForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
     const formData = new FormData(e.currentTarget);
-    const query = formData.get("query") as string;
-
-    const parsed = parseProject(query);
-    if (!parsed) {
-      setError("Invalid format. Use 'owner/repository' or GitHub URL.");
+    const queryValue = formData.get("query");
+    if (typeof queryValue !== "string") {
+      setError(
+        "Could not start analysis. Please verify the repository format.",
+      );
       return;
     }
 
-    const { owner, project } = parsed;
-    startTransition(() => {
-      router.push(`/p/${owner}/${project}`);
-    });
+    setIsPending(true);
+    try {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: queryValue }),
+      });
+
+      const payload: unknown = await response.json().catch(() => null);
+      const data = parseAnalyzeResponse(payload);
+
+      if (!response.ok || !data.redirectTo) {
+        setError(
+          data.error ??
+            "Could not start analysis. Please verify the repository format.",
+        );
+        setIsPending(false);
+        return;
+      }
+
+      if (!isSafeRedirectPath(data.redirectTo)) {
+        setError("Could not start analysis right now. Please try again.");
+        setIsPending(false);
+        return;
+      }
+
+      router.push(data.redirectTo);
+    } catch {
+      setError("Could not start analysis right now. Please try again.");
+      setIsPending(false);
+    }
   };
 
   return (

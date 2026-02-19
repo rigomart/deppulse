@@ -12,7 +12,9 @@ export async function findLatestAssessmentRunBySlug(
   owner: string,
   project: string,
 ): Promise<AnalysisRun | null> {
-  const fullName = `${owner}/${project}`;
+  const normalizedOwner = owner.trim().toLowerCase();
+  const normalizedProject = project.trim().toLowerCase();
+  const fullName = `${normalizedOwner}/${normalizedProject}`;
   const repository = await findRepositoryByFullName(fullName);
 
   if (!repository) {
@@ -44,7 +46,9 @@ export async function listAssessmentRunHistoryBySlug(
   project: string,
   limit: number,
 ): Promise<AnalysisRun[]> {
-  const fullName = `${owner}/${project}`;
+  const normalizedOwner = owner.trim().toLowerCase();
+  const normalizedProject = project.trim().toLowerCase();
+  const fullName = `${normalizedOwner}/${normalizedProject}`;
   const repository = await findRepositoryByFullName(fullName);
 
   if (!repository) {
