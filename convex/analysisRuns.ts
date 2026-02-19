@@ -10,10 +10,6 @@ import {
   triggerSource,
 } from "./schema";
 
-// ---------------------------------------------------------------------------
-// Queries
-// ---------------------------------------------------------------------------
-
 export const getByRepositorySlug = query({
   args: { owner: v.string(), project: v.string() },
   handler: async (ctx, { owner, project }) => {
@@ -98,10 +94,6 @@ export const listRecentCompleted = query({
     return unique;
   },
 });
-
-// ---------------------------------------------------------------------------
-// Mutations
-// ---------------------------------------------------------------------------
 
 export const startOrReuse = internalMutation({
   args: {

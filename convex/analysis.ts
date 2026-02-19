@@ -9,10 +9,6 @@ import {
 } from "./_shared/constants";
 import { triggerSource } from "./schema";
 
-// ---------------------------------------------------------------------------
-// GitHub API helpers
-// ---------------------------------------------------------------------------
-
 const MERGED_PRS_LIMIT = 100;
 
 const REPO_METRICS_QUERY = `
@@ -325,10 +321,6 @@ async function fetchCommitActivityRest(
     return { status: 500, weeks: [] };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Convex Actions
-// ---------------------------------------------------------------------------
 
 export const analyzeProject = action({
   args: {
