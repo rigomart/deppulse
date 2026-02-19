@@ -6,6 +6,26 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+function parseAnalyzeResponse(payload: unknown): {
+  error: string | null;
+  redirectTo: string | null;
+} {
+  if (!payload || typeof payload !== "object") {
+    return { error: null, redirectTo: null };
+  }
+
+  const error =
+    "error" in payload && typeof payload.error === "string"
+      ? payload.error
+      : null;
+  const redirectTo =
+    "redirectTo" in payload && typeof payload.redirectTo === "string"
+      ? payload.redirectTo
+      : null;
+
+  return { error, redirectTo };
+}
+
 /**
  * Render a search form for analyzing a GitHub repository.
  *
@@ -22,7 +42,13 @@ export function SearchForm() {
     setError(null);
 
     const formData = new FormData(e.currentTarget);
-    const query = formData.get("query") as string;
+    const queryValue = formData.get("query");
+    if (typeof queryValue !== "string") {
+      setError(
+        "Could not start analysis. Please verify the repository format.",
+      );
+      return;
+    }
 
     setIsPending(true);
     try {
@@ -31,26 +57,24 @@ export function SearchForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query: queryValue }),
       });
 
-      const data = (await response.json().catch(() => null)) as {
-        error?: string;
-        redirectTo?: string;
-      } | null;
+      const payload: unknown = await response.json().catch(() => null);
+      const data = parseAnalyzeResponse(payload);
 
-      if (!response.ok || !data?.redirectTo) {
+      if (!response.ok || !data.redirectTo) {
         setError(
-          data?.error ??
+          data.error ??
             "Could not start analysis. Please verify the repository format.",
         );
+        setIsPending(false);
         return;
       }
 
       router.push(data.redirectTo);
     } catch {
       setError("Could not start analysis right now. Please try again.");
-    } finally {
       setIsPending(false);
     }
   };

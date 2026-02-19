@@ -9,6 +9,7 @@ import { findRepositoryByFullName } from "../repository";
 export async function findProjectViewByRepositoryId(
   repositoryId: number,
 ): Promise<ProjectView | null> {
+  // Intentionally uncached: status polling needs the freshest row while a run is active.
   const view = await db.query.projectViews.findFirst({
     where: eq(projectViews.repositoryId, repositoryId),
   });
@@ -20,6 +21,7 @@ export async function findProjectViewBySlug(
   owner: string,
   project: string,
 ): Promise<ProjectView | null> {
+  // Intentionally uncached: called in active analysis flows where stale reads are harmful.
   const fullName = `${owner}/${project}`;
   const repository = await findRepositoryByFullName(fullName);
   if (!repository) return null;

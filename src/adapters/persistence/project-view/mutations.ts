@@ -26,7 +26,7 @@ export async function upsertProjectView(input: {
       latestRunId: input.latestRunId,
       runState: input.runState,
       progressStep: input.progressStep,
-      snapshotJson: input.snapshot ?? undefined,
+      snapshotJson: input.snapshot,
       analyzedAt: input.analyzedAt,
       updatedAt: now,
     })
@@ -36,7 +36,7 @@ export async function upsertProjectView(input: {
         latestRunId: input.latestRunId,
         runState: input.runState,
         progressStep: input.progressStep,
-        snapshotJson: input.snapshot ?? undefined,
+        snapshotJson: input.snapshot,
         analyzedAt: input.analyzedAt,
         updatedAt: now,
       },

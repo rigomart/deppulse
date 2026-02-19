@@ -27,8 +27,7 @@ async function getCachedMetadata(owner: string, project: string) {
     description: metrics.description,
     score,
     category,
-    analyzedAt:
-      view?.analyzedAt ?? run?.completedAt ?? run?.startedAt ?? new Date(),
+    analyzedAt: view?.analyzedAt ?? run?.completedAt ?? run?.startedAt ?? null,
   };
 }
 
@@ -46,9 +45,12 @@ export async function generateMetadata(
   }
 
   const title = `${meta.fullName} - ${meta.category}`;
+  const analyzedAtText = meta.analyzedAt
+    ? ` Last analyzed: ${meta.analyzedAt.toLocaleDateString()}.`
+    : "";
   const description = meta.description
-    ? `${meta.description} Maintenance score: ${meta.score}/100. Last analyzed: ${meta.analyzedAt.toLocaleDateString()}.`
-    : `Maintenance assessment for ${meta.fullName}. Score: ${meta.score}/100. Category: ${meta.category}.`;
+    ? `${meta.description} Maintenance score: ${meta.score}/100.${analyzedAtText}`
+    : `Maintenance assessment for ${meta.fullName}. Score: ${meta.score}/100. Category: ${meta.category}.${analyzedAtText}`;
 
   return {
     title,

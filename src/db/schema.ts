@@ -38,10 +38,12 @@ export const analysisRuns = pgTable(
     repositoryId: integer("repository_id")
       .notNull()
       .references(() => repositories.id, { onDelete: "cascade" }),
+    // status is the UI-facing terminal/non-terminal value used by legacy readers.
     status: text("status")
       .notNull()
       .default("complete")
       .$type<AnalysisStatus>(),
+    // runState captures internal workflow progression, including waiting_retry.
     runState: text("run_state")
       .notNull()
       .default("complete")

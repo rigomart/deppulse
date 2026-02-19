@@ -1,7 +1,7 @@
 import "server-only";
 
 import { logger } from "@/lib/logger";
-import type { CommitActivityResult, CommitActivityWeekResponse } from "./types";
+import type { CommitActivityResult } from "./types";
 
 function getAuthHeaders(): HeadersInit {
   if (!process.env.GITHUB_PAT) {
@@ -20,7 +20,7 @@ export async function fetchCommitActivity(
   repo: string,
 ): Promise<CommitActivityResult> {
   const startedAt = Date.now();
-  const endpoint = `https://api.github.com/repos/${owner}/${repo}/stats/commit_activity`;
+  const endpoint = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/stats/commit_activity`;
 
   try {
     const response = await fetch(endpoint, {
@@ -48,8 +48,7 @@ export async function fetchCommitActivity(
       return { status: normalizedStatus, weeks: [] };
     }
 
-    const payload =
-      (await response.json()) as unknown as CommitActivityWeekResponse[];
+    const payload: unknown = await response.json();
     const weeks = Array.isArray(payload)
       ? payload.filter((week) => {
           return (

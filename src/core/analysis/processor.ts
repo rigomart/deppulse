@@ -12,6 +12,7 @@ import {
   invalidateRecentAnalysesCache,
 } from "@/lib/cache/invalidation";
 import type {
+  AnalysisRun,
   CommitActivity,
   CommitActivityWeek,
   MetricsSnapshot,
@@ -168,6 +169,34 @@ async function finalizeRunAndInvalidate(input: {
   }
 }
 
+async function persistCommitActivitySnapshot(input: {
+  run: AnalysisRun;
+  snapshot: MetricsSnapshot;
+  attemptNumber: number;
+  runState: "running" | "waiting_retry";
+  nextRetryAt: Date | null;
+  updatedAt: Date;
+}): Promise<void> {
+  await updateAssessmentRun(input.run.id, {
+    status: "running",
+    runState: input.runState,
+    progressStep: "commit_activity",
+    attemptCount: input.attemptNumber,
+    nextRetryAt: input.nextRetryAt,
+    updatedAt: input.updatedAt,
+    metrics: input.snapshot,
+  });
+
+  await syncProjectViewFromRun({
+    repositoryId: input.run.repository.id,
+    runId: input.run.id,
+    runState: input.runState,
+    progressStep: "commit_activity",
+    snapshot: input.snapshot,
+    analyzedAt: null,
+  });
+}
+
 export async function attemptCommitActivityFetch(
   runId: number,
   attemptNumber: number,
@@ -196,23 +225,13 @@ export async function attemptCommitActivityFetch(
       weekly: mapCommitActivityWeeks(result.weeks),
     });
 
-    await updateAssessmentRun(run.id, {
-      status: "running",
+    await persistCommitActivitySnapshot({
+      run,
+      snapshot: workingSnapshot,
+      attemptNumber,
       runState: "running",
-      progressStep: "commit_activity",
-      attemptCount: attemptNumber,
       nextRetryAt: null,
       updatedAt: now,
-      metrics: workingSnapshot,
-    });
-
-    await syncProjectViewFromRun({
-      repositoryId: run.repository.id,
-      runId: run.id,
-      runState: "running",
-      progressStep: "commit_activity",
-      snapshot: workingSnapshot,
-      analyzedAt: null,
     });
 
     return {
@@ -227,28 +246,17 @@ export async function attemptCommitActivityFetch(
       state: "failed",
       attempts: attemptNumber,
       lastAttemptedAt: now.toISOString(),
-      errorMessage:
-        "GitHub commit activity is currently unavailable for this repository.",
+      errorMessage: "Commit history isn't available for this repository.",
       weekly: [],
     });
 
-    await updateAssessmentRun(run.id, {
-      status: "running",
+    await persistCommitActivitySnapshot({
+      run,
+      snapshot: workingSnapshot,
+      attemptNumber,
       runState: "running",
-      progressStep: "commit_activity",
-      attemptCount: attemptNumber,
       nextRetryAt: null,
       updatedAt: now,
-      metrics: workingSnapshot,
-    });
-
-    await syncProjectViewFromRun({
-      repositoryId: run.repository.id,
-      runId: run.id,
-      runState: "running",
-      progressStep: "commit_activity",
-      snapshot: workingSnapshot,
-      analyzedAt: null,
     });
 
     return {
@@ -256,8 +264,7 @@ export async function attemptCommitActivityFetch(
       attempts: attemptNumber,
       snapshot: workingSnapshot,
       errorCode: "commit_activity_unavailable",
-      errorMessage:
-        "GitHub commit activity is currently unavailable for this repository.",
+      errorMessage: "Commit history isn't available for this repository.",
     };
   }
 
@@ -266,28 +273,17 @@ export async function attemptCommitActivityFetch(
       state: "failed",
       attempts: attemptNumber,
       lastAttemptedAt: now.toISOString(),
-      errorMessage:
-        "Commit activity did not become available before retry limit was reached.",
+      errorMessage: "Commit history couldn't be loaded for this repository.",
       weekly: [],
     });
 
-    await updateAssessmentRun(run.id, {
-      status: "running",
+    await persistCommitActivitySnapshot({
+      run,
+      snapshot: workingSnapshot,
+      attemptNumber,
       runState: "running",
-      progressStep: "commit_activity",
-      attemptCount: attemptNumber,
       nextRetryAt: null,
       updatedAt: now,
-      metrics: workingSnapshot,
-    });
-
-    await syncProjectViewFromRun({
-      repositoryId: run.repository.id,
-      runId: run.id,
-      runState: "running",
-      progressStep: "commit_activity",
-      snapshot: workingSnapshot,
-      analyzedAt: null,
     });
 
     return {
@@ -295,8 +291,7 @@ export async function attemptCommitActivityFetch(
       attempts: attemptNumber,
       snapshot: workingSnapshot,
       errorCode: "commit_activity_retry_limit",
-      errorMessage:
-        "Commit activity did not become available before retry limit was reached.",
+      errorMessage: "Commit history couldn't be loaded for this repository.",
     };
   }
 
@@ -309,23 +304,13 @@ export async function attemptCommitActivityFetch(
     weekly: [],
   });
 
-  await updateAssessmentRun(run.id, {
-    status: "running",
+  await persistCommitActivitySnapshot({
+    run,
+    snapshot: workingSnapshot,
+    attemptNumber,
     runState: "waiting_retry",
-    progressStep: "commit_activity",
-    attemptCount: attemptNumber,
     nextRetryAt,
     updatedAt: now,
-    metrics: workingSnapshot,
-  });
-
-  await syncProjectViewFromRun({
-    repositoryId: run.repository.id,
-    runId: run.id,
-    runState: "waiting_retry",
-    progressStep: "commit_activity",
-    snapshot: workingSnapshot,
-    analyzedAt: null,
   });
 
   return { type: "retry", delaySeconds };
@@ -359,7 +344,7 @@ export async function finalizeRunFromCommitOutcome(input: {
 export async function primeRunWithBaseMetrics(
   runId: number,
   lockToken?: string | null,
-) {
+): Promise<AnalysisRun | null> {
   const run = await findAssessmentRunById(runId);
   if (!run) return null;
   if (isTerminalRunState(run.runState)) return run;
@@ -371,15 +356,16 @@ export async function primeRunWithBaseMetrics(
 
   const owner = run.repository.owner;
   const project = run.repository.name;
+  const now = new Date();
 
   await updateAssessmentRun(run.id, {
     status: "running",
     runState: "running",
     progressStep: "metrics",
-    workflowId: lockToken ?? run.workflowId ?? null,
+    workflowId: run.workflowId ?? null,
     lockToken: run.lockToken ?? lockToken ?? crypto.randomUUID(),
-    lockedAt: new Date(),
-    updatedAt: new Date(),
+    lockedAt: now,
+    updatedAt: now,
     errorCode: null,
     errorMessage: null,
   });
@@ -401,7 +387,7 @@ export async function primeRunWithBaseMetrics(
     runState: "running",
     progressStep: "commit_activity",
     metrics: baseSnapshot,
-    updatedAt: new Date(),
+    updatedAt: now,
     nextRetryAt: null,
     attemptCount: 0,
   });

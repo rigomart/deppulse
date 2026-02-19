@@ -1,5 +1,6 @@
 import "server-only";
 
+import { DrizzleQueryError } from "drizzle-orm/errors";
 import {
   createAssessmentRun,
   findActiveAssessmentRunByRepositoryId,
@@ -33,9 +34,14 @@ function normalizeRepoInput(
 }
 
 function isActiveRunConstraintError(error: unknown): boolean {
+  const cause = error instanceof DrizzleQueryError ? error.cause : error;
+  if (!cause || typeof cause !== "object") return false;
+
+  const code = "code" in cause ? cause.code : null;
+  const constraint = "constraint" in cause ? cause.constraint : null;
+
   return (
-    error instanceof Error &&
-    error.message.includes("analysis_runs_repository_active_idx")
+    code === "23505" && constraint === "analysis_runs_repository_active_idx"
   );
 }
 

@@ -24,7 +24,7 @@
         "streamdown": "^2.2.0",
         "tailwind-merge": "^3.4.0",
         "three": "^0.182.0",
-        "workflow": "^4.1.0-beta.57",
+        "workflow": "4.1.0-beta.57",
       },
       "devDependencies": {
         "@biomejs/biome": "2.2.0",

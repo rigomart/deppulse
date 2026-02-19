@@ -85,11 +85,13 @@ export async function updateAssessmentRun(
       lockedAt: updates.lockedAt,
       workflowId: updates.workflowId,
       triggerSource: updates.triggerSource,
-      metricsJson: updates.metrics ?? undefined,
       updatedAt: updates.updatedAt ?? new Date(),
-      completedAt: updates.completedAt ?? undefined,
-      errorCode: updates.errorCode ?? undefined,
-      errorMessage: updates.errorMessage ?? undefined,
+      ...("metrics" in updates ? { metricsJson: updates.metrics } : {}),
+      ...("completedAt" in updates ? { completedAt: updates.completedAt } : {}),
+      ...("errorCode" in updates ? { errorCode: updates.errorCode } : {}),
+      ...("errorMessage" in updates
+        ? { errorMessage: updates.errorMessage }
+        : {}),
     })
     .where(eq(analysisRuns.id, id));
 

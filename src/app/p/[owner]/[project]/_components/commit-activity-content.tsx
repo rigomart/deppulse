@@ -1,6 +1,7 @@
 "use client";
 
 import { format } from "date-fns";
+import { BarChart3, Loader2 } from "lucide-react";
 import { Line, LineChart, XAxis, YAxis } from "recharts";
 import {
   type ChartConfig,
@@ -21,35 +22,39 @@ const chartConfig: ChartConfig = {
   },
 };
 
+function ChartSkeleton({ message }: { message: string }) {
+  return (
+    <div className="flex h-[220px] w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/50">
+      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/60" />
+      <p className="text-sm text-muted-foreground">{message}</p>
+    </div>
+  );
+}
+
+function ChartEmpty({ message }: { message: string }) {
+  return (
+    <div className="flex h-[220px] w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/50">
+      <BarChart3 className="h-8 w-8 text-muted-foreground/40" />
+      <p className="text-sm text-muted-foreground">{message}</p>
+    </div>
+  );
+}
+
 export function CommitActivityContent({ run }: CommitActivityContentProps) {
   const commitActivity = run.metrics?.commitActivity;
 
-  if (!commitActivity) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Analysis in progress. Commit activity will appear when available.
-      </p>
-    );
-  }
-
-  if (commitActivity.state === "pending") {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Waiting for GitHub commit stats
-        {commitActivity.attempts > 0
-          ? ` (attempt ${commitActivity.attempts})`
-          : ""}
-        ...
-      </p>
-    );
+  if (!commitActivity || commitActivity.state === "pending") {
+    return <ChartSkeleton message="Loading commit history..." />;
   }
 
   if (commitActivity.state === "failed") {
     return (
-      <p className="text-sm text-muted-foreground">
-        {commitActivity.errorMessage ??
-          "Commit activity is currently unavailable for this repository."}
-      </p>
+      <ChartEmpty
+        message={
+          commitActivity.errorMessage ??
+          "Commit history isn't available for this repository."
+        }
+      />
     );
   }
 
@@ -59,11 +64,7 @@ export function CommitActivityContent({ run }: CommitActivityContentProps) {
   }));
 
   if (points.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        No commit activity found in the last year.
-      </p>
-    );
+    return <ChartEmpty message="No commits in the past year." />;
   }
 
   return (

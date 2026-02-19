@@ -4,16 +4,12 @@ import { findProjectViewBySlug } from "@/adapters/persistence/project-view";
 import { findLatestAssessmentRunBySlug } from "@/core/assessment";
 
 export async function getProjectAnalysisStatus(owner: string, project: string) {
-  const normalizedOwner = owner.toLowerCase();
-  const normalizedProject = project.toLowerCase();
-  const latestRun = await findLatestAssessmentRunBySlug(
-    normalizedOwner,
-    normalizedProject,
-  );
-  const projectView = await findProjectViewBySlug(
-    normalizedOwner,
-    normalizedProject,
-  );
+  const normalizedOwner = owner.trim().toLowerCase();
+  const normalizedProject = project.trim().toLowerCase();
+  const [latestRun, projectView] = await Promise.all([
+    findLatestAssessmentRunBySlug(normalizedOwner, normalizedProject),
+    findProjectViewBySlug(normalizedOwner, normalizedProject),
+  ]);
 
   return {
     repository: latestRun?.repository ?? {

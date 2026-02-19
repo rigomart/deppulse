@@ -30,12 +30,8 @@ export default async function ProjectPage({
 }: {
   params: Promise<{ owner: string; project: string }>;
 }) {
-  "use cache";
   const { owner, project } = await params;
-  cacheLife(ANALYSIS_CACHE_LIFE);
-  cacheTag(getProjectTag(owner, project));
-
-  let run = await findLatestAssessmentRunBySlug(owner, project);
+  let run = await getCachedProjectRun(owner, project);
 
   if (!run) {
     const started = await startOrReuseAnalysisRun({
@@ -58,20 +54,6 @@ export default async function ProjectPage({
           lockToken: runForProcessing.lockToken ?? null,
         });
       });
-    }
-  }
-
-  if (run) {
-    const view = await findProjectViewBySlug(owner, project);
-    if (view) {
-      run = {
-        ...run,
-        runState: view.runState,
-        progressStep: view.progressStep,
-        metrics: view.snapshotJson ?? run.metrics,
-        updatedAt: view.updatedAt,
-        completedAt: run.completedAt ?? view.analyzedAt ?? null,
-      };
     }
   }
 
@@ -115,4 +97,28 @@ export default async function ProjectPage({
       <ReadmeSection run={safeRun} />
     </>
   );
+}
+
+async function getCachedProjectRun(
+  owner: string,
+  project: string,
+): Promise<AnalysisRun | null> {
+  "use cache";
+  cacheLife(ANALYSIS_CACHE_LIFE);
+  cacheTag(getProjectTag(owner, project));
+
+  const run = await findLatestAssessmentRunBySlug(owner, project);
+  if (!run) return null;
+
+  const view = await findProjectViewBySlug(owner, project);
+  if (!view) return run;
+
+  return {
+    ...run,
+    runState: view.runState,
+    progressStep: view.progressStep,
+    metrics: view.snapshotJson ?? run.metrics,
+    updatedAt: view.updatedAt,
+    completedAt: run.completedAt ?? view.analyzedAt ?? null,
+  };
 }
