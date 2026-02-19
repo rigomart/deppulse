@@ -1,54 +1,20 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useAction } from "convex/react";
 import { Loader2, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { parseProject } from "@/lib/parse-project";
 import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
 
 export function SearchForm() {
   const router = useRouter();
-  const startOrReuse = useMutation(api.analysisRuns.startOrReuse);
+  const analyzeProject = useAction(api.analysis.analyzeProject);
 
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
-  const [pendingRunId, setPendingRunId] = useState<Id<"analysisRuns"> | null>(
-    null,
-  );
-  const [redirectTarget, setRedirectTarget] = useState<string | null>(null);
-
-  // Subscribe to the pending run reactively (skipped when no pending run)
-  const pendingRun = useQuery(
-    api.analysisRuns.getById,
-    pendingRunId ? { runId: pendingRunId } : "skip",
-  );
-
-  // When the pending run advances past bootstrap, redirect
-  useEffect(() => {
-    if (!pendingRun || !redirectTarget) return;
-
-    if (
-      pendingRun.progressStep !== "bootstrap" &&
-      pendingRun.progressStep !== "metrics"
-    ) {
-      router.push(redirectTarget);
-    }
-
-    // If the run failed during metrics fetch, show error
-    if (pendingRun.runState === "failed") {
-      setError(
-        pendingRun.errorMessage ??
-          "Analysis failed. Please check the repository name and try again.",
-      );
-      setIsPending(false);
-      setPendingRunId(null);
-      setRedirectTarget(null);
-    }
-  }, [pendingRun, redirectTarget, router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -70,30 +36,25 @@ export function SearchForm() {
     }
 
     setIsPending(true);
+    let target: string;
     try {
-      const result = await startOrReuse({
+      const result = await analyzeProject({
         owner: parsed.owner,
         project: parsed.project,
         triggerSource: "homepage",
       });
-
-      const target = `/p/${result.owner}/${result.project}`;
-
-      if (result.alreadyComplete) {
-        router.push(target);
-        return;
-      }
-
-      // Subscribe to the run and wait for metrics to be fetched
-      setPendingRunId(result.runId);
-      setRedirectTarget(target);
+      target = `/p/${result.owner}/${result.project}`;
     } catch (err) {
-      console.error("startOrReuse failed:", err);
+      console.error("analyzeProject failed:", err);
       const message =
         err instanceof Error ? err.message : "Unknown error occurred";
       setError(`Could not start analysis: ${message}`);
       setIsPending(false);
+      return;
     }
+
+    setIsPending(false);
+    router.push(target);
   };
 
   return (

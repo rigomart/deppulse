@@ -1,9 +1,5 @@
-import { graphql } from "@octokit/graphql";
+import { Octokit } from "@octokit/core";
 
-export function createGraphqlClient(token: string) {
-  return graphql.defaults({
-    headers: {
-      authorization: `token ${token}`,
-    },
-  });
+export function createOctokitClient(token: string) {
+  return new Octokit({ auth: token });
 }

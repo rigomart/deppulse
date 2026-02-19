@@ -1,12 +1,6 @@
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import {
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
-} from "./_generated/server";
+import { internalMutation, internalQuery, query } from "./_generated/server";
 import { ANALYSIS_FRESHNESS_MS, isTerminalRunState } from "./_shared/constants";
 import { mapAnalysisRun } from "./_shared/mappers";
 import {
@@ -109,7 +103,7 @@ export const listRecentCompleted = query({
 // Mutations
 // ---------------------------------------------------------------------------
 
-export const startOrReuse = mutation({
+export const startOrReuse = internalMutation({
   args: {
     owner: v.string(),
     project: v.string(),
@@ -149,10 +143,11 @@ export const startOrReuse = mutation({
           owner,
           project,
           alreadyComplete: false,
+          alreadyActive: true,
         };
       }
 
-      // Check for a fresh complete run
+      // Check for a fresh complete/partial run
       const latestRun = await ctx.db
         .query("analysisRuns")
         .withIndex("by_repositoryId", (q) =>
@@ -161,7 +156,10 @@ export const startOrReuse = mutation({
         .order("desc")
         .first();
 
-      if (latestRun && latestRun.status === "complete") {
+      if (
+        latestRun &&
+        (latestRun.status === "complete" || latestRun.status === "partial")
+      ) {
         const age = Date.now() - (latestRun.completedAt ?? latestRun.startedAt);
         if (age < ANALYSIS_FRESHNESS_MS) {
           return {
@@ -169,6 +167,7 @@ export const startOrReuse = mutation({
             owner,
             project,
             alreadyComplete: true,
+            alreadyActive: false,
           };
         }
       }
@@ -207,6 +206,7 @@ export const startOrReuse = mutation({
           owner,
           project,
           alreadyComplete: false,
+          alreadyActive: true,
         };
       }
     }
@@ -223,10 +223,13 @@ export const startOrReuse = mutation({
       updatedAt: now,
     });
 
-    // Schedule the background processing action
-    await ctx.scheduler.runAfter(0, internal.analysis.processRun, { runId });
-
-    return { runId, owner, project, alreadyComplete: false };
+    return {
+      runId,
+      owner,
+      project,
+      alreadyComplete: false,
+      alreadyActive: false,
+    };
   },
 });
 
@@ -245,7 +248,6 @@ export const updateRunState = internalMutation({
     const run = await ctx.db.get(runId);
     if (!run) throw new Error(`Run ${runId} not found`);
 
-    // Don't update terminal runs
     if (isTerminalRunState(run.runState)) return;
 
     const patch: Record<string, unknown> = { updatedAt: Date.now() };
@@ -278,6 +280,8 @@ export const finalizeRun = internalMutation({
   handler: async (ctx, { runId, ...updates }) => {
     const run = await ctx.db.get(runId);
     if (!run) throw new Error(`Run ${runId} not found`);
+
+    if (isTerminalRunState(run.runState)) return;
 
     const now = Date.now();
     const patch: Record<string, unknown> = {
