@@ -27,11 +27,9 @@ export function NotAnalyzedError({ owner, project }: NotAnalyzedErrorProps) {
             homepage to start an analysis.
           </p>
         </div>
-        <Link href="/">
-          <Button variant="outline" className="mt-2">
-            Go to Homepage
-          </Button>
-        </Link>
+        <Button variant="outline" className="mt-2" asChild>
+          <Link href="/">Go to Homepage</Link>
+        </Button>
       </div>
     </Container>
   );

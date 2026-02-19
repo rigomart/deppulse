@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { computeScoreFromMetrics } from "@/core/maintenance";
 import { categoryColors } from "@/lib/category-styles";
-import type { AnalysisRun, MetricsSnapshot } from "@/lib/domain/assessment";
+import type { AnalysisRun } from "@/lib/domain/assessment";
 import { formatNumber } from "@/lib/utils";
 import { api } from "../../../convex/_generated/api";
 
@@ -29,7 +29,7 @@ export async function RecentAnalyses() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {recentRuns.map((run) => {
             const category = run.metrics
-              ? computeScoreFromMetrics(run.metrics as MetricsSnapshot).category
+              ? computeScoreFromMetrics(run.metrics).category
               : "inactive";
             return (
               <Link

@@ -13,7 +13,6 @@ import type * as _shared_mappers from "../_shared/mappers.js";
 import type * as _shared_types from "../_shared/types.js";
 import type * as analysis from "../analysis.js";
 import type * as analysisRuns from "../analysisRuns.js";
-import type * as repositories from "../repositories.js";
 
 import type {
   ApiFromModules,
@@ -27,7 +26,6 @@ declare const fullApi: ApiFromModules<{
   "_shared/types": typeof _shared_types;
   analysis: typeof analysis;
   analysisRuns: typeof analysisRuns;
-  repositories: typeof repositories;
 }>;
 
 /**

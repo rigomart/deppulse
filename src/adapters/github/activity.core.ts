@@ -62,12 +62,11 @@ export async function fetchCommitActivity(
       });
 
       const status =
-        error.status === 401 ||
-        error.status === 403 ||
-        error.status === 404 ||
-        error.status === 422
-          ? (error.status as 403 | 404)
-          : 500;
+        error.status === 401 || error.status === 403
+          ? 403
+          : error.status === 404 || error.status === 422
+            ? 404
+            : 500;
       return { status, weeks: [] };
     }
 

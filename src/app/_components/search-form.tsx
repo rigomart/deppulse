@@ -36,25 +36,20 @@ export function SearchForm() {
     }
 
     setIsPending(true);
-    let target: string;
     try {
       const result = await analyzeProject({
         owner: parsed.owner,
         project: parsed.project,
         triggerSource: "homepage",
       });
-      target = `/p/${result.owner}/${result.project}`;
+      router.push(`/p/${result.owner}/${result.project}`);
+      return;
     } catch (err) {
       console.error("analyzeProject failed:", err);
-      const message =
-        err instanceof Error ? err.message : "Unknown error occurred";
-      setError(`Could not start analysis: ${message}`);
+      setError("Could not start analysis. Please try again.");
+    } finally {
       setIsPending(false);
-      return;
     }
-
-    setIsPending(false);
-    router.push(target);
   };
 
   return (
