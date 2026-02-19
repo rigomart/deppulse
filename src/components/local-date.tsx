@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { useEffect, useState } from "react";
 
 interface LocalDateProps {
-  date: Date | string;
+  date: Date | string | number;
   formatStr?: string;
 }
 

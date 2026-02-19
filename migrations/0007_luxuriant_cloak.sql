@@ -1,1 +1,0 @@
-DROP TABLE "commit_activity_points" CASCADE;

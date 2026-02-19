@@ -71,21 +71,17 @@ export interface MetricsSnapshot {
 }
 
 export interface AnalysisRun {
-  id: number;
+  id: string;
   repository: RepositoryRef;
   status: AnalysisStatus;
   runState?: AnalysisRunState;
   progressStep?: AnalysisRunProgressStep;
   attemptCount?: number;
-  nextRetryAt?: Date | null;
-  lockToken?: string | null;
-  lockedAt?: Date | null;
-  workflowId?: string | null;
   triggerSource?: AnalysisRunTriggerSource;
-  updatedAt?: Date;
+  updatedAt?: number;
   metrics: MetricsSnapshot | null;
-  startedAt: Date;
-  completedAt: Date | null;
+  startedAt: number;
+  completedAt: number | null;
   errorCode: string | null;
   errorMessage: string | null;
 }

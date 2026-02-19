@@ -1,25 +1,20 @@
-import "server-only";
-
+import { fetchQuery } from "convex/nextjs";
 import { Code2, Star } from "lucide-react";
-import { cacheLife, cacheTag } from "next/cache";
 import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@/components/container";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { listRecentCompletedAssessments } from "@/core/assessment";
 import { computeScoreFromMetrics } from "@/core/maintenance";
-import { HOMEPAGE_CACHE_LIFE } from "@/lib/cache/analysis-cache";
-import { getRecentAnalysesTag } from "@/lib/cache/tags";
 import { categoryColors } from "@/lib/category-styles";
+import type { AnalysisRun, MetricsSnapshot } from "@/lib/domain/assessment";
 import { formatNumber } from "@/lib/utils";
+import { api } from "../../../convex/_generated/api";
 
 export async function RecentAnalyses() {
-  "use cache";
-  cacheLife(HOMEPAGE_CACHE_LIFE);
-  cacheTag(getRecentAnalysesTag());
-
-  const recentRuns = await listRecentCompletedAssessments(12);
+  const recentRuns = (await fetchQuery(api.analysisRuns.listRecentCompleted, {
+    limit: 12,
+  })) as AnalysisRun[];
 
   if (recentRuns.length === 0) {
     return null;
@@ -34,7 +29,7 @@ export async function RecentAnalyses() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {recentRuns.map((run) => {
             const category = run.metrics
-              ? computeScoreFromMetrics(run.metrics).category
+              ? computeScoreFromMetrics(run.metrics as MetricsSnapshot).category
               : "inactive";
             return (
               <Link

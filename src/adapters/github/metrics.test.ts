@@ -4,7 +4,7 @@ vi.mock("./client", () => ({
   graphqlWithAuth: vi.fn(),
 }));
 
-vi.mock("@/lib/logger", () => ({
+vi.mock("@/lib/logger.core", () => ({
   logger: {
     api: vi.fn(),
   },
@@ -14,7 +14,7 @@ vi.mock("./rate-limit", () => ({
   parseGraphQLRateLimit: vi.fn(),
 }));
 
-import { logger } from "@/lib/logger";
+import { logger } from "@/lib/logger.core";
 import { graphqlWithAuth } from "./client";
 import { fetchRepoMetrics } from "./metrics";
 import { parseGraphQLRateLimit } from "./rate-limit";
