@@ -1,5 +1,6 @@
 import { fetchQuery } from "convex/nextjs";
 import { Code2, Star } from "lucide-react";
+import { cacheLife } from "next/cache";
 import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@/components/container";
@@ -12,6 +13,9 @@ import { formatNumber } from "@/lib/utils";
 import { api } from "../../../convex/_generated/api";
 
 export async function RecentAnalyses() {
+  "use cache";
+  cacheLife("minutes");
+
   const recentRuns = (await fetchQuery(api.analysisRuns.listRecentCompleted, {
     limit: 12,
   })) as AnalysisRun[];
