@@ -1,13 +1,10 @@
 import "server-only";
 
-import { graphql } from "@octokit/graphql";
+import { createOctokitClient } from "./client.core";
 
 if (!process.env.GITHUB_PAT) {
   throw new Error("GITHUB_PAT environment variable is required");
 }
 
-export const graphqlWithAuth = graphql.defaults({
-  headers: {
-    authorization: `token ${process.env.GITHUB_PAT}`,
-  },
-});
+export const octokit = createOctokitClient(process.env.GITHUB_PAT);
+export const graphqlWithAuth = octokit.graphql;

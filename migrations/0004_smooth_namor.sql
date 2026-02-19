@@ -1,1 +1,0 @@
-ALTER TABLE "analysis_runs" ALTER COLUMN "status" SET DEFAULT 'complete';

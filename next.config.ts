@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import { withWorkflow } from "workflow/next";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -37,15 +36,14 @@ const securityHeaders = [
       "img-src 'self' data: https://avatars.githubusercontent.com",
       "font-src 'self'",
       isDev
-        ? "connect-src 'self' ws://localhost:* http://localhost:*"
-        : "connect-src 'self'",
+        ? "connect-src 'self' ws://localhost:* http://localhost:* https://*.convex.cloud wss://*.convex.cloud"
+        : "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud",
       "frame-ancestors 'none'",
     ].join("; "),
   },
 ];
 
 const nextConfig: NextConfig = {
-  cacheComponents: true,
   reactCompiler: true,
   images: {
     remotePatterns: [
@@ -65,4 +63,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withWorkflow(nextConfig);
+export default nextConfig;

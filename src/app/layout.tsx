@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
+import { ConvexClientProvider } from "@/components/convex-client-provider";
 import { DotBackground } from "@/components/dot-background";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
@@ -71,10 +72,12 @@ export default function RootLayout({
       className={`${ibmPlexSans.variable} ${dmMono.variable} antialiased`}
     >
       <body className="flex min-h-screen flex-col">
-        <DotBackground />
-        <Header />
-        <div className="flex-1">{children}</div>
-        <Footer />
+        <ConvexClientProvider>
+          <DotBackground />
+          <Header />
+          <div className="flex-1">{children}</div>
+          <Footer />
+        </ConvexClientProvider>
       </body>
     </html>
   );

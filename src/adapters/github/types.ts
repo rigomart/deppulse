@@ -1,4 +1,4 @@
-import type { RateLimit } from "@/lib/logger";
+import type { RateLimit } from "@/lib/logger.core";
 
 export type { RateLimit };
 

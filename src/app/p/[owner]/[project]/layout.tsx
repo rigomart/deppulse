@@ -1,11 +1,8 @@
+import { fetchQuery } from "convex/nextjs";
 import type { Metadata, ResolvingMetadata } from "next";
-import { cacheLife, cacheTag } from "next/cache";
-import { findProjectViewBySlug } from "@/adapters/persistence/project-view";
-import { findLatestAssessmentRunBySlug } from "@/core/assessment";
 import { computeScoreFromMetrics } from "@/core/maintenance";
-import { ANALYSIS_CACHE_LIFE } from "@/lib/cache/analysis-cache";
-import { getProjectTag } from "@/lib/cache/tags";
-import type { MetricsSnapshot } from "@/lib/domain/assessment";
+import type { AnalysisRun, MetricsSnapshot } from "@/lib/domain/assessment";
+import { api } from "../../../../../convex/_generated/api";
 
 type Props = {
   params: Promise<{ owner: string; project: string }>;
@@ -23,46 +20,35 @@ function hasScoreInputs(metrics: unknown): metrics is MetricsSnapshot {
   );
 }
 
-async function getCachedMetadata(owner: string, project: string) {
-  "use cache";
-  cacheLife(ANALYSIS_CACHE_LIFE);
-  cacheTag(getProjectTag(owner, project));
-
-  const run = await findLatestAssessmentRunBySlug(owner, project);
-  const view = await findProjectViewBySlug(owner, project);
-  const metrics = view?.snapshotJson ?? run?.metrics;
-  if (!hasScoreInputs(metrics)) return null;
-
-  const { score, category } = computeScoreFromMetrics(metrics);
-  return {
-    fullName: run?.repository.fullName ?? `${owner}/${project}`,
-    description: metrics.description,
-    score,
-    category,
-    analyzedAt: view?.analyzedAt ?? run?.completedAt ?? run?.startedAt ?? null,
-  };
-}
-
 export async function generateMetadata(
   { params }: Props,
   _parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const { owner, project } = await params;
-  const meta = await getCachedMetadata(owner, project);
 
-  if (!meta) {
+  const run = (await fetchQuery(api.analysisRuns.getByRepositorySlug, {
+    owner,
+    project,
+  })) as AnalysisRun | null;
+
+  const metrics = run?.metrics;
+  if (!run || !hasScoreInputs(metrics)) {
     return {
       title: `${owner}/${project} - Analyzing...`,
     };
   }
 
-  const title = `${meta.fullName} - ${meta.category}`;
-  const analyzedAtText = meta.analyzedAt
-    ? ` Last analyzed: ${meta.analyzedAt.toLocaleDateString("en-US")}.`
+  const { score, category } = computeScoreFromMetrics(metrics);
+  const fullName = run.repository.fullName;
+  const analyzedAt = run.completedAt ?? run.startedAt;
+  const analyzedAtText = analyzedAt
+    ? ` Last analyzed: ${new Date(analyzedAt).toLocaleDateString("en-US")}.`
     : "";
-  const description = meta.description
-    ? `${meta.description} Maintenance score: ${meta.score}/100.${analyzedAtText}`
-    : `Maintenance assessment for ${meta.fullName}. Score: ${meta.score}/100. Category: ${meta.category}.${analyzedAtText}`;
+  const description = metrics.description
+    ? `${metrics.description} Maintenance score: ${score}/100.${analyzedAtText}`
+    : `Maintenance assessment for ${fullName}. Score: ${score}/100. Category: ${category}.${analyzedAtText}`;
+
+  const title = `${fullName} - ${category}`;
 
   return {
     title,
