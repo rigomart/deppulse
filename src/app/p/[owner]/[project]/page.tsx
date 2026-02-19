@@ -1,5 +1,6 @@
 import { cacheLife, cacheTag } from "next/cache";
-import { after } from "next/server";
+import { after, connection } from "next/server";
+import { Suspense } from "react";
 import { findProjectViewBySlug } from "@/adapters/persistence/project-view";
 import {
   primeRunWithBaseMetrics,
@@ -17,19 +18,33 @@ import { ProjectHeader } from "./_components/project-header";
 import { ReadmeSection } from "./_components/readme-section";
 import { RecentActivity } from "./_components/recent-activity";
 
-/**
- * Required for cache components with dynamic routes.
- * https://nextjs.org/docs/app/api-reference/file-conventions/dynamic-routes#with-cache-components
- */
-export async function generateStaticParams() {
-  return [{ owner: "vercel", project: "next.js" }];
+function ProjectPageFallback() {
+  return (
+    <div className="px-4 py-6 text-sm text-muted-foreground">
+      Loading project analysis...
+    </div>
+  );
 }
 
-export default async function ProjectPage({
+export default function ProjectPage({
   params,
 }: {
   params: Promise<{ owner: string; project: string }>;
 }) {
+  return (
+    <Suspense fallback={<ProjectPageFallback />}>
+      <ProjectPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function ProjectPageContent({
+  params,
+}: {
+  params: Promise<{ owner: string; project: string }>;
+}) {
+  await connection();
+
   const { owner, project } = await params;
   let run = await getCachedProjectRun(owner, project);
 
