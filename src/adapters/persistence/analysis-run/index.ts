@@ -5,6 +5,5 @@ export {
   findAssessmentRunById,
   findLatestAssessmentRunByRepositoryId,
   listAssessmentRunsByRepositoryId,
-  listDueRetryAssessmentRuns,
   listRecentCompletedAssessmentRuns,
 } from "./queries";

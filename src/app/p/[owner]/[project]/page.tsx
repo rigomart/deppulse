@@ -31,7 +31,9 @@ export async function generateStaticParams() {
 
 export default async function ProjectPage({
   params,
-}: PageProps<"/p/[owner]/[project]">) {
+}: {
+  params: Promise<{ owner: string; project: string }>;
+}) {
   "use cache";
   const { owner, project } = await params;
   cacheLife(ANALYSIS_CACHE_LIFE);

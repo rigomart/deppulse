@@ -71,15 +71,9 @@ GITHUB_PAT=ghp_...               # GitHub Personal Access Token
 
 # Feature flags
 ANALYSIS_V2_WRITE_PATH=true
-ANALYSIS_V2_WORKFLOW=true
 ANALYSIS_V2_POLLING=true
 ANALYSIS_V2_READ_MODEL=true
 ANALYSIS_V2_DIRECT_VISIT_FALLBACK=true
-
-# Optional fallbacks / integration
-ANALYSIS_V2_FALLBACK_RUNNER=false
-ANALYSIS_V2_WORKFLOW_ENDPOINT=    # Optional external workflow endpoint
-ANALYSIS_V2_WORKFLOW_TOKEN=       # Optional auth token
 ```
 
 Set up the database and start the dev server:
