@@ -31,9 +31,12 @@ export interface MaintenanceInput {
   stars: number;
   repositoryCreatedAt: Date | null;
   releasesLastYear: number;
+  releaseRegularity?: number | null;
 
   // Expected activity signals
+  commitsLast30Days?: number;
   commitsLast90Days: number;
+  commitsLast365Days?: number;
   mergedPrsLast90Days: number;
   issuesCreatedLastYear: number;
   openPrsCount: number;
@@ -52,6 +55,12 @@ export interface MaintenanceResult {
 }
 
 function toScoringInput(input: MaintenanceInput): ScoringInput {
+  const commitsLast30Days =
+    input.commitsLast30Days ?? Math.max(0, Math.round(input.commitsLast90Days / 3));
+  const commitsLast365Days =
+    input.commitsLast365Days ??
+    Math.max(input.commitsLast90Days, input.commitsLast90Days * 4);
+
   return {
     lastCommitAt: input.lastCommitAt,
     lastMergedPrAt: input.lastMergedPrAt,
@@ -61,7 +70,10 @@ function toScoringInput(input: MaintenanceInput): ScoringInput {
     stars: input.stars,
     repositoryCreatedAt: input.repositoryCreatedAt,
     releasesLastYear: input.releasesLastYear,
+    releaseRegularity: input.releaseRegularity ?? null,
+    commitsLast30Days,
     commitsLast90Days: input.commitsLast90Days,
+    commitsLast365Days,
     mergedPrsLast90Days: input.mergedPrsLast90Days,
     issuesCreatedLastYear: input.issuesCreatedLastYear,
     openPrsCount: input.openPrsCount,
@@ -104,12 +116,34 @@ export function computeScoreFromMetrics(
       "Metrics snapshot missing mergedPrsLast90Days. Re-run analysis to compute score.",
     );
   }
+  if (typeof metrics.issuesCreatedLastYear !== "number") {
+    throw new Error(
+      "Metrics snapshot missing issuesCreatedLastYear. Re-run analysis to compute score.",
+    );
+  }
+  if (typeof metrics.openPrsCount !== "number") {
+    throw new Error(
+      "Metrics snapshot missing openPrsCount. Re-run analysis to compute score.",
+    );
+  }
 
   // Count releases in the last year
   const oneYearAgo = now.getTime() - 365 * 24 * 60 * 60 * 1000;
-  const releasesLastYear = metrics.releases.filter(
-    (release) => new Date(release.publishedAt).getTime() > oneYearAgo,
-  ).length;
+  const releaseTimesLastYear = metrics.releases
+    .map((release) => new Date(release.publishedAt).getTime())
+    .filter((publishedAtMs) => publishedAtMs > oneYearAgo)
+    .sort((a, b) => a - b);
+  const releasesLastYear = releaseTimesLastYear.length;
+  const releaseRegularity = computeReleaseRegularity(releaseTimesLastYear);
+
+  const commitsLast30Days =
+    typeof metrics.commitsLast30Days === "number"
+      ? metrics.commitsLast30Days
+      : Math.max(0, Math.round(metrics.commitsLast90Days / 3));
+  const commitsLast365Days =
+    typeof metrics.commitsLast365Days === "number"
+      ? metrics.commitsLast365Days
+      : Math.max(metrics.commitsLast90Days, metrics.commitsLast90Days * 4);
 
   return calculateMaintenanceScore(
     {
@@ -129,7 +163,10 @@ export function computeScoreFromMetrics(
         ? new Date(metrics.repositoryCreatedAt)
         : null,
       releasesLastYear,
+      releaseRegularity,
+      commitsLast30Days,
       commitsLast90Days: metrics.commitsLast90Days,
+      commitsLast365Days,
       mergedPrsLast90Days: metrics.mergedPrsLast90Days,
       issuesCreatedLastYear: metrics.issuesCreatedLastYear,
       openPrsCount: metrics.openPrsCount,
@@ -137,4 +174,34 @@ export function computeScoreFromMetrics(
     },
     options,
   );
+}
+
+function computeReleaseRegularity(releaseTimes: number[]): number | null {
+  if (releaseTimes.length < 3) return null;
+
+  const intervals: number[] = [];
+  for (let index = 1; index < releaseTimes.length; index++) {
+    const previous = releaseTimes[index - 1];
+    const current = releaseTimes[index];
+    if (previous === undefined || current === undefined) continue;
+    const intervalDays = (current - previous) / (24 * 60 * 60 * 1000);
+    if (intervalDays > 0) intervals.push(intervalDays);
+  }
+
+  if (intervals.length < 2) return null;
+
+  const mean = intervals.reduce((sum, value) => sum + value, 0) / intervals.length;
+  if (mean <= 0) return null;
+
+  const variance =
+    intervals.reduce((sum, value) => sum + (value - mean) ** 2, 0) /
+    intervals.length;
+  const stdDev = Math.sqrt(variance);
+  const coefficientOfVariation = stdDev / mean;
+
+  if (coefficientOfVariation <= 0.25) return 1;
+  if (coefficientOfVariation <= 0.5) return 0.85;
+  if (coefficientOfVariation <= 0.75) return 0.65;
+  if (coefficientOfVariation <= 1) return 0.45;
+  return 0.25;
 }

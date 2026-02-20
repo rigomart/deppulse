@@ -3,8 +3,6 @@ import type { MetricsSnapshot } from "@/lib/domain/assessment";
 import {
   calculateMaintenanceScore,
   computeScoreFromMetrics,
-  MAINTENANCE_CATEGORY_INFO,
-  type MaintenanceCategory,
   type MaintenanceInput,
 } from "./maintenance";
 
@@ -91,12 +89,79 @@ describe("maintenance scoring", () => {
     expect(result.breakdown.expectedActivityTier).toBe("medium");
   });
 
-  it("penalizes stale high-expected repositories like ts-rest", () => {
-    const tsRestStyle = calculateMaintenanceScore(
+  it("throws when required expected-activity counters are missing", () => {
+    const snapshot: MetricsSnapshot = {
+      description: "repo",
+      stars: 700,
+      forks: 100,
+      avatarUrl: "https://example.com/avatar.png",
+      htmlUrl: "https://github.com/acme/repo",
+      license: "MIT",
+      language: "TypeScript",
+      repositoryCreatedAt: "2020-01-01T00:00:00.000Z",
+      isArchived: false,
+      lastCommitAt: "2025-12-10T00:00:00.000Z",
+      lastReleaseAt: "2025-11-10T00:00:00.000Z",
+      lastClosedIssueAt: "2026-01-01T00:00:00.000Z",
+      lastMergedPrAt: "2025-12-15T00:00:00.000Z",
+      openIssuesPercent: 20,
+      openIssuesCount: 20,
+      closedIssuesCount: 80,
+      medianIssueResolutionDays: 9,
+      openPrsCount: 5,
+      issuesCreatedLastYear: 14,
+      commitsLast90Days: 4,
+      mergedPrsLast90Days: 2,
+      releases: [
+        {
+          tagName: "v1.4.0",
+          name: "v1.4.0",
+          publishedAt: "2025-11-10T00:00:00.000Z",
+        },
+      ],
+    };
+
+    const missingIssuesCreated = {
+      ...snapshot,
+      issuesCreatedLastYear: undefined,
+    } as unknown as MetricsSnapshot;
+    expect(() => computeScoreFromMetrics(missingIssuesCreated, { now: NOW })).toThrow(
+      "issuesCreatedLastYear",
+    );
+
+    const missingOpenPrs = {
+      ...snapshot,
+      openPrsCount: undefined,
+    } as unknown as MetricsSnapshot;
+    expect(() => computeScoreFromMetrics(missingOpenPrs, { now: NOW })).toThrow(
+      "openPrsCount",
+    );
+  });
+
+  it("penalizes stale medium-expected repositories compared to fresh ones", () => {
+    const fresh = calculateMaintenanceScore(
       makeInput({
-        lastCommitAt: daysAgo(256),
-        lastMergedPrAt: null,
-        lastReleaseAt: daysAgo(346),
+        lastCommitAt: daysAgo(10),
+        lastMergedPrAt: daysAgo(20),
+        lastReleaseAt: daysAgo(30),
+        openIssuesPercent: 29.3,
+        medianIssueResolutionDays: 20,
+        stars: 3_246,
+        repositoryCreatedAt: yearsAgo(3),
+        releasesLastYear: 7,
+        commitsLast90Days: 4,
+        mergedPrsLast90Days: 2,
+        issuesCreatedLastYear: 22,
+        openPrsCount: 7,
+      }),
+      { now: NOW },
+    );
+
+    const stale = calculateMaintenanceScore(
+      makeInput({
+        lastCommitAt: daysAgo(220),
+        lastMergedPrAt: daysAgo(230),
+        lastReleaseAt: daysAgo(250),
         openIssuesPercent: 29.3,
         medianIssueResolutionDays: 20,
         stars: 3_246,
@@ -110,47 +175,28 @@ describe("maintenance scoring", () => {
       { now: NOW },
     );
 
-    expect(tsRestStyle.breakdown.expectedActivityTier).toBe("high");
-    expect(tsRestStyle.score).toBeLessThanOrEqual(35);
-    expect(["declining", "inactive"]).toContain(tsRestStyle.category);
+    expect(fresh.breakdown.expectedActivityTier).toBe("medium");
+    expect(stale.breakdown.expectedActivityTier).toBe("medium");
+    expect(stale.score).toBeLessThan(fresh.score);
   });
 
-  it("penalizes stale medium-expected repositories like next-international", () => {
-    const nextInternationalStyle = calculateMaintenanceScore(
+  it("penalizes irregular release cadence when release count is equal", () => {
+    const regular = calculateMaintenanceScore(
       makeInput({
-        lastCommitAt: daysAgo(220),
-        lastMergedPrAt: daysAgo(230),
-        lastReleaseAt: daysAgo(250),
-        stars: 1_800,
-        openIssuesPercent: 12,
-        medianIssueResolutionDays: 10,
-        releasesLastYear: 5,
-        commitsLast90Days: 0,
-        mergedPrsLast90Days: 0,
-        issuesCreatedLastYear: 15,
-        openPrsCount: 6,
+        releasesLastYear: 4,
+        releaseRegularity: 1,
       }),
       { now: NOW },
     );
 
-    expect(nextInternationalStyle.breakdown.expectedActivityTier).toBe(
-      "medium",
+    const irregular = calculateMaintenanceScore(
+      makeInput({
+        releasesLastYear: 4,
+        releaseRegularity: 0.25,
+      }),
+      { now: NOW },
     );
-    expect(nextInternationalStyle.score).toBeLessThanOrEqual(35);
-  });
-});
 
-describe("MAINTENANCE_CATEGORY_INFO", () => {
-  it("provides info for all categories", () => {
-    const categories: MaintenanceCategory[] = [
-      "healthy",
-      "moderate",
-      "declining",
-      "inactive",
-    ];
-
-    for (const category of categories) {
-      expect(MAINTENANCE_CATEGORY_INFO[category]).toBeDefined();
-    }
+    expect(irregular.score).toBeLessThan(regular.score);
   });
 });

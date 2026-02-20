@@ -9,11 +9,11 @@ export const STRICT_BALANCED_PROFILE: ScoringProfile = {
     declining: 25,
   },
   qualityWeights: {
-    issueHealth: 0.3,
-    releaseHealth: 0.25,
+    issueHealth: 0.2,
+    releaseHealth: 0.3,
     community: 0.15,
-    maturity: 0.1,
-    activityBreadth: 0.2,
+    maturity: 0.2,
+    activityBreadth: 0.15,
   },
   issueHealthSplit: {
     openRatio: 0.5,
@@ -46,8 +46,8 @@ export const STRICT_BALANCED_PROFILE: ScoringProfile = {
       newer: 0.5,
     },
     releaseCadencePerYear: {
-      excellent: 6,
-      good: 3,
+      excellent: 4,
+      good: 2,
       fair: 1,
     },
     activityBreadthFractions: [0, 0.35, 0.7, 1],
@@ -58,14 +58,12 @@ export const STRICT_BALANCED_PROFILE: ScoringProfile = {
       mergedPrsLast90Days: 8,
       issuesCreatedLastYear: 36,
       openPrsCount: 12,
-      stars: 3000,
     },
     medium: {
       commitsLast90Days: 4,
       mergedPrsLast90Days: 2,
       issuesCreatedLastYear: 12,
       openPrsCount: 4,
-      stars: 500,
     },
   },
   freshnessMultipliers: {

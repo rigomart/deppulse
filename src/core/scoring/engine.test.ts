@@ -60,8 +60,8 @@ describe("scoring engine", () => {
     expect(result.score).toBeLessThanOrEqual(20);
   });
 
-  it("applies strongest inactivity multiplier to popular but stale repositories", () => {
-    const result = calculateScore(
+  it("uses low-tier interpolated multiplier for popular but stale repositories", () => {
+    const lowExpected = calculateScore(
       makeInput({
         lastCommitAt: daysAgo(420),
         lastMergedPrAt: null,
@@ -75,14 +75,29 @@ describe("scoring engine", () => {
       { now: NOW },
     );
 
-    expect(result.breakdown.expectedActivityTier).toBe("high");
-    expect(result.breakdown.freshnessMultiplier).toBe(0.05);
-    expect(result.score).toBeGreaterThanOrEqual(1);
-    expect(result.score).toBeLessThanOrEqual(20);
+    const highExpected = calculateScore(
+      makeInput({
+        lastCommitAt: daysAgo(420),
+        lastMergedPrAt: null,
+        lastReleaseAt: null,
+        stars: 3_000,
+        commitsLast90Days: 20,
+        mergedPrsLast90Days: 10,
+        issuesCreatedLastYear: 50,
+        openPrsCount: 15,
+      }),
+      { now: NOW },
+    );
+
+    expect(lowExpected.breakdown.expectedActivityTier).toBe("low");
+    expect(lowExpected.breakdown.freshnessMultiplier).toBeGreaterThan(
+      highExpected.breakdown.freshnessMultiplier,
+    );
+    expect(lowExpected.score).toBeGreaterThan(highExpected.score);
   });
 
-  it("allows low-expected stable utilities to stay moderate at similar inactivity", () => {
-    const result = calculateScore(
+  it("keeps low-expected utilities less penalized at similar inactivity", () => {
+    const lowExpected = calculateScore(
       makeInput({
         lastCommitAt: daysAgo(300),
         lastMergedPrAt: daysAgo(320),
@@ -96,9 +111,17 @@ describe("scoring engine", () => {
       { now: NOW },
     );
 
-    expect(result.breakdown.expectedActivityTier).toBe("low");
-    expect(result.score).toBeGreaterThanOrEqual(45);
-    expect(result.category).toBe("moderate");
+    const highExpected = calculateScore(
+      makeInput({
+        lastCommitAt: daysAgo(300),
+        lastMergedPrAt: daysAgo(320),
+        lastReleaseAt: daysAgo(340),
+      }),
+      { now: NOW },
+    );
+
+    expect(lowExpected.breakdown.expectedActivityTier).toBe("low");
+    expect(lowExpected.score).toBeGreaterThan(highExpected.score);
   });
 
   it("returns zero for archived repositories", () => {

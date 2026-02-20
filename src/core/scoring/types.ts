@@ -16,9 +16,12 @@ export interface ScoringInput {
   stars: number;
   repositoryCreatedAt: Date | null;
   releasesLastYear: number;
+  releaseRegularity?: number | null;
 
   // Expected activity signals
+  commitsLast30Days?: number;
   commitsLast90Days: number;
+  commitsLast365Days?: number;
   mergedPrsLast90Days: number;
   issuesCreatedLastYear: number;
   openPrsCount: number;
@@ -51,7 +54,6 @@ export interface ExpectedActivityCriteria {
   mergedPrsLast90Days: number;
   issuesCreatedLastYear: number;
   openPrsCount: number;
-  stars: number;
 }
 
 export interface FreshnessStep {
