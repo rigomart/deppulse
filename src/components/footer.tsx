@@ -1,4 +1,3 @@
-import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { DeppulseIcon } from "./deppulse-logo";
 
@@ -13,19 +12,7 @@ export function Footer() {
           <DeppulseIcon className="size-4" />
           <span>Deppulse</span>
         </Link>
-        <div className="flex items-center gap-4">
-          <a
-            href="https://github.com/rigomart/deppulse"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-foreground flex items-center gap-1.5 transition-colors"
-          >
-            GitHub
-            <ExternalLink className="size-3" />
-          </a>
-          <span className="text-muted-foreground/50">·</span>
-          <span>Open source</span>
-        </div>
+        <span>Open source</span>
       </div>
     </footer>
   );

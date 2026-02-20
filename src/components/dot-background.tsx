@@ -6,7 +6,7 @@ const CW = 14;
 const CH = 20;
 const FONT_PX = 11;
 const FRAME_INTERVAL_MS = 1000 / 30;
-const BASE_ALPHA = 0.08;
+const BASE_ALPHA = 0.1;
 const TWINKLE_MIN_GAP = 320; // ms
 const TWINKLE_MAX_GAP = 760; // ms
 const TWINKLE_DURATION_MIN = 1300; // ms
@@ -14,10 +14,10 @@ const TWINKLE_DURATION_MAX = 2400; // ms
 const TWINKLE_RADIUS_MIN = 24; // px
 const TWINKLE_RADIUS_MAX = 52; // px
 const TWINKLE_PEAK_MIN = 0.06;
-const TWINKLE_PEAK_MAX = 0.14;
-const TWINKLE_CLUSTER_SPREAD = 78; // px
-const TWINKLE_CLUSTER_NODE_MIN = 2;
-const TWINKLE_CLUSTER_NODE_MAX = 4;
+const TWINKLE_PEAK_MAX = 0.24;
+const TWINKLE_CLUSTER_SPREAD = 124; // px
+const TWINKLE_CLUSTER_NODE_MIN = 3;
+const TWINKLE_CLUSTER_NODE_MAX = 9;
 const MAX_ACTIVE_CLUSTERS = 6;
 
 interface TwinkleNode {
@@ -271,9 +271,9 @@ export function DotBackground() {
       className="pointer-events-none fixed inset-0 -z-1 hidden md:block"
       style={{
         maskImage:
-          "radial-gradient(ellipse 90% 80% at 55% 35%, black 30%, transparent 100%)",
+          "radial-gradient(ellipse 90% 80% at 55% 35%, black 10%, transparent 100%)",
         WebkitMaskImage:
-          "radial-gradient(ellipse 90% 80% at 55% 35%, black 30%, transparent 100%)",
+          "radial-gradient(ellipse 90% 80% at 55% 35%, black 10%, transparent 100%)",
       }}
     >
       <canvas ref={canvasRef} className="block h-full w-full" />
