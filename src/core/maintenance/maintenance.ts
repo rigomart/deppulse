@@ -54,12 +54,29 @@ export interface MaintenanceResult {
   breakdown: ScoreBreakdown;
 }
 
+function deriveCommitsLast30Days(
+  commitsLast30Days: number | undefined,
+  commitsLast90Days: number,
+): number {
+  return commitsLast30Days ?? Math.max(0, Math.round(commitsLast90Days / 3));
+}
+
+function deriveCommitsLast365Days(
+  commitsLast365Days: number | undefined,
+  commitsLast90Days: number,
+): number {
+  return commitsLast365Days ?? commitsLast90Days * 4;
+}
+
 function toScoringInput(input: MaintenanceInput): ScoringInput {
-  const commitsLast30Days =
-    input.commitsLast30Days ?? Math.max(0, Math.round(input.commitsLast90Days / 3));
-  const commitsLast365Days =
-    input.commitsLast365Days ??
-    Math.max(input.commitsLast90Days, input.commitsLast90Days * 4);
+  const commitsLast30Days = deriveCommitsLast30Days(
+    input.commitsLast30Days,
+    input.commitsLast90Days,
+  );
+  const commitsLast365Days = deriveCommitsLast365Days(
+    input.commitsLast365Days,
+    input.commitsLast90Days,
+  );
 
   return {
     lastCommitAt: input.lastCommitAt,
@@ -136,14 +153,18 @@ export function computeScoreFromMetrics(
   const releasesLastYear = releaseTimesLastYear.length;
   const releaseRegularity = computeReleaseRegularity(releaseTimesLastYear);
 
-  const commitsLast30Days =
+  const commitsLast30Days = deriveCommitsLast30Days(
     typeof metrics.commitsLast30Days === "number"
       ? metrics.commitsLast30Days
-      : Math.max(0, Math.round(metrics.commitsLast90Days / 3));
-  const commitsLast365Days =
+      : undefined,
+    metrics.commitsLast90Days,
+  );
+  const commitsLast365Days = deriveCommitsLast365Days(
     typeof metrics.commitsLast365Days === "number"
       ? metrics.commitsLast365Days
-      : Math.max(metrics.commitsLast90Days, metrics.commitsLast90Days * 4);
+      : undefined,
+    metrics.commitsLast90Days,
+  );
 
   return calculateMaintenanceScore(
     {

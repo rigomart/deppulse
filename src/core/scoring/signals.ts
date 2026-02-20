@@ -59,16 +59,15 @@ function meetsAny(
   const commitsLast365Days =
     typeof input.commitsLast365Days === "number"
       ? input.commitsLast365Days
-      : Math.max(input.commitsLast90Days, input.commitsLast90Days * 4);
+      : input.commitsLast90Days * 4;
+
+  if (criteria.commitsLast90Days === 0) return true;
 
   const commitsLast30DaysThreshold = Math.max(
     1,
     Math.ceil(criteria.commitsLast90Days / 3),
   );
-  const commitsLast365DaysThreshold = Math.max(
-    criteria.commitsLast90Days,
-    criteria.commitsLast90Days * 4,
-  );
+  const commitsLast365DaysThreshold = criteria.commitsLast90Days * 4;
 
   const weightedCommitActivityRatio =
     0.45 * (commitsLast30Days / commitsLast30DaysThreshold) +

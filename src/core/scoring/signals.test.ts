@@ -93,7 +93,7 @@ describe("scoring signals", () => {
     ).toBe("low");
   });
 
-  it("can classify medium tier from balanced 30/90/365 commit windows", () => {
+  it("classifies as medium expected when commit activity is spread across short and long windows", () => {
     const mediumFromWindows = makeInput({
       commitsLast30Days: 3,
       commitsLast90Days: 3,

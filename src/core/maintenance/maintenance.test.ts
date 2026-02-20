@@ -19,6 +19,40 @@ function yearsAgo(years: number): Date {
   return date;
 }
 
+function makeSnapshot(overrides: Partial<MetricsSnapshot> = {}): MetricsSnapshot {
+  return {
+    description: "repo",
+    stars: 700,
+    forks: 100,
+    avatarUrl: "https://example.com/avatar.png",
+    htmlUrl: "https://github.com/acme/repo",
+    license: "MIT",
+    language: "TypeScript",
+    repositoryCreatedAt: "2020-01-01T00:00:00.000Z",
+    isArchived: false,
+    lastCommitAt: "2025-12-10T00:00:00.000Z",
+    lastReleaseAt: "2025-11-10T00:00:00.000Z",
+    lastClosedIssueAt: "2026-01-01T00:00:00.000Z",
+    lastMergedPrAt: "2025-12-15T00:00:00.000Z",
+    openIssuesPercent: 20,
+    openIssuesCount: 20,
+    closedIssuesCount: 80,
+    medianIssueResolutionDays: 9,
+    openPrsCount: 5,
+    issuesCreatedLastYear: 14,
+    commitsLast90Days: 4,
+    mergedPrsLast90Days: 2,
+    releases: [
+      {
+        tagName: "v1.4.0",
+        name: "v1.4.0",
+        publishedAt: "2025-11-10T00:00:00.000Z",
+      },
+    ],
+    ...overrides,
+  };
+}
+
 function makeInput(
   overrides: Partial<MaintenanceInput> = {},
 ): MaintenanceInput {
@@ -51,38 +85,7 @@ describe("maintenance scoring", () => {
   });
 
   it("scores from metrics snapshot using required recent counters", () => {
-    const snapshot: MetricsSnapshot = {
-      description: "repo",
-      stars: 700,
-      forks: 100,
-      avatarUrl: "https://example.com/avatar.png",
-      htmlUrl: "https://github.com/acme/repo",
-      license: "MIT",
-      language: "TypeScript",
-      repositoryCreatedAt: "2020-01-01T00:00:00.000Z",
-      isArchived: false,
-      lastCommitAt: "2025-12-10T00:00:00.000Z",
-      lastReleaseAt: "2025-11-10T00:00:00.000Z",
-      lastClosedIssueAt: "2026-01-01T00:00:00.000Z",
-      lastMergedPrAt: "2025-12-15T00:00:00.000Z",
-      openIssuesPercent: 20,
-      openIssuesCount: 20,
-      closedIssuesCount: 80,
-      medianIssueResolutionDays: 9,
-      openPrsCount: 5,
-      issuesCreatedLastYear: 14,
-      commitsLast90Days: 4,
-      mergedPrsLast90Days: 2,
-      releases: [
-        {
-          tagName: "v1.4.0",
-          name: "v1.4.0",
-          publishedAt: "2025-11-10T00:00:00.000Z",
-        },
-      ],
-    };
-
-    const result = computeScoreFromMetrics(snapshot, { now: NOW });
+    const result = computeScoreFromMetrics(makeSnapshot(), { now: NOW });
 
     expect(result.score).toBeGreaterThanOrEqual(0);
     expect(result.category).toBeDefined();
@@ -90,39 +93,8 @@ describe("maintenance scoring", () => {
   });
 
   it("throws when required expected-activity counters are missing", () => {
-    const snapshot: MetricsSnapshot = {
-      description: "repo",
-      stars: 700,
-      forks: 100,
-      avatarUrl: "https://example.com/avatar.png",
-      htmlUrl: "https://github.com/acme/repo",
-      license: "MIT",
-      language: "TypeScript",
-      repositoryCreatedAt: "2020-01-01T00:00:00.000Z",
-      isArchived: false,
-      lastCommitAt: "2025-12-10T00:00:00.000Z",
-      lastReleaseAt: "2025-11-10T00:00:00.000Z",
-      lastClosedIssueAt: "2026-01-01T00:00:00.000Z",
-      lastMergedPrAt: "2025-12-15T00:00:00.000Z",
-      openIssuesPercent: 20,
-      openIssuesCount: 20,
-      closedIssuesCount: 80,
-      medianIssueResolutionDays: 9,
-      openPrsCount: 5,
-      issuesCreatedLastYear: 14,
-      commitsLast90Days: 4,
-      mergedPrsLast90Days: 2,
-      releases: [
-        {
-          tagName: "v1.4.0",
-          name: "v1.4.0",
-          publishedAt: "2025-11-10T00:00:00.000Z",
-        },
-      ],
-    };
-
     const missingIssuesCreated = {
-      ...snapshot,
+      ...makeSnapshot(),
       issuesCreatedLastYear: undefined,
     } as unknown as MetricsSnapshot;
     expect(() => computeScoreFromMetrics(missingIssuesCreated, { now: NOW })).toThrow(
@@ -130,7 +102,7 @@ describe("maintenance scoring", () => {
     );
 
     const missingOpenPrs = {
-      ...snapshot,
+      ...makeSnapshot(),
       openPrsCount: undefined,
     } as unknown as MetricsSnapshot;
     expect(() => computeScoreFromMetrics(missingOpenPrs, { now: NOW })).toThrow(

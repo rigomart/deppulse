@@ -67,6 +67,24 @@ function interpolateLog(
   return y0 + (y1 - y0) * t;
 }
 
+function interpolateFromAnchorsLog(x: number, anchors: AnchorPoint[]): number {
+  const first = anchors[0];
+  if (!first) return 0;
+  if (x <= first.x) return first.y;
+
+  for (let index = 1; index < anchors.length; index++) {
+    const previous = anchors[index - 1];
+    const current = anchors[index];
+    if (!previous || !current) continue;
+
+    if (x <= current.x) {
+      return interpolateLog(x, previous.x, current.x, previous.y, current.y);
+    }
+  }
+
+  return anchors.at(-1)?.y ?? 0;
+}
+
 function scoreOpenIssuesRatio(
   openIssuesPercent: number | null,
   profile: ScoringProfile,
@@ -152,25 +170,13 @@ function scorePopularity(stars: number, profile: ScoringProfile): number {
     return interpolateLinear(stars, 0, thresholds.minimal, 0.1, 0.3);
   }
 
-  const anchors: AnchorPoint[] = [
+  return interpolateFromAnchorsLog(stars, [
     { x: thresholds.minimal, y: 0.3 },
     { x: thresholds.poor, y: 0.5 },
     { x: thresholds.fair, y: 0.7 },
     { x: thresholds.good, y: 0.85 },
     { x: thresholds.excellent, y: 1 },
-  ];
-
-  for (let index = 1; index < anchors.length; index++) {
-    const previous = anchors[index - 1];
-    const current = anchors[index];
-    if (!previous || !current) continue;
-
-    if (stars <= current.x) {
-      return interpolateLog(stars, previous.x, current.x, previous.y, current.y);
-    }
-  }
-
-  return 1;
+  ]);
 }
 
 function scoreProjectAge(

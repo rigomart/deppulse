@@ -57,6 +57,12 @@ describe("freshness rules", () => {
     }
   });
 
+  it("returns the floor multiplier when there is no recorded activity", () => {
+    expect(getFreshnessMultiplier(null, "high", STRICT_BALANCED_PROFILE)).toBe(0.05);
+    expect(getFreshnessMultiplier(null, "medium", STRICT_BALANCED_PROFILE)).toBe(0.08);
+    expect(getFreshnessMultiplier(null, "low", STRICT_BALANCED_PROFILE)).toBe(0.1);
+  });
+
   it("enforces hard caps for high-expected stale repositories", () => {
     const cap180 = applyHardCaps(90, "high", 200, STRICT_BALANCED_PROFILE);
     const cap365 = applyHardCaps(90, "high", 500, STRICT_BALANCED_PROFILE);

@@ -218,13 +218,13 @@ async function fetchGitHubGraphQL(
       ? Math.round((openIssuesCount / totalIssues) * 100 * 10) / 10
       : null;
 
-  const ninetyDaysAgoMs = Date.now() - 90 * 24 * 60 * 60 * 1000;
+  const ninetyDaysAgoMs = now - 90 * 24 * 60 * 60 * 1000;
   const mergedPrsLast90Days = (r.mergedPRsRecent?.nodes ?? []).filter(
     (pr: { mergedAt: string }) =>
       new Date(pr.mergedAt).getTime() >= ninetyDaysAgoMs,
   ).length;
 
-  const oneYearAgoMs = Date.now() - 365 * 24 * 60 * 60 * 1000;
+  const oneYearAgoMs = now - 365 * 24 * 60 * 60 * 1000;
   const closedIssueResolutionDays: number[] = [];
   let issuesCreatedLastYear = 0;
 

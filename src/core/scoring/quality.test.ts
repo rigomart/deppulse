@@ -141,34 +141,36 @@ describe("quality scoring", () => {
   });
 
   it("keeps boundary transitions smooth across interpolated signals", () => {
+    // Each pair tests adjacent raw input values near a threshold boundary.
+    // Names are neutral since higher input can mean lower or higher quality.
     const boundaryPairs: Array<{
-      lower: Partial<ScoringInput>;
-      higher: Partial<ScoringInput>;
+      a: Partial<ScoringInput>;
+      b: Partial<ScoringInput>;
     }> = [
-      { lower: { stars: 4_999 }, higher: { stars: 5_000 } },
+      { a: { stars: 4_999 }, b: { stars: 5_000 } },
       {
-        lower: { medianIssueResolutionDays: 14 },
-        higher: { medianIssueResolutionDays: 15 },
+        a: { medianIssueResolutionDays: 14 },
+        b: { medianIssueResolutionDays: 15 },
       },
       {
-        lower: { openIssuesPercent: 40 },
-        higher: { openIssuesPercent: 41 },
+        a: { openIssuesPercent: 40 },
+        b: { openIssuesPercent: 41 },
       },
     ];
 
     for (const boundary of boundaryPairs) {
-      const lower = computeQualityScore(
-        makeInput(boundary.lower),
+      const scoreA = computeQualityScore(
+        makeInput(boundary.a),
         STRICT_BALANCED_PROFILE,
         NOW,
       );
-      const higher = computeQualityScore(
-        makeInput(boundary.higher),
+      const scoreB = computeQualityScore(
+        makeInput(boundary.b),
         STRICT_BALANCED_PROFILE,
         NOW,
       );
 
-      expect(Math.abs(higher.quality - lower.quality)).toBeLessThanOrEqual(1);
+      expect(Math.abs(scoreA.quality - scoreB.quality)).toBeLessThanOrEqual(1);
     }
   });
 });
