@@ -19,6 +19,8 @@ const TWINKLE_CLUSTER_SPREAD = 124; // px
 const TWINKLE_CLUSTER_NODE_MIN = 3;
 const TWINKLE_CLUSTER_NODE_MAX = 9;
 const MAX_ACTIVE_CLUSTERS = 6;
+const MASK_GRADIENT =
+  "radial-gradient(ellipse 90% 80% at 55% 35%, black 10%, transparent 100%)";
 
 interface TwinkleNode {
   x: number;
@@ -270,10 +272,8 @@ export function DotBackground() {
       aria-hidden
       className="pointer-events-none fixed inset-0 -z-1 hidden md:block"
       style={{
-        maskImage:
-          "radial-gradient(ellipse 90% 80% at 55% 35%, black 10%, transparent 100%)",
-        WebkitMaskImage:
-          "radial-gradient(ellipse 90% 80% at 55% 35%, black 10%, transparent 100%)",
+        maskImage: MASK_GRADIENT,
+        WebkitMaskImage: MASK_GRADIENT,
       }}
     >
       <canvas ref={canvasRef} className="block h-full w-full" />

@@ -24,8 +24,8 @@ function waveIntensity(distNormalized: number, t: number): number {
   const wavePos = phase * 1.4;
   const dist = Math.abs(distNormalized - wavePos);
   const width = 0.22;
-  const edgeFade = Math.max(0, 1 - wavePos * 0.6);
-  return Math.max(0, (1 - dist / width) * edgeFade);
+  const fadeOut = Math.max(0, 1 - wavePos * 0.6);
+  return Math.max(0, (1 - dist / width) * fadeOut);
 }
 
 function edgeFade(distNorm: number): number {
@@ -63,9 +63,12 @@ export function AsciiPulsingCircle({ size = 400 }: AsciiPulsingCircleProps) {
     canvas.width = cols * CELL_W * dpr;
     canvas.height = rows * CELL_H * dpr;
     ctx.scale(dpr, dpr);
+    ctx.font = '10px "DM Mono", monospace';
+    ctx.textBaseline = "top";
 
     let animId = 0;
     let lastFrameTs = 0;
+    let disposed = false;
 
     const goldenAngle = Math.PI * (3 - Math.sqrt(5));
     const dotCount = 500;
@@ -120,8 +123,6 @@ export function AsciiPulsingCircle({ size = 400 }: AsciiPulsingCircleProps) {
       const pixels = imageData.data;
 
       ctx.clearRect(0, 0, cols * CELL_W, rows * CELL_H);
-      ctx.font = '10px "DM Mono", monospace';
-      ctx.textBaseline = "top";
 
       for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
@@ -153,15 +154,21 @@ export function AsciiPulsingCircle({ size = 400 }: AsciiPulsingCircleProps) {
 
     // Wait for DM Mono to load
     document.fonts.ready.then(() => {
+      if (disposed) return;
       animId = requestAnimationFrame(frame);
     });
 
-    return () => cancelAnimationFrame(animId);
+    return () => {
+      disposed = true;
+      cancelAnimationFrame(animId);
+    };
   }, [size]);
 
   return (
     <canvas
       ref={canvasRef}
+      aria-hidden="true"
+      tabIndex={-1}
       style={{
         width: Math.floor(size / CELL_W) * CELL_W,
         height: Math.floor(size / CELL_H) * CELL_H,

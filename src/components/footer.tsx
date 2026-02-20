@@ -12,7 +12,14 @@ export function Footer() {
           <DeppulseIcon className="size-4" />
           <span>Deppulse</span>
         </Link>
-        <span>Open source</span>
+        <a
+          href="https://github.com/rigomart/deppulse"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-foreground transition-colors"
+        >
+          Open source
+        </a>
       </div>
     </footer>
   );
