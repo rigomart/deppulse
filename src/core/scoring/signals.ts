@@ -52,12 +52,34 @@ function meetsAny(
   input: ScoringInput,
   criteria: ExpectedActivityCriteria,
 ): boolean {
+  const commitsLast30Days =
+    typeof input.commitsLast30Days === "number"
+      ? input.commitsLast30Days
+      : Math.max(0, Math.round(input.commitsLast90Days / 3));
+  const commitsLast365Days =
+    typeof input.commitsLast365Days === "number"
+      ? input.commitsLast365Days
+      : input.commitsLast90Days * 4;
+
+  if (criteria.commitsLast90Days === 0) return true;
+
+  const commitsLast30DaysThreshold = Math.max(
+    1,
+    Math.ceil(criteria.commitsLast90Days / 3),
+  );
+  const commitsLast365DaysThreshold = criteria.commitsLast90Days * 4;
+
+  const weightedCommitActivityRatio =
+    0.45 * (commitsLast30Days / commitsLast30DaysThreshold) +
+    0.35 * (input.commitsLast90Days / criteria.commitsLast90Days) +
+    0.2 * (commitsLast365Days / commitsLast365DaysThreshold);
+
   return (
     input.commitsLast90Days >= criteria.commitsLast90Days ||
+    weightedCommitActivityRatio >= 1 ||
     input.mergedPrsLast90Days >= criteria.mergedPrsLast90Days ||
     input.issuesCreatedLastYear >= criteria.issuesCreatedLastYear ||
-    input.openPrsCount >= criteria.openPrsCount ||
-    input.stars >= criteria.stars
+    input.openPrsCount >= criteria.openPrsCount
   );
 }
 

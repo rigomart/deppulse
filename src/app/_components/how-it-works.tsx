@@ -160,6 +160,8 @@ export function HowItWorks() {
                   </h4>
                   <p className="text-sm text-muted-foreground">
                     Strictness adapts to repository expectations.
+                    Commit activity uses a weighted 30/90/365-day view to
+                    reduce short-term noise.
                   </p>
                   <ul className="space-y-1 text-sm text-muted-foreground">
                     <li>
@@ -170,8 +172,7 @@ export function HowItWorks() {
                       {expectedActivityCriteria.high.mergedPrsLast90Days},
                       issues/year ≥
                       {expectedActivityCriteria.high.issuesCreatedLastYear},
-                      open PRs ≥ {expectedActivityCriteria.high.openPrsCount},
-                      stars ≥ {expectedActivityCriteria.high.stars}
+                      open PRs ≥ {expectedActivityCriteria.high.openPrsCount}
                     </li>
                     <li>
                       <strong className="text-foreground">
@@ -183,8 +184,7 @@ export function HowItWorks() {
                       {expectedActivityCriteria.medium.mergedPrsLast90Days},
                       issues/year ≥
                       {expectedActivityCriteria.medium.issuesCreatedLastYear},
-                      open PRs ≥ {expectedActivityCriteria.medium.openPrsCount},
-                      stars ≥ {expectedActivityCriteria.medium.stars}
+                      open PRs ≥ {expectedActivityCriteria.medium.openPrsCount}
                     </li>
                     <li>
                       <strong className="text-foreground">Low expected</strong>:
@@ -204,8 +204,10 @@ export function HowItWorks() {
               <div className="space-y-3 text-muted-foreground">
                 <p>
                   Freshness uses days since the most recent activity (commit,
-                  merged PR, or release). Expected-active repositories are
-                  penalized more aggressively.
+                  merged PR, or release), with smooth interpolation between
+                  timeline anchor points. Expected-active repositories are
+                  penalized more aggressively, and high-expected repositories
+                  can still hit hard caps.
                 </p>
                 <div className="text-sm space-y-2">
                   <p>

@@ -60,14 +60,12 @@ describe("scoring signals", () => {
       mergedPrsLast90Days: 0,
       issuesCreatedLastYear: 0,
       openPrsCount: 0,
-      stars: 100,
     });
     const low = makeInput({
       commitsLast90Days: 0,
       mergedPrsLast90Days: 0,
       issuesCreatedLastYear: 1,
       openPrsCount: 1,
-      stars: 200,
     });
 
     expect(determineExpectedActivityTier(high, STRICT_BALANCED_PROFILE)).toBe(
@@ -81,7 +79,7 @@ describe("scoring signals", () => {
     );
   });
 
-  it("classifies as high expected when stars alone meet high threshold", () => {
+  it("classifies as low expected when stars are high but activity is quiet", () => {
     const popularButQuiet = makeInput({
       stars: 3_000,
       commitsLast90Days: 0,
@@ -92,6 +90,21 @@ describe("scoring signals", () => {
 
     expect(
       determineExpectedActivityTier(popularButQuiet, STRICT_BALANCED_PROFILE),
-    ).toBe("high");
+    ).toBe("low");
+  });
+
+  it("classifies as medium expected when commit activity is spread across short and long windows", () => {
+    const mediumFromWindows = makeInput({
+      commitsLast30Days: 3,
+      commitsLast90Days: 3,
+      commitsLast365Days: 20,
+      mergedPrsLast90Days: 0,
+      issuesCreatedLastYear: 0,
+      openPrsCount: 0,
+    });
+
+    expect(
+      determineExpectedActivityTier(mediumFromWindows, STRICT_BALANCED_PROFILE),
+    ).toBe("medium");
   });
 });

@@ -37,6 +37,64 @@ describe("quality scoring", () => {
     expect(result.signals.releaseHealth).toBe(1);
   });
 
+  it("scores quarterly release cadence as excellent", () => {
+    const result = computeQualityScore(
+      makeInput({ releasesLastYear: 4 }),
+      STRICT_BALANCED_PROFILE,
+      NOW,
+    );
+
+    expect(result.signals.releaseHealth).toBe(1);
+  });
+
+  it("penalizes stale release recency even when yearly cadence is strong", () => {
+    const recentRelease = computeQualityScore(
+      makeInput({
+        releasesLastYear: 4,
+        lastReleaseAt: new Date("2026-01-01T00:00:00.000Z"),
+      }),
+      STRICT_BALANCED_PROFILE,
+      NOW,
+    );
+
+    const staleRelease = computeQualityScore(
+      makeInput({
+        releasesLastYear: 4,
+        lastReleaseAt: new Date("2024-12-01T00:00:00.000Z"),
+      }),
+      STRICT_BALANCED_PROFILE,
+      NOW,
+    );
+
+    expect(staleRelease.signals.releaseHealth).toBeLessThan(
+      recentRelease.signals.releaseHealth,
+    );
+  });
+
+  it("penalizes irregular release spacing when cadence count is the same", () => {
+    const regularReleases = computeQualityScore(
+      makeInput({
+        releasesLastYear: 4,
+        releaseRegularity: 1,
+      }),
+      STRICT_BALANCED_PROFILE,
+      NOW,
+    );
+
+    const irregularReleases = computeQualityScore(
+      makeInput({
+        releasesLastYear: 4,
+        releaseRegularity: 0.25,
+      }),
+      STRICT_BALANCED_PROFILE,
+      NOW,
+    );
+
+    expect(irregularReleases.signals.releaseHealth).toBeLessThan(
+      regularReleases.signals.releaseHealth,
+    );
+  });
+
   it("penalizes missing issue resolution when open issues exist", () => {
     const withOpenIssues = computeQualityScore(
       makeInput({ medianIssueResolutionDays: null, openIssuesPercent: 20 }),
@@ -80,5 +138,39 @@ describe("quality scoring", () => {
     const b = computeQualityScore(makeInput(), profileB, NOW);
 
     expect(a.quality).toBe(b.quality);
+  });
+
+  it("keeps boundary transitions smooth across interpolated signals", () => {
+    // Each pair tests adjacent raw input values near a threshold boundary.
+    // Names are neutral since higher input can mean lower or higher quality.
+    const boundaryPairs: Array<{
+      a: Partial<ScoringInput>;
+      b: Partial<ScoringInput>;
+    }> = [
+      { a: { stars: 4_999 }, b: { stars: 5_000 } },
+      {
+        a: { medianIssueResolutionDays: 14 },
+        b: { medianIssueResolutionDays: 15 },
+      },
+      {
+        a: { openIssuesPercent: 40 },
+        b: { openIssuesPercent: 41 },
+      },
+    ];
+
+    for (const boundary of boundaryPairs) {
+      const scoreA = computeQualityScore(
+        makeInput(boundary.a),
+        STRICT_BALANCED_PROFILE,
+        NOW,
+      );
+      const scoreB = computeQualityScore(
+        makeInput(boundary.b),
+        STRICT_BALANCED_PROFILE,
+        NOW,
+      );
+
+      expect(Math.abs(scoreA.quality - scoreB.quality)).toBeLessThanOrEqual(1);
+    }
   });
 });

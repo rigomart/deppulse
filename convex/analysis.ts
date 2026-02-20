@@ -13,7 +13,13 @@ import { triggerSource } from "./schema";
 const MERGED_PRS_LIMIT = 100;
 
 const REPO_METRICS_QUERY = `
-  query RepoMetrics($owner: String!, $repo: String!, $recentActivitySince: GitTimestamp!) {
+  query RepoMetrics(
+    $owner: String!,
+    $repo: String!,
+    $commits30Since: GitTimestamp!,
+    $commits90Since: GitTimestamp!,
+    $commits365Since: GitTimestamp!
+  ) {
     rateLimit { limit remaining cost resetAt }
     repository(owner: $owner, name: $repo) {
       nameWithOwner
@@ -31,7 +37,9 @@ const REPO_METRICS_QUERY = `
         target {
           ... on Commit {
             latestCommit: history(first: 1) { nodes { committedDate } }
-            recentCommitHistory: history(first: 1, since: $recentActivitySince) { totalCount }
+            commitHistory30d: history(first: 1, since: $commits30Since) { totalCount }
+            commitHistory90d: history(first: 1, since: $commits90Since) { totalCount }
+            commitHistory365d: history(first: 1, since: $commits365Since) { totalCount }
           }
         }
       }
@@ -87,7 +95,9 @@ interface MetricsSnapshot {
   medianIssueResolutionDays: number | null;
   openPrsCount: number;
   issuesCreatedLastYear: number;
+  commitsLast30Days: number;
   commitsLast90Days: number;
+  commitsLast365Days: number;
   mergedPrsLast90Days: number;
   releases: Array<{
     tagName: string;
@@ -124,7 +134,9 @@ interface RepoMetricsGraphQLResponse {
       name: string;
       target: {
         latestCommit: { nodes: Array<{ committedDate: string }> };
-        recentCommitHistory: { totalCount: number };
+        commitHistory30d: { totalCount: number };
+        commitHistory90d: { totalCount: number };
+        commitHistory365d: { totalCount: number };
       };
     } | null;
     latestRelease: { publishedAt: string } | null;
@@ -158,13 +170,22 @@ async function fetchGitHubGraphQL(
   owner: string,
   repo: string,
 ): Promise<MetricsSnapshot> {
-  const ninetyDaysAgo = new Date(
-    Date.now() - 90 * 24 * 60 * 60 * 1000,
+  const now = Date.now();
+  const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const ninetyDaysAgo = new Date(now - 90 * 24 * 60 * 60 * 1000).toISOString();
+  const threeSixtyFiveDaysAgo = new Date(
+    now - 365 * 24 * 60 * 60 * 1000,
   ).toISOString();
 
   const data = await client.graphql<RepoMetricsGraphQLResponse>(
     REPO_METRICS_QUERY,
-    { owner, repo, recentActivitySince: ninetyDaysAgo },
+    {
+      owner,
+      repo,
+      commits30Since: thirtyDaysAgo,
+      commits90Since: ninetyDaysAgo,
+      commits365Since: threeSixtyFiveDaysAgo,
+    },
   );
 
   const r = data.repository;
@@ -174,8 +195,12 @@ async function fetchGitHubGraphQL(
 
   const latestCommitDate =
     r.defaultBranchRef?.target?.latestCommit?.nodes?.[0]?.committedDate;
+  const commitsLast30Days =
+    r.defaultBranchRef?.target?.commitHistory30d?.totalCount ?? 0;
   const commitsLast90Days =
-    r.defaultBranchRef?.target?.recentCommitHistory?.totalCount ?? 0;
+    r.defaultBranchRef?.target?.commitHistory90d?.totalCount ?? 0;
+  const commitsLast365Days =
+    r.defaultBranchRef?.target?.commitHistory365d?.totalCount ?? 0;
 
   const releases = (r.releases?.nodes ?? []).map(
     (rel: { tagName: string; name: string | null; publishedAt: string }) => ({
@@ -193,13 +218,13 @@ async function fetchGitHubGraphQL(
       ? Math.round((openIssuesCount / totalIssues) * 100 * 10) / 10
       : null;
 
-  const ninetyDaysAgoMs = Date.now() - 90 * 24 * 60 * 60 * 1000;
+  const ninetyDaysAgoMs = now - 90 * 24 * 60 * 60 * 1000;
   const mergedPrsLast90Days = (r.mergedPRsRecent?.nodes ?? []).filter(
     (pr: { mergedAt: string }) =>
       new Date(pr.mergedAt).getTime() >= ninetyDaysAgoMs,
   ).length;
 
-  const oneYearAgoMs = Date.now() - 365 * 24 * 60 * 60 * 1000;
+  const oneYearAgoMs = now - 365 * 24 * 60 * 60 * 1000;
   const closedIssueResolutionDays: number[] = [];
   let issuesCreatedLastYear = 0;
 
@@ -245,7 +270,9 @@ async function fetchGitHubGraphQL(
     medianIssueResolutionDays: getMedian(closedIssueResolutionDays),
     openPrsCount: r.openPRs.totalCount,
     issuesCreatedLastYear,
+    commitsLast30Days,
     commitsLast90Days,
+    commitsLast365Days,
     mergedPrsLast90Days,
     readmeContent:
       (r.readmeMd?.text ?? r.readmeLower?.text ?? r.readmeNoExt?.text)?.slice(

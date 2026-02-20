@@ -7,24 +7,60 @@ import {
 import { STRICT_BALANCED_PROFILE } from "./profiles";
 
 describe("freshness rules", () => {
-  it("applies tier-specific freshness multipliers at boundaries", () => {
+  it("preserves anchor values and avoids large boundary jumps", () => {
     expect(getFreshnessMultiplier(30, "high", STRICT_BALANCED_PROFILE)).toBe(1);
-    expect(getFreshnessMultiplier(31, "high", STRICT_BALANCED_PROFILE)).toBe(
+    expect(getFreshnessMultiplier(90, "high", STRICT_BALANCED_PROFILE)).toBe(
       0.75,
     );
-    expect(getFreshnessMultiplier(180, "high", STRICT_BALANCED_PROFILE)).toBe(
-      0.35,
-    );
-    expect(getFreshnessMultiplier(181, "high", STRICT_BALANCED_PROFILE)).toBe(
-      0.15,
-    );
+    expect(
+      Math.abs(
+        getFreshnessMultiplier(31, "high", STRICT_BALANCED_PROFILE) -
+          getFreshnessMultiplier(30, "high", STRICT_BALANCED_PROFILE),
+      ),
+    ).toBeLessThanOrEqual(0.01);
+    expect(
+      Math.abs(
+        getFreshnessMultiplier(91, "high", STRICT_BALANCED_PROFILE) -
+          getFreshnessMultiplier(90, "high", STRICT_BALANCED_PROFILE),
+      ),
+    ).toBeLessThanOrEqual(0.01);
 
     expect(getFreshnessMultiplier(120, "medium", STRICT_BALANCED_PROFILE)).toBe(
       0.8,
     );
-    expect(getFreshnessMultiplier(300, "low", STRICT_BALANCED_PROFILE)).toBe(
-      0.5,
+    expect(getFreshnessMultiplier(730, "low", STRICT_BALANCED_PROFILE)).toBe(
+      0.2,
     );
+  });
+
+  it("keeps freshness monotonic with no cliff-like daily drops", () => {
+    const tiers = ["high", "medium", "low"] as const;
+
+    for (const tier of tiers) {
+      const steps = STRICT_BALANCED_PROFILE.freshnessMultipliers[tier];
+      const lastFiniteMaxDays = [...steps]
+        .reverse()
+        .find((step) => Number.isFinite(step.maxDays))?.maxDays;
+
+      if (!lastFiniteMaxDays) continue;
+
+      for (let day = 1; day <= lastFiniteMaxDays; day++) {
+        const previous = getFreshnessMultiplier(
+          day - 1,
+          tier,
+          STRICT_BALANCED_PROFILE,
+        );
+        const current = getFreshnessMultiplier(day, tier, STRICT_BALANCED_PROFILE);
+        expect(current).toBeLessThanOrEqual(previous);
+        expect(previous - current).toBeLessThanOrEqual(0.03);
+      }
+    }
+  });
+
+  it("returns the floor multiplier when there is no recorded activity", () => {
+    expect(getFreshnessMultiplier(null, "high", STRICT_BALANCED_PROFILE)).toBe(0.05);
+    expect(getFreshnessMultiplier(null, "medium", STRICT_BALANCED_PROFILE)).toBe(0.08);
+    expect(getFreshnessMultiplier(null, "low", STRICT_BALANCED_PROFILE)).toBe(0.1);
   });
 
   it("enforces hard caps for high-expected stale repositories", () => {
