@@ -1,4 +1,5 @@
 import { fetchQuery } from "convex/nextjs";
+import { cacheLife } from "next/cache";
 import type { AnalysisRun } from "@/lib/domain/assessment";
 import { api } from "../../../../../convex/_generated/api";
 import { CommitActivityLive } from "./_components/commit-activity-live";
@@ -8,12 +9,15 @@ import { ProjectHeader } from "./_components/project-header";
 import { ReadmeSection } from "./_components/readme-section";
 import { RecentActivity } from "./_components/recent-activity";
 
-export default async function ProjectPage({
-  params,
+async function CachedProjectPage({
+  owner,
+  project,
 }: {
-  params: Promise<{ owner: string; project: string }>;
+  owner: string;
+  project: string;
 }) {
-  const { owner, project } = await params;
+  "use cache";
+  cacheLife("minutes");
 
   const run = await fetchQuery(api.analysisRuns.getByRepositorySlug, {
     owner,
@@ -39,4 +43,13 @@ export default async function ProjectPage({
       <ReadmeSection run={safeRun} />
     </>
   );
+}
+
+export default async function ProjectPage({
+  params,
+}: {
+  params: Promise<{ owner: string; project: string }>;
+}) {
+  const { owner, project } = await params;
+  return <CachedProjectPage owner={owner} project={project} />;
 }
