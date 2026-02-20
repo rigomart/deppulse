@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { action, internalAction } from "./_generated/server";
 import {
+  COMMIT_ACTIVITY_DELAYED_RETRY_MS,
   COMMIT_ACTIVITY_MAX_ATTEMPTS,
   COMMIT_ACTIVITY_RETRY_DELAYS_SECONDS,
 } from "./_shared/constants";
@@ -498,6 +499,12 @@ export const fetchCommitActivityWithRetry = internalAction({
           errorMessage:
             "Commit history couldn't be loaded for this repository.",
         });
+
+        await ctx.scheduler.runAfter(
+          COMMIT_ACTIVITY_DELAYED_RETRY_MS,
+          internal.analysis.delayedCommitActivityRetry,
+          { runId },
+        );
         return;
       }
 
@@ -547,6 +554,79 @@ export const fetchCommitActivityWithRetry = internalAction({
           innerError,
         );
       }
+    }
+  },
+});
+
+export const delayedCommitActivityRetry = internalAction({
+  args: {
+    runId: v.id("analysisRuns"),
+  },
+  handler: async (ctx, { runId }) => {
+    try {
+      const token = process.env.GITHUB_PAT;
+      if (!token) throw new Error("GITHUB_PAT env var is not set");
+      const client = new Octokit({ auth: token });
+
+      const run = await ctx.runQuery(internal.analysisRuns.internalGetById, {
+        runId,
+      });
+      if (!run) {
+        console.warn(
+          `delayedCommitActivityRetry: Run ${runId} not found, skipping`,
+        );
+        return;
+      }
+
+      if (
+        run.runState !== "partial" ||
+        run.errorCode !== "commit_activity_retry_limit"
+      ) {
+        console.info(
+          `delayedCommitActivityRetry: Run ${runId} no longer eligible (runState=${run.runState}, errorCode=${run.errorCode}), skipping`,
+        );
+        return;
+      }
+
+      const snapshot = run.metrics as MetricsSnapshot | null;
+      if (!snapshot) return;
+
+      const { owner, name: project } = run.repository;
+      const result = await fetchCommitActivityRest(client, owner, project);
+
+      if (result.status === 200) {
+        const now = new Date().toISOString();
+        const updatedSnapshot: MetricsSnapshot = {
+          ...snapshot,
+          commitActivity: {
+            state: "ready",
+            attempts:
+              (snapshot.commitActivity?.attempts ??
+                COMMIT_ACTIVITY_MAX_ATTEMPTS) + 1,
+            lastAttemptedAt: now,
+            errorMessage: null,
+            weekly: result.weeks.map((w) => ({
+              weekStart: new Date(w.week * 1000).toISOString(),
+              totalCommits: w.total,
+              dailyBreakdown: w.days,
+            })),
+          },
+        };
+
+        await ctx.runMutation(internal.analysisRuns.upgradePartialRun, {
+          runId,
+          metricsJson: updatedSnapshot,
+        });
+      } else {
+        console.info(
+          `delayedCommitActivityRetry: Run ${runId} delayed retry returned status ${result.status}, leaving as partial`,
+        );
+      }
+    } catch (error) {
+      console.error(
+        `delayedCommitActivityRetry: Unhandled error for run ${runId}:`,
+        error instanceof Error ? error.message : String(error),
+      );
     }
   },
 });

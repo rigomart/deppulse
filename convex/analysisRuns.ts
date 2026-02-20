@@ -260,6 +260,31 @@ export const updateRunState = internalMutation({
   },
 });
 
+export const upgradePartialRun = internalMutation({
+  args: {
+    runId: v.id("analysisRuns"),
+    metricsJson: v.any(),
+  },
+  handler: async (ctx, { runId, metricsJson }) => {
+    const run = await ctx.db.get(runId);
+    if (!run) return;
+
+    if (run.runState !== "partial") return;
+    if (run.errorCode !== "commit_activity_retry_limit") return;
+
+    const now = Date.now();
+    await ctx.db.patch(runId, {
+      status: "complete",
+      runState: "complete",
+      metricsJson,
+      errorCode: undefined,
+      errorMessage: undefined,
+      updatedAt: now,
+      completedAt: now,
+    });
+  },
+});
+
 export const finalizeRun = internalMutation({
   args: {
     runId: v.id("analysisRuns"),
