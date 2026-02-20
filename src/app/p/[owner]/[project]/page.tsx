@@ -17,7 +17,7 @@ async function CachedProjectPage({
   project: string;
 }) {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("days");
 
   const run = await fetchQuery(api.analysisRuns.getByRepositorySlug, {
     owner,
