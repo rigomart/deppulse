@@ -1,4 +1,5 @@
 import {
+  ArrowRightLeft,
   Calendar,
   Code2,
   ExternalLink,
@@ -7,8 +8,10 @@ import {
   Star,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { Suspense } from "react";
 import { RelativeTime } from "@/components/relative-time";
+import { Button } from "@/components/ui/button";
 import type { AnalysisRun } from "@/lib/domain/assessment";
 import { formatNumber } from "@/lib/utils";
 
@@ -99,6 +102,12 @@ export function ProjectInfo({ run }: ProjectInfoProps) {
             </div>
           )}
         </div>
+        <Button variant="outline" size="sm" asChild>
+          <Link href={`/compare?a=${run.repository.fullName}`}>
+            <ArrowRightLeft className="size-3.5" />
+            Compare
+          </Link>
+        </Button>
       </div>
     </div>
   );

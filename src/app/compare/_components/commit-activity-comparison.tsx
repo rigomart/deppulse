@@ -1,0 +1,169 @@
+"use client";
+
+import { format } from "date-fns";
+import { BarChart3 } from "lucide-react";
+import { Line, LineChart, XAxis, YAxis } from "recharts";
+import { Container } from "@/components/container";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  type ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import type { AnalysisRun, CommitActivityWeek } from "@/lib/domain/assessment";
+
+interface CommitActivityComparisonProps {
+  runA: AnalysisRun;
+  runB: AnalysisRun;
+}
+
+interface MergedPoint {
+  weekLabel: string;
+  commitsA: number;
+  commitsB: number;
+}
+
+function mergeWeeklyData(
+  weeksA: CommitActivityWeek[],
+  weeksB: CommitActivityWeek[],
+): MergedPoint[] {
+  const map = new Map<string, { commitsA: number; commitsB: number }>();
+
+  for (const w of weeksA) {
+    map.set(w.weekStart, { commitsA: w.totalCommits, commitsB: 0 });
+  }
+  for (const w of weeksB) {
+    const existing = map.get(w.weekStart);
+    if (existing) {
+      existing.commitsB = w.totalCommits;
+    } else {
+      map.set(w.weekStart, { commitsA: 0, commitsB: w.totalCommits });
+    }
+  }
+
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([weekStart, data]) => ({
+      weekLabel: format(new Date(weekStart), "MMM d"),
+      commitsA: data.commitsA,
+      commitsB: data.commitsB,
+    }));
+}
+
+export function CommitActivityComparison({
+  runA,
+  runB,
+}: CommitActivityComparisonProps) {
+  const activityA = runA.metrics?.commitActivity;
+  const activityB = runB.metrics?.commitActivity;
+
+  const readyA = activityA?.state === "ready";
+  const readyB = activityB?.state === "ready";
+
+  if (!readyA && !readyB) {
+    return (
+      <Container>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">
+              Commit Activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex h-[220px] w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/50">
+              <BarChart3 className="h-8 w-8 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">
+                Commit history is not available for these repositories.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </Container>
+    );
+  }
+
+  const weeksA = readyA ? (activityA?.weekly ?? []) : [];
+  const weeksB = readyB ? (activityB?.weekly ?? []) : [];
+  const points = mergeWeeklyData(weeksA, weeksB);
+
+  if (points.length === 0) {
+    return null;
+  }
+
+  const chartConfig: ChartConfig = {
+    commitsA: {
+      label: runA.repository.fullName,
+      color: "var(--chart-1)",
+    },
+    commitsB: {
+      label: runB.repository.fullName,
+      color: "var(--chart-2)",
+    },
+  };
+
+  return (
+    <Container>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">Commit Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer
+            config={chartConfig}
+            className="aspect-auto h-[220px] w-full"
+          >
+            <LineChart
+              data={points}
+              margin={{ top: 8, right: 20, bottom: 8, left: 0 }}
+            >
+              <XAxis
+                dataKey="weekLabel"
+                tickLine={false}
+                axisLine={false}
+                minTickGap={24}
+                tick={{ fontSize: 12 }}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 12 }}
+              />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Line
+                type="monotone"
+                dataKey="commitsA"
+                stroke="var(--color-commitsA)"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="commitsB"
+                stroke="var(--color-commitsB)"
+                strokeWidth={2}
+                dot={false}
+              />
+            </LineChart>
+          </ChartContainer>
+          <div className="flex items-center justify-center gap-6 mt-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <div
+                className="size-2.5 rounded-full"
+                style={{ backgroundColor: "var(--chart-1)" }}
+              />
+              {runA.repository.fullName}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div
+                className="size-2.5 rounded-full"
+                style={{ backgroundColor: "var(--chart-2)" }}
+              />
+              {runB.repository.fullName}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </Container>
+  );
+}
