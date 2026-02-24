@@ -20,7 +20,7 @@ function toLevel(score: number): ConfidenceLevel {
 
 function buildSummary(penalties: ConfidencePenalty[]): string | null {
   if (penalties.length === 0) return null;
-  if (penalties.length === 1) return penalties[0]!.reason;
+  if (penalties.length === 1) return penalties[0]?.reason ?? null;
   return "Score may be approximate due to multiple data gaps";
 }
 
