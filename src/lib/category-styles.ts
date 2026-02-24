@@ -13,3 +13,10 @@ export const categoryColors = {
 } as const;
 
 export type CategoryKey = keyof typeof categoryColors;
+
+export const confidenceColors = {
+  high: "bg-status-healthy/15 text-status-healthy border-status-healthy/30",
+  medium:
+    "bg-status-moderate/15 text-status-moderate border-status-moderate/30",
+  low: "bg-status-declining/15 text-status-declining border-status-declining/30",
+} as const;

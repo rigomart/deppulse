@@ -5,9 +5,11 @@ import { LocalDate } from "@/components/local-date";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { computeConfidence } from "@/core/confidence";
 import { computeScoreFromMetrics } from "@/core/maintenance";
 import type { AnalysisRun } from "@/lib/domain/assessment";
 import { CategoryInfoPopover } from "./category-info-popover";
+import { ConfidenceIndicator } from "./confidence-indicator";
 
 interface ScoreProps {
   run: AnalysisRun;
@@ -33,6 +35,7 @@ export function Score({ run }: ScoreProps) {
   }
 
   const { score, category } = computeScoreFromMetrics(run.metrics);
+  const confidence = computeConfidence(run);
   const analyzedAt = run.completedAt ?? run.startedAt;
 
   return (
@@ -52,6 +55,7 @@ export function Score({ run }: ScoreProps) {
             Analyzed: <LocalDate date={analyzedAt} />
           </span>
         </div>
+        <ConfidenceIndicator confidence={confidence} />
       </CardContent>
     </Card>
   );
