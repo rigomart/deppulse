@@ -50,7 +50,11 @@ describe("freshness rules", () => {
           tier,
           STRICT_BALANCED_PROFILE,
         );
-        const current = getFreshnessMultiplier(day, tier, STRICT_BALANCED_PROFILE);
+        const current = getFreshnessMultiplier(
+          day,
+          tier,
+          STRICT_BALANCED_PROFILE,
+        );
         expect(current).toBeLessThanOrEqual(previous);
         expect(previous - current).toBeLessThanOrEqual(0.03);
       }
@@ -58,9 +62,15 @@ describe("freshness rules", () => {
   });
 
   it("returns the floor multiplier when there is no recorded activity", () => {
-    expect(getFreshnessMultiplier(null, "high", STRICT_BALANCED_PROFILE)).toBe(0.05);
-    expect(getFreshnessMultiplier(null, "medium", STRICT_BALANCED_PROFILE)).toBe(0.08);
-    expect(getFreshnessMultiplier(null, "low", STRICT_BALANCED_PROFILE)).toBe(0.1);
+    expect(getFreshnessMultiplier(null, "high", STRICT_BALANCED_PROFILE)).toBe(
+      0.05,
+    );
+    expect(
+      getFreshnessMultiplier(null, "medium", STRICT_BALANCED_PROFILE),
+    ).toBe(0.08);
+    expect(getFreshnessMultiplier(null, "low", STRICT_BALANCED_PROFILE)).toBe(
+      0.1,
+    );
   });
 
   it("enforces hard caps for high-expected stale repositories", () => {

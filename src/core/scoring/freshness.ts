@@ -21,7 +21,10 @@ function interpolateLinear(
   return y0 + (y1 - y0) * t;
 }
 
-function interpolateFreshnessSteps(days: number, steps: FreshnessStep[]): number {
+function interpolateFreshnessSteps(
+  days: number,
+  steps: FreshnessStep[],
+): number {
   const firstStep = steps[0];
   if (!firstStep) return 0;
 

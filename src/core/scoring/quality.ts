@@ -34,13 +34,7 @@ function interpolateFromAnchors(x: number, anchors: AnchorPoint[]): number {
     if (!previous || !current) continue;
 
     if (x <= current.x) {
-      return interpolateLinear(
-        x,
-        previous.x,
-        current.x,
-        previous.y,
-        current.y,
-      );
+      return interpolateLinear(x, previous.x, current.x, previous.y, current.y);
     }
   }
 

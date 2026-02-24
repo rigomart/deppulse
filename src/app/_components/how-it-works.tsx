@@ -159,9 +159,9 @@ export function HowItWorks() {
                     Expected Activity Tier
                   </h4>
                   <p className="text-sm text-muted-foreground">
-                    Strictness adapts to repository expectations.
-                    Commit activity uses a weighted 30/90/365-day view to
-                    reduce short-term noise.
+                    Strictness adapts to repository expectations. Commit
+                    activity uses a weighted 30/90/365-day view to reduce
+                    short-term noise.
                   </p>
                   <ul className="space-y-1 text-sm text-muted-foreground">
                     <li>

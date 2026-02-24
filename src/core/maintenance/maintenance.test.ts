@@ -19,7 +19,9 @@ function yearsAgo(years: number): Date {
   return date;
 }
 
-function makeSnapshot(overrides: Partial<MetricsSnapshot> = {}): MetricsSnapshot {
+function makeSnapshot(
+  overrides: Partial<MetricsSnapshot> = {},
+): MetricsSnapshot {
   return {
     description: "repo",
     stars: 700,
@@ -97,9 +99,9 @@ describe("maintenance scoring", () => {
       ...makeSnapshot(),
       issuesCreatedLastYear: undefined,
     } as unknown as MetricsSnapshot;
-    expect(() => computeScoreFromMetrics(missingIssuesCreated, { now: NOW })).toThrow(
-      "issuesCreatedLastYear",
-    );
+    expect(() =>
+      computeScoreFromMetrics(missingIssuesCreated, { now: NOW }),
+    ).toThrow("issuesCreatedLastYear");
 
     const missingOpenPrs = {
       ...makeSnapshot(),
