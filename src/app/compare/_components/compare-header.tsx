@@ -1,5 +1,6 @@
 import { Code2, ExternalLink, GitFork, Scale, Star } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { Container } from "@/components/container";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -100,6 +101,12 @@ function ProjectCard({ run }: { run: AnalysisRun }) {
                 {result.category}
               </Badge>
             </div>
+            <Link
+              href={`/p/${run.repository.owner}/${run.repository.name}`}
+              className="text-xs text-muted-foreground hover:underline"
+            >
+              View full analysis &rarr;
+            </Link>
           </>
         )}
       </CardContent>

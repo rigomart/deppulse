@@ -70,7 +70,7 @@ export function CommitActivityComparison({
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Commit Activity
+              Commit Activity (past year)
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -102,7 +102,7 @@ export function CommitActivityComparison({
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Commit Activity
+              Commit Activity (past year)
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -133,7 +133,9 @@ export function CommitActivityComparison({
     <Container>
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-medium">Commit Activity</CardTitle>
+          <CardTitle className="text-sm font-medium">
+            Commit Activity (past year)
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <ChartContainer

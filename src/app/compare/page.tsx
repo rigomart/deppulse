@@ -136,7 +136,8 @@ async function CachedComparePage({
               Compare Projects
             </h1>
             <p className="text-sm text-muted-foreground">
-              Evaluate two GitHub repositories side-by-side.
+              Compare maintenance scores, activity, and health metrics for two
+              repositories.
             </p>
           </div>
           <CompareForm initialA={a} initialB={b} />
@@ -146,8 +147,8 @@ async function CachedComparePage({
       {isSameProject && (
         <Container className="py-2">
           <p className="text-sm text-muted-foreground">
-            Both sides point to the same project. Enter two different
-            repositories to compare.
+            Both fields refer to the same repository. Enter two different
+            projects to compare.
           </p>
         </Container>
       )}
@@ -168,7 +169,7 @@ async function CachedComparePage({
               : !runB && parsedB
                 ? `${parsedB.owner}/${parsedB.project} has not been analyzed yet. Use the form above to analyze it.`
                 : runA && runB && (!runA.metrics || !runB.metrics)
-                  ? "Analysis is in progress or incomplete. Try re-submitting the form."
+                  ? "Analysis is still in progress for one or both repositories. Try refreshing the page."
                   : "Enter two repositories above to compare them."}
           </p>
         </Container>

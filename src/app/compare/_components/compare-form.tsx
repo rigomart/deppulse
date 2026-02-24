@@ -97,7 +97,7 @@ export function CompareForm({ initialA, initialB }: CompareFormProps) {
             type="text"
             name="a"
             id="compare-input-a"
-            placeholder="owner/repository"
+            placeholder="GitHub URL or owner/repository"
             required
             maxLength={200}
             autoComplete="off"
@@ -131,7 +131,7 @@ export function CompareForm({ initialA, initialB }: CompareFormProps) {
             type="text"
             name="b"
             id="compare-input-b"
-            placeholder="owner/repository"
+            placeholder="GitHub URL or owner/repository"
             required
             maxLength={200}
             autoComplete="off"
