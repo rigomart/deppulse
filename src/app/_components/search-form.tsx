@@ -4,7 +4,7 @@ import { useAction } from "convex/react";
 import { Loader2, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { CtaButton } from "@/components/ui/cta-button";
 import { Input } from "@/components/ui/input";
 import { parseProject } from "@/lib/parse-project";
 import { api } from "../../../convex/_generated/api";
@@ -64,11 +64,12 @@ export function SearchForm() {
           className="flex-1"
           autoComplete="off"
           disabled={isPending}
+          size="lg"
         />
-        <Button type="submit" disabled={isPending}>
+        <CtaButton type="submit" disabled={isPending}>
           {isPending ? <Loader2 className="animate-spin" /> : <Search />}
           {isPending ? "Analyzing..." : "Analyze"}
-        </Button>
+        </CtaButton>
       </form>
       {error && <p className="text-sm text-destructive font-medium">{error}</p>}
     </div>

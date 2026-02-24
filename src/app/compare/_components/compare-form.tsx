@@ -5,6 +5,7 @@ import { ArrowRightLeft, Loader2, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { CtaButton } from "@/components/ui/cta-button";
 import { Input } from "@/components/ui/input";
 import { parseProject } from "@/lib/parse-project";
 import { api } from "../../../../convex/_generated/api";
@@ -103,6 +104,7 @@ export function CompareForm({ initialA, initialB }: CompareFormProps) {
             disabled={pending}
             value={valueA}
             onChange={(e) => setValueA(e.target.value)}
+            size="lg"
           />
           {errorA && (
             <p className="text-xs text-destructive font-medium">{errorA}</p>
@@ -136,20 +138,21 @@ export function CompareForm({ initialA, initialB }: CompareFormProps) {
             disabled={pending}
             value={valueB}
             onChange={(e) => setValueB(e.target.value)}
+            size="lg"
           />
           {errorB && (
             <p className="text-xs text-destructive font-medium">{errorB}</p>
           )}
         </div>
 
-        <Button type="submit" disabled={pending} className="shrink-0">
+        <CtaButton type="submit" disabled={pending} className="shrink-0">
           {pending ? (
             <Loader2 className="animate-spin" aria-hidden="true" />
           ) : (
             <Search aria-hidden="true" />
           )}
           {pending ? "Comparing…" : "Compare"}
-        </Button>
+        </CtaButton>
       </div>
     </form>
   );

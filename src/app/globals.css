@@ -95,6 +95,9 @@
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-xl);
   --shadow-2xl: var(--shadow-2xl);
+
+  --animate-gradient-shift: gradient-shift 3s ease infinite;
+  --animate-border-swipe: border-swipe 4s linear infinite;
 }
 
 @layer base {
@@ -106,5 +109,26 @@
   }
   body {
     @apply bg-surface-1 text-foreground relative min-h-screen overflow-x-hidden;
+  }
+}
+
+@keyframes border-swipe {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
   }
 }
