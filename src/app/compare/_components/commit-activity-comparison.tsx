@@ -1,7 +1,7 @@
 "use client";
 
 import { format } from "date-fns";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Loader2 } from "lucide-react";
 import { Line, LineChart, XAxis, YAxis } from "recharts";
 import { Container } from "@/components/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,7 +43,7 @@ function mergeWeeklyData(
   }
 
   return Array.from(map.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([weekStart, data]) => ({
       weekLabel: format(new Date(weekStart), "MMM d"),
       commitsA: data.commitsA,
@@ -62,6 +62,9 @@ export function CommitActivityComparison({
   const readyB = activityB?.state === "ready";
 
   if (!readyA && !readyB) {
+    const isPending =
+      activityA?.state === "pending" || activityB?.state === "pending";
+
     return (
       <Container>
         <Card>
@@ -72,9 +75,15 @@ export function CommitActivityComparison({
           </CardHeader>
           <CardContent>
             <div className="flex h-[220px] w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/50">
-              <BarChart3 className="h-8 w-8 text-muted-foreground/40" />
+              {isPending ? (
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/40" />
+              ) : (
+                <BarChart3 className="h-8 w-8 text-muted-foreground/40" />
+              )}
               <p className="text-sm text-muted-foreground">
-                Commit history is not available for these repositories.
+                {isPending
+                  ? "Commit history is loading. This may take a moment."
+                  : "Commit history is not available for these repositories."}
               </p>
             </div>
           </CardContent>

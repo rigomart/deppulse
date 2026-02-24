@@ -1,5 +1,3 @@
-"use client";
-
 import { Code2, ExternalLink, GitFork, Scale, Star } from "lucide-react";
 import Image from "next/image";
 import { Container } from "@/components/container";

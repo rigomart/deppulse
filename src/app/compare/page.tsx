@@ -13,16 +13,25 @@ import { ComparisonTable } from "./_components/comparison-table";
 
 type SearchParams = Promise<{ a?: string; b?: string }>;
 
+function normalizeSlug(raw: string | undefined) {
+  if (!raw) return null;
+  const parsed = parseProject(raw);
+  if (!parsed) return null;
+  const owner = parsed.owner.toLowerCase();
+  const project = parsed.project.toLowerCase();
+  return { slug: `${owner}/${project}`, owner, project };
+}
+
 export async function generateMetadata({
   searchParams,
 }: {
   searchParams: SearchParams;
 }): Promise<Metadata> {
   const { a, b } = await searchParams;
-  const parsedA = a ? parseProject(a) : null;
-  const parsedB = b ? parseProject(b) : null;
+  const normA = normalizeSlug(a);
+  const normB = normalizeSlug(b);
 
-  if (!parsedA || !parsedB) {
+  if (!normA || !normB) {
     return {
       title: "Compare Projects",
       description:
@@ -31,32 +40,35 @@ export async function generateMetadata({
     };
   }
 
-  const nameA = `${parsedA.owner}/${parsedA.project}`;
-  const nameB = `${parsedB.owner}/${parsedB.project}`;
-
   const [runA, runB] = await Promise.all([
-    fetchQuery(api.analysisRuns.getByRepositorySlug, parsedA),
-    fetchQuery(api.analysisRuns.getByRepositorySlug, parsedB),
+    fetchQuery(api.analysisRuns.getByRepositorySlug, {
+      owner: normA.owner,
+      project: normA.project,
+    }),
+    fetchQuery(api.analysisRuns.getByRepositorySlug, {
+      owner: normB.owner,
+      project: normB.project,
+    }),
   ]);
 
   const parts: string[] = [];
   if (runA?.metrics) {
     const { score } = computeScoreFromMetrics(runA.metrics);
-    parts.push(`${nameA} (${score}/100)`);
+    parts.push(`${normA.slug} (${score}/100)`);
   } else {
-    parts.push(nameA);
+    parts.push(normA.slug);
   }
   if (runB?.metrics) {
     const { score } = computeScoreFromMetrics(runB.metrics);
-    parts.push(`${nameB} (${score}/100)`);
+    parts.push(`${normB.slug} (${score}/100)`);
   } else {
-    parts.push(nameB);
+    parts.push(normB.slug);
   }
 
   return {
-    title: `Compare ${nameA} vs ${nameB}`,
+    title: `Compare ${normA.slug} vs ${normB.slug}`,
     description: `Side-by-side comparison of ${parts.join(" and ")}.`,
-    alternates: { canonical: `/compare?a=${nameA}&b=${nameB}` },
+    alternates: { canonical: `/compare?a=${normA.slug}&b=${normB.slug}` },
   };
 }
 
@@ -97,8 +109,8 @@ async function CachedComparePage({
   const isSameProject =
     parsedA &&
     parsedB &&
-    parsedA.owner.toLowerCase() === parsedB.owner.toLowerCase() &&
-    parsedA.project.toLowerCase() === parsedB.project.toLowerCase();
+    parsedA.owner === parsedB.owner &&
+    parsedA.project === parsedB.project;
 
   return (
     <>
@@ -117,7 +129,7 @@ async function CachedComparePage({
       </section>
 
       {isSameProject && (
-        <Container>
+        <Container className="py-2">
           <p className="text-sm text-muted-foreground">
             Both sides point to the same project. Enter two different
             repositories to compare.
@@ -143,7 +155,7 @@ async function CachedComparePage({
       )}
 
       {!bothLoaded && !isSameProject && (parsedA || parsedB) && (
-        <Container>
+        <Container className="py-2">
           <p className="text-sm text-muted-foreground">
             {!runA && parsedA
               ? `${parsedA.owner}/${parsedA.project} has not been analyzed yet. Use the form above to analyze it.`
@@ -163,5 +175,7 @@ export default async function ComparePage({
   searchParams: SearchParams;
 }) {
   const { a, b } = await searchParams;
-  return <CachedComparePage a={a} b={b} />;
+  const normA = normalizeSlug(a);
+  const normB = normalizeSlug(b);
+  return <CachedComparePage a={normA?.slug} b={normB?.slug} />;
 }

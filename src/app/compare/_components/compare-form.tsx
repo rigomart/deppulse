@@ -14,13 +14,6 @@ interface CompareFormProps {
   initialB?: string;
 }
 
-function buildCompareUrl(a: string, b: string) {
-  const params = new URLSearchParams();
-  if (a) params.set("a", a);
-  if (b) params.set("b", b);
-  return `/compare?${params.toString()}`;
-}
-
 export function CompareForm({ initialA, initialB }: CompareFormProps) {
   const router = useRouter();
   const analyzeProject = useAction(api.analysis.analyzeProject);
@@ -29,8 +22,7 @@ export function CompareForm({ initialA, initialB }: CompareFormProps) {
   const [valueB, setValueB] = useState(initialB ?? "");
   const [errorA, setErrorA] = useState<string | null>(null);
   const [errorB, setErrorB] = useState<string | null>(null);
-  const [pendingA, setPendingA] = useState(false);
-  const [pendingB, setPendingB] = useState(false);
+  const [pending, setPending] = useState(false);
 
   const handleSwap = () => {
     setValueA(valueB);
@@ -51,48 +43,45 @@ export function CompareForm({ initialA, initialB }: CompareFormProps) {
       setErrorA(
         "Could not parse repository. Use format: owner/repo or a GitHub URL.",
       );
-      return;
     }
     if (!parsedB) {
       setErrorB(
         "Could not parse repository. Use format: owner/repo or a GitHub URL.",
       );
-      return;
+    }
+    if (!parsedA || !parsedB) return;
+
+    setPending(true);
+
+    const [resultA, resultB] = await Promise.allSettled([
+      analyzeProject({
+        owner: parsedA.owner,
+        project: parsedA.project,
+        triggerSource: "direct_visit",
+      }),
+      analyzeProject({
+        owner: parsedB.owner,
+        project: parsedB.project,
+        triggerSource: "direct_visit",
+      }),
+    ]);
+
+    if (resultA.status === "rejected") {
+      setErrorA("Repository not found or analysis failed.");
+    }
+    if (resultB.status === "rejected") {
+      setErrorB("Repository not found or analysis failed.");
     }
 
-    setPendingA(true);
-    setPendingB(true);
-
-    try {
-      const [resultA, resultB] = await Promise.all([
-        analyzeProject({
-          owner: parsedA.owner,
-          project: parsedA.project,
-          triggerSource: "homepage",
-        }),
-        analyzeProject({
-          owner: parsedB.owner,
-          project: parsedB.project,
-          triggerSource: "homepage",
-        }),
-      ]);
-
-      router.push(
-        buildCompareUrl(
-          `${resultA.owner}/${resultA.project}`,
-          `${resultB.owner}/${resultB.project}`,
-        ),
-      );
-    } catch (err) {
-      console.error("Compare analysis failed:", err);
-      setErrorA("Could not start analysis. Please try again.");
-    } finally {
-      setPendingA(false);
-      setPendingB(false);
+    if (resultA.status === "fulfilled" && resultB.status === "fulfilled") {
+      const params = new URLSearchParams();
+      params.set("a", `${resultA.value.owner}/${resultA.value.project}`);
+      params.set("b", `${resultB.value.owner}/${resultB.value.project}`);
+      router.push(`/compare?${params.toString()}`);
     }
+
+    setPending(false);
   };
-
-  const isPending = pendingA || pendingB;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -105,7 +94,7 @@ export function CompareForm({ initialA, initialB }: CompareFormProps) {
             required
             maxLength={200}
             autoComplete="off"
-            disabled={isPending}
+            disabled={pending}
             value={valueA}
             onChange={(e) => setValueA(e.target.value)}
           />
@@ -120,7 +109,7 @@ export function CompareForm({ initialA, initialB }: CompareFormProps) {
           size="icon"
           className="self-center shrink-0"
           onClick={handleSwap}
-          disabled={isPending}
+          disabled={pending}
           aria-label="Swap projects"
         >
           <ArrowRightLeft className="size-4" />
@@ -134,7 +123,7 @@ export function CompareForm({ initialA, initialB }: CompareFormProps) {
             required
             maxLength={200}
             autoComplete="off"
-            disabled={isPending}
+            disabled={pending}
             value={valueB}
             onChange={(e) => setValueB(e.target.value)}
           />
@@ -143,9 +132,9 @@ export function CompareForm({ initialA, initialB }: CompareFormProps) {
           )}
         </div>
 
-        <Button type="submit" disabled={isPending} className="shrink-0">
-          {isPending ? <Loader2 className="animate-spin" /> : <Search />}
-          {isPending ? "Comparing..." : "Compare"}
+        <Button type="submit" disabled={pending} className="shrink-0">
+          {pending ? <Loader2 className="animate-spin" /> : <Search />}
+          {pending ? "Comparing…" : "Compare"}
         </Button>
       </div>
     </form>
