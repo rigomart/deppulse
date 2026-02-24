@@ -1,6 +1,4 @@
-"use client";
-
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { Container } from "@/components/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AnalysisRun } from "@/lib/domain/assessment";
@@ -12,7 +10,7 @@ interface ComparisonTableProps {
 }
 
 type BetterDirection = "higher" | "lower" | "newer";
-type Section = "freshness" | "engagement" | "health" | "activity";
+type Section = "freshness" | "health" | "activity";
 
 interface MetricRow {
   label: string;
@@ -27,7 +25,7 @@ interface MetricRow {
 function formatDate(iso: string | null): string {
   if (!iso) return "N/A";
   const d = new Date(iso);
-  return `${format(d, "MMM d, yyyy")} (${formatDistanceToNow(d, { addSuffix: true })})`;
+  return format(d, "MMM d, yyyy");
 }
 
 function fmtCount(val: number | null): string {
@@ -125,25 +123,7 @@ function buildRows(runA: AnalysisRun, runB: AnalysisRun): MetricRow[] {
       better: "newer",
     },
     {
-      label: "Stars",
-      section: "engagement",
-      valueA: fmtCount(mA?.stars ?? null),
-      valueB: fmtCount(mB?.stars ?? null),
-      rawA: mA?.stars ?? null,
-      rawB: mB?.stars ?? null,
-      better: "higher",
-    },
-    {
-      label: "Forks",
-      section: "engagement",
-      valueA: fmtCount(mA?.forks ?? null),
-      valueB: fmtCount(mB?.forks ?? null),
-      rawA: mA?.forks ?? null,
-      rawB: mB?.forks ?? null,
-      better: "higher",
-    },
-    {
-      label: "Open Issues %",
+      label: "Open Issue Ratio",
       section: "health",
       valueA: fmtPercent(mA?.openIssuesPercent ?? null),
       valueB: fmtPercent(mB?.openIssuesPercent ?? null),
@@ -152,7 +132,7 @@ function buildRows(runA: AnalysisRun, runB: AnalysisRun): MetricRow[] {
       better: "lower",
     },
     {
-      label: "Resolution Time",
+      label: "Median Resolution Time",
       section: "health",
       valueA: fmtDays(mA?.medianIssueResolutionDays ?? null),
       valueB: fmtDays(mB?.medianIssueResolutionDays ?? null),
@@ -223,7 +203,6 @@ export function ComparisonTable({ runA, runB }: ComparisonTableProps) {
 
   const sections: { title: string; key: Section }[] = [
     { title: "Activity Freshness", key: "freshness" },
-    { title: "Engagement", key: "engagement" },
     { title: "Health", key: "health" },
     { title: "Activity Volume", key: "activity" },
   ];
