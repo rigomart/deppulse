@@ -157,36 +157,64 @@ export function CommitActivityComparison({
                 tick={{ fontSize: 12 }}
               />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Line
-                type="monotone"
-                dataKey="commitsA"
-                stroke="var(--color-commitsA)"
-                strokeWidth={2}
-                dot={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="commitsB"
-                stroke="var(--color-commitsB)"
-                strokeWidth={2}
-                dot={false}
-              />
+              {readyA && (
+                <Line
+                  type="monotone"
+                  dataKey="commitsA"
+                  stroke="var(--color-commitsA)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              )}
+              {readyB && (
+                <Line
+                  type="monotone"
+                  dataKey="commitsB"
+                  stroke="var(--color-commitsB)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              )}
             </LineChart>
           </ChartContainer>
           <div className="flex items-center justify-center gap-6 mt-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <div
                 className="size-2.5 rounded-full"
-                style={{ backgroundColor: "var(--chart-1)" }}
+                style={{
+                  backgroundColor: readyA
+                    ? "var(--chart-1)"
+                    : "var(--muted-foreground)",
+                  opacity: readyA ? 1 : 0.4,
+                }}
               />
-              {runA.repository.fullName}
+              <span>
+                {runA.repository.fullName}
+                {!readyA && (
+                  <span className="ml-1 text-muted-foreground/60">
+                    {`(${activityA?.state === "pending" ? "loading" : "unavailable"})`}
+                  </span>
+                )}
+              </span>
             </div>
             <div className="flex items-center gap-1.5">
               <div
                 className="size-2.5 rounded-full"
-                style={{ backgroundColor: "var(--chart-2)" }}
+                style={{
+                  backgroundColor: readyB
+                    ? "var(--chart-2)"
+                    : "var(--muted-foreground)",
+                  opacity: readyB ? 1 : 0.4,
+                }}
               />
-              {runB.repository.fullName}
+              <span>
+                {runB.repository.fullName}
+                {!readyB && (
+                  <span className="ml-1 text-muted-foreground/60">
+                    {`(${activityB?.state === "pending" ? "loading" : "unavailable"})`}
+                  </span>
+                )}
+              </span>
             </div>
           </div>
         </CardContent>
