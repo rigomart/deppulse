@@ -40,16 +40,26 @@ export async function generateMetadata({
     };
   }
 
-  const [runA, runB] = await Promise.all([
-    fetchQuery(api.analysisRuns.getByRepositorySlug, {
-      owner: normA.owner,
-      project: normA.project,
-    }),
-    fetchQuery(api.analysisRuns.getByRepositorySlug, {
-      owner: normB.owner,
-      project: normB.project,
-    }),
-  ]);
+  let runA = null;
+  let runB = null;
+  try {
+    [runA, runB] = await Promise.all([
+      fetchQuery(api.analysisRuns.getByRepositorySlug, {
+        owner: normA.owner,
+        project: normA.project,
+      }),
+      fetchQuery(api.analysisRuns.getByRepositorySlug, {
+        owner: normB.owner,
+        project: normB.project,
+      }),
+    ]);
+  } catch {
+    return {
+      title: `Compare ${normA.slug} vs ${normB.slug}`,
+      description: `Side-by-side comparison of ${normA.slug} and ${normB.slug}.`,
+      alternates: { canonical: `/compare?a=${normA.slug}&b=${normB.slug}` },
+    };
+  }
 
   const parts: string[] = [];
   if (runA?.metrics) {
@@ -80,7 +90,7 @@ async function CachedComparePage({
   b: string | undefined;
 }) {
   "use cache";
-  cacheLife("days");
+  cacheLife("hours");
 
   const parsedA = a ? parseProject(a) : null;
   const parsedB = b ? parseProject(b) : null;
@@ -105,12 +115,17 @@ async function CachedComparePage({
     )) as AnalysisRun | null;
   }
 
-  const bothLoaded = runA?.metrics && runB?.metrics;
   const isSameProject =
     parsedA &&
     parsedB &&
     parsedA.owner === parsedB.owner &&
     parsedA.project === parsedB.project;
+
+  const bothLoaded =
+    runA !== null &&
+    runB !== null &&
+    runA.metrics !== null &&
+    runB.metrics !== null;
 
   return (
     <>
@@ -137,20 +152,11 @@ async function CachedComparePage({
         </Container>
       )}
 
-      {bothLoaded && !isSameProject && (
+      {runA && runB && runA.metrics && runB.metrics && !isSameProject && (
         <>
-          <CompareHeader
-            runA={runA as AnalysisRun}
-            runB={runB as AnalysisRun}
-          />
-          <ComparisonTable
-            runA={runA as AnalysisRun}
-            runB={runB as AnalysisRun}
-          />
-          <CommitActivityComparison
-            runA={runA as AnalysisRun}
-            runB={runB as AnalysisRun}
-          />
+          <CompareHeader runA={runA} runB={runB} />
+          <ComparisonTable runA={runA} runB={runB} />
+          <CommitActivityComparison runA={runA} runB={runB} />
         </>
       )}
 
@@ -161,7 +167,9 @@ async function CachedComparePage({
               ? `${parsedA.owner}/${parsedA.project} has not been analyzed yet. Use the form above to analyze it.`
               : !runB && parsedB
                 ? `${parsedB.owner}/${parsedB.project} has not been analyzed yet. Use the form above to analyze it.`
-                : "Enter two repositories above to compare them."}
+                : runA && runB && (!runA.metrics || !runB.metrics)
+                  ? "Analysis is in progress or incomplete. Try re-submitting the form."
+                  : "Enter two repositories above to compare them."}
           </p>
         </Container>
       )}

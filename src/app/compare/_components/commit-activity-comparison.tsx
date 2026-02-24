@@ -97,7 +97,25 @@ export function CommitActivityComparison({
   const points = mergeWeeklyData(weeksA, weeksB);
 
   if (points.length === 0) {
-    return null;
+    return (
+      <Container>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">
+              Commit Activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex h-[220px] w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/50">
+              <BarChart3 className="h-8 w-8 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">
+                No commits found in the past year.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </Container>
+    );
   }
 
   const chartConfig: ChartConfig = {
