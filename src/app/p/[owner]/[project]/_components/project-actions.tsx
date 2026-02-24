@@ -30,7 +30,9 @@ export function ProjectActions({ run }: ProjectActionsProps) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-surface-3">
         <DropdownMenuItem asChild>
-          <Link href={`/compare?a=${encodeURIComponent(run.repository.fullName)}`}>
+          <Link
+            href={`/compare?a=${encodeURIComponent(run.repository.fullName)}`}
+          >
             <ArrowRightLeft className="size-4" />
             Compare
           </Link>

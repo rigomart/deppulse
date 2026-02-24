@@ -211,7 +211,8 @@ function computeReleaseRegularity(releaseTimes: number[]): number | null {
 
   if (intervals.length < 2) return null;
 
-  const mean = intervals.reduce((sum, value) => sum + value, 0) / intervals.length;
+  const mean =
+    intervals.reduce((sum, value) => sum + value, 0) / intervals.length;
   if (mean <= 0) return null;
 
   const variance =

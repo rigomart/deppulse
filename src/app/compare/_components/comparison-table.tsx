@@ -12,9 +12,11 @@ interface ComparisonTableProps {
 }
 
 type BetterDirection = "higher" | "lower" | "newer";
+type Section = "freshness" | "engagement" | "health" | "activity";
 
 interface MetricRow {
   label: string;
+  section: Section;
   valueA: string;
   valueB: string;
   rawA: number | null;
@@ -88,6 +90,7 @@ function buildRows(runA: AnalysisRun, runB: AnalysisRun): MetricRow[] {
   return [
     {
       label: "Last Commit",
+      section: "freshness",
       valueA: formatDate(mA?.lastCommitAt ?? null),
       valueB: formatDate(mB?.lastCommitAt ?? null),
       rawA: dateToRaw(mA?.lastCommitAt ?? null),
@@ -96,6 +99,7 @@ function buildRows(runA: AnalysisRun, runB: AnalysisRun): MetricRow[] {
     },
     {
       label: "Last Release",
+      section: "freshness",
       valueA: formatDate(mA?.lastReleaseAt ?? null),
       valueB: formatDate(mB?.lastReleaseAt ?? null),
       rawA: dateToRaw(mA?.lastReleaseAt ?? null),
@@ -104,6 +108,7 @@ function buildRows(runA: AnalysisRun, runB: AnalysisRun): MetricRow[] {
     },
     {
       label: "Last PR Merged",
+      section: "freshness",
       valueA: formatDate(mA?.lastMergedPrAt ?? null),
       valueB: formatDate(mB?.lastMergedPrAt ?? null),
       rawA: dateToRaw(mA?.lastMergedPrAt ?? null),
@@ -112,6 +117,7 @@ function buildRows(runA: AnalysisRun, runB: AnalysisRun): MetricRow[] {
     },
     {
       label: "Last Issue Closed",
+      section: "freshness",
       valueA: formatDate(mA?.lastClosedIssueAt ?? null),
       valueB: formatDate(mB?.lastClosedIssueAt ?? null),
       rawA: dateToRaw(mA?.lastClosedIssueAt ?? null),
@@ -120,6 +126,7 @@ function buildRows(runA: AnalysisRun, runB: AnalysisRun): MetricRow[] {
     },
     {
       label: "Stars",
+      section: "engagement",
       valueA: fmtCount(mA?.stars ?? null),
       valueB: fmtCount(mB?.stars ?? null),
       rawA: mA?.stars ?? null,
@@ -128,6 +135,7 @@ function buildRows(runA: AnalysisRun, runB: AnalysisRun): MetricRow[] {
     },
     {
       label: "Forks",
+      section: "engagement",
       valueA: fmtCount(mA?.forks ?? null),
       valueB: fmtCount(mB?.forks ?? null),
       rawA: mA?.forks ?? null,
@@ -136,6 +144,7 @@ function buildRows(runA: AnalysisRun, runB: AnalysisRun): MetricRow[] {
     },
     {
       label: "Open Issues %",
+      section: "health",
       valueA: fmtPercent(mA?.openIssuesPercent ?? null),
       valueB: fmtPercent(mB?.openIssuesPercent ?? null),
       rawA: mA?.openIssuesPercent ?? null,
@@ -144,6 +153,7 @@ function buildRows(runA: AnalysisRun, runB: AnalysisRun): MetricRow[] {
     },
     {
       label: "Resolution Time",
+      section: "health",
       valueA: fmtDays(mA?.medianIssueResolutionDays ?? null),
       valueB: fmtDays(mB?.medianIssueResolutionDays ?? null),
       rawA: mA?.medianIssueResolutionDays ?? null,
@@ -152,6 +162,7 @@ function buildRows(runA: AnalysisRun, runB: AnalysisRun): MetricRow[] {
     },
     {
       label: "Open PRs",
+      section: "health",
       valueA: fmtCount(mA?.openPrsCount ?? null),
       valueB: fmtCount(mB?.openPrsCount ?? null),
       rawA: mA?.openPrsCount ?? null,
@@ -160,6 +171,7 @@ function buildRows(runA: AnalysisRun, runB: AnalysisRun): MetricRow[] {
     },
     {
       label: "Commits (90d)",
+      section: "activity",
       valueA: fmtCount(mA?.commitsLast90Days ?? null),
       valueB: fmtCount(mB?.commitsLast90Days ?? null),
       rawA: mA?.commitsLast90Days ?? null,
@@ -168,6 +180,7 @@ function buildRows(runA: AnalysisRun, runB: AnalysisRun): MetricRow[] {
     },
     {
       label: "Merged PRs (90d)",
+      section: "activity",
       valueA: fmtCount(mA?.mergedPrsLast90Days ?? null),
       valueB: fmtCount(mB?.mergedPrsLast90Days ?? null),
       rawA: mA?.mergedPrsLast90Days ?? null,
@@ -176,6 +189,7 @@ function buildRows(runA: AnalysisRun, runB: AnalysisRun): MetricRow[] {
     },
     {
       label: "Issues Created (1yr)",
+      section: "activity",
       valueA: fmtCount(mA?.issuesCreatedLastYear ?? null),
       valueB: fmtCount(mB?.issuesCreatedLastYear ?? null),
       rawA: mA?.issuesCreatedLastYear ?? null,
@@ -204,26 +218,21 @@ function SectionHeader({ nameA, nameB }: { nameA: string; nameB: string }) {
 export function ComparisonTable({ runA, runB }: ComparisonTableProps) {
   const rows = buildRows(runA, runB);
 
-  const freshnessRows = rows.slice(0, 4);
-  const engagementRows = rows.slice(4, 6);
-  const healthRows = rows.slice(6, 9);
-  const activityRows = rows.slice(9);
-
   const nameA = runA.repository.fullName;
   const nameB = runB.repository.fullName;
 
-  const sections = [
-    { title: "Activity Freshness", rows: freshnessRows },
-    { title: "Engagement", rows: engagementRows },
-    { title: "Health", rows: healthRows },
-    { title: "Activity Volume", rows: activityRows },
+  const sections: { title: string; key: Section }[] = [
+    { title: "Activity Freshness", key: "freshness" },
+    { title: "Engagement", key: "engagement" },
+    { title: "Health", key: "health" },
+    { title: "Activity Volume", key: "activity" },
   ];
 
   return (
     <Container>
       <div className="space-y-4">
         {sections.map((section) => (
-          <Card key={section.title}>
+          <Card key={section.key}>
             <CardHeader>
               <CardTitle className="text-sm font-medium">
                 {section.title}
@@ -231,9 +240,11 @@ export function ComparisonTable({ runA, runB }: ComparisonTableProps) {
             </CardHeader>
             <CardContent>
               <SectionHeader nameA={nameA} nameB={nameB} />
-              {section.rows.map((row) => (
-                <ComparisonRow key={row.label} row={row} />
-              ))}
+              {rows
+                .filter((row) => row.section === section.key)
+                .map((row) => (
+                  <ComparisonRow key={row.label} row={row} />
+                ))}
             </CardContent>
           </Card>
         ))}

@@ -7,7 +7,6 @@ import {
   Star,
 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { Suspense } from "react";
 import { RelativeTime } from "@/components/relative-time";
 import type { AnalysisRun } from "@/lib/domain/assessment";

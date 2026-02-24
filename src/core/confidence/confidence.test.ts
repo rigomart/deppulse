@@ -79,7 +79,7 @@ describe("computeConfidence", () => {
     expect(result.level).toBe("low");
     expect(result.score).toBe(0);
     expect(result.penalties).toHaveLength(1);
-    expect(result.penalties[0]!.id).toBe("no_metrics");
+    expect(result.penalties[0]?.id).toBe("no_metrics");
   });
 
   it("penalizes failed run status", () => {
@@ -179,8 +179,8 @@ describe("computeConfidence", () => {
       (p) => p.id === "stale_analysis",
     );
     expect(stalenessPenalty).toBeDefined();
-    expect(stalenessPenalty!.points).toBeGreaterThan(0);
-    expect(stalenessPenalty!.points).toBeLessThan(25);
+    expect(stalenessPenalty?.points).toBeGreaterThan(0);
+    expect(stalenessPenalty?.points).toBeLessThan(25);
   });
 
   it("applies maximum staleness penalty at 30+ days", () => {
@@ -193,7 +193,7 @@ describe("computeConfidence", () => {
       (p) => p.id === "stale_analysis",
     );
     expect(stalenessPenalty).toBeDefined();
-    expect(stalenessPenalty!.points).toBe(25);
+    expect(stalenessPenalty?.points).toBe(25);
   });
 
   it("penalizes when merged PRs hit API limit", () => {
@@ -280,6 +280,6 @@ describe("computeConfidence", () => {
       (p) => p.id === "stale_analysis",
     );
     expect(stalenessPenalty).toBeDefined();
-    expect(stalenessPenalty!.points).toBeGreaterThan(0);
+    expect(stalenessPenalty?.points).toBeGreaterThan(0);
   });
 });
