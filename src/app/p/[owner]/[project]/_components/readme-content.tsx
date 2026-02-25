@@ -38,11 +38,11 @@ export function ReadmeContent({ content }: ReadmeContentProps) {
             components={{
               a: ({ href, children, ...props }) => (
                 <a
+                  {...props}
                   href={href ?? "#"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors"
-                  {...props}
                 >
                   {children}
                 </a>

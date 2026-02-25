@@ -14,14 +14,21 @@ export function RelativeTime({
   addSuffix = true,
   className,
 }: RelativeTimeProps) {
-  const d = typeof date === "string" ? new Date(date) : date;
   const [value, setValue] = useState(() =>
-    formatDistanceToNow(d, { addSuffix }),
+    formatDistanceToNow(
+      typeof date === "string" ? new Date(date) : date,
+      { addSuffix },
+    ),
   );
 
   useEffect(() => {
-    setValue(formatDistanceToNow(d, { addSuffix }));
-  }, [d, addSuffix]);
+    setValue(
+      formatDistanceToNow(
+        typeof date === "string" ? new Date(date) : date,
+        { addSuffix },
+      ),
+    );
+  }, [date, addSuffix]);
 
   return (
     <span
