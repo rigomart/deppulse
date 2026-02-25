@@ -35,6 +35,7 @@ export async function generateMetadata(
   if (!run || !hasScoreInputs(metrics)) {
     return {
       title: `${owner}/${project} - Analyzing...`,
+      description: `Maintenance assessment for ${owner}/${project}. Analysis in progress.`,
     };
   }
 

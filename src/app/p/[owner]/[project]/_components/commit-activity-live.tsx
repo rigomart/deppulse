@@ -1,10 +1,26 @@
 "use client";
 
 import { useQuery } from "convex/react";
+import dynamic from "next/dynamic";
 import { Container } from "@/components/container";
 import type { AnalysisRun } from "@/lib/domain/assessment";
 import { api } from "../../../../../../convex/_generated/api";
-import { CommitActivityContent } from "./commit-activity-content";
+
+const CommitActivityContent = dynamic(
+  () =>
+    import("./commit-activity-content").then((mod) => ({
+      default: mod.CommitActivityContent,
+    })),
+  {
+    loading: () => (
+      <div className="flex h-[220px] w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/50">
+        <p className="text-sm text-muted-foreground">
+          Loading commit history...
+        </p>
+      </div>
+    ),
+  },
+);
 
 interface CommitActivityLiveProps {
   owner: string;

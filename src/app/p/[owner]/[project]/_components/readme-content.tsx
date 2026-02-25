@@ -32,7 +32,23 @@ export function ReadmeContent({ content }: ReadmeContentProps) {
             overflows && !expanded && "max-h-[400px]",
           )}
         >
-          <Streamdown mode="static" disallowedElements={["img"]}>
+          <Streamdown
+            mode="static"
+            disallowedElements={["img"]}
+            components={{
+              a: ({ href, children, ...props }) => (
+                <a
+                  {...props}
+                  href={href ?? "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors"
+                >
+                  {children}
+                </a>
+              ),
+            }}
+          >
             {content}
           </Streamdown>
           {!expanded && overflows && (

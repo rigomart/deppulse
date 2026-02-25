@@ -1,8 +1,17 @@
-import { Suspense } from "react";
+import dynamic from "next/dynamic";
 import { Container } from "@/components/container";
 import type { AnalysisRun } from "@/lib/domain/assessment";
-import { RecentActivityContent } from "./recent-activity-content";
 import { RecentActivitySkeleton } from "./recent-activity-skeleton";
+
+const RecentActivityContent = dynamic(
+  () =>
+    import("./recent-activity-content").then((mod) => ({
+      default: mod.RecentActivityContent,
+    })),
+  {
+    loading: () => <RecentActivitySkeleton />,
+  },
+);
 
 interface RecentActivityProps {
   run: AnalysisRun;
@@ -15,9 +24,7 @@ export function RecentActivity({ run }: RecentActivityProps) {
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
           Recent Activity
         </h2>
-        <Suspense fallback={<RecentActivitySkeleton />}>
-          <RecentActivityContent run={run} />
-        </Suspense>
+        <RecentActivityContent run={run} />
       </section>
     </Container>
   );
