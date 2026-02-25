@@ -12,12 +12,12 @@ export function LocalDate({
   date,
   formatStr = "MMM d, yyyy 'at' h:mm a",
 }: LocalDateProps) {
-  const [formatted, setFormatted] = useState<string | null>(null);
+  const d = typeof date === "string" ? new Date(date) : date;
+  const [formatted, setFormatted] = useState(() => format(d, formatStr));
 
   useEffect(() => {
-    const d = typeof date === "string" ? new Date(date) : date;
     setFormatted(format(d, formatStr));
-  }, [date, formatStr]);
+  }, [d, formatStr]);
 
-  return <>{formatted ?? "—"}</>;
+  return <span suppressHydrationWarning>{formatted}</span>;
 }

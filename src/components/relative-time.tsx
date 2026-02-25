@@ -6,26 +6,30 @@ import { useEffect, useState } from "react";
 interface RelativeTimeProps {
   date: Date | string;
   addSuffix?: boolean;
-  fallback?: string;
   className?: string;
 }
 
 export function RelativeTime({
   date,
   addSuffix = true,
-  fallback = "—",
   className,
 }: RelativeTimeProps) {
-  const [value, setValue] = useState<string | null>(null);
+  const d = typeof date === "string" ? new Date(date) : date;
+  const [value, setValue] = useState(() =>
+    formatDistanceToNow(d, { addSuffix }),
+  );
 
   useEffect(() => {
-    const d = typeof date === "string" ? new Date(date) : date;
     setValue(formatDistanceToNow(d, { addSuffix }));
-  }, [date, addSuffix]);
+  }, [d, addSuffix]);
 
   return (
-    <span data-slot="relative-time" className={className}>
-      {value ?? fallback}
+    <span
+      data-slot="relative-time"
+      className={className}
+      suppressHydrationWarning
+    >
+      {value}
     </span>
   );
 }

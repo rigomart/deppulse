@@ -21,7 +21,7 @@
   --status-healthy: oklch(0.65 0.17 145);
   --status-moderate: oklch(0.65 0.17 250);
   --status-declining: oklch(0.75 0.18 85);
-  --status-inactive: oklch(0.55 0 0);
+  --status-inactive: oklch(0.6 0 0);
   --border: oklch(0.2934 0 0);
   --input: oklch(0.3682 0 0);
   --ring: oklch(0.5555 0 0);
