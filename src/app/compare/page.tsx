@@ -22,6 +22,12 @@ function normalizeSlug(raw: string | undefined) {
   return { slug: `${owner}/${project}`, owner, project };
 }
 
+async function cachedCompareMetadata(owner: string, project: string) {
+  "use cache";
+  cacheLife("hours");
+  return fetchQuery(api.analysisRuns.getByRepositorySlug, { owner, project });
+}
+
 export async function generateMetadata({
   searchParams,
 }: {
@@ -44,14 +50,8 @@ export async function generateMetadata({
   let runB = null;
   try {
     [runA, runB] = await Promise.all([
-      fetchQuery(api.analysisRuns.getByRepositorySlug, {
-        owner: normA.owner,
-        project: normA.project,
-      }),
-      fetchQuery(api.analysisRuns.getByRepositorySlug, {
-        owner: normB.owner,
-        project: normB.project,
-      }),
+      cachedCompareMetadata(normA.owner, normA.project),
+      cachedCompareMetadata(normB.owner, normB.project),
     ]);
   } catch {
     return {

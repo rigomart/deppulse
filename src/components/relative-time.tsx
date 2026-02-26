@@ -15,18 +15,16 @@ export function RelativeTime({
   className,
 }: RelativeTimeProps) {
   const [value, setValue] = useState(() =>
-    formatDistanceToNow(
-      typeof date === "string" ? new Date(date) : date,
-      { addSuffix },
-    ),
+    formatDistanceToNow(typeof date === "string" ? new Date(date) : date, {
+      addSuffix,
+    }),
   );
 
   useEffect(() => {
     setValue(
-      formatDistanceToNow(
-        typeof date === "string" ? new Date(date) : date,
-        { addSuffix },
-      ),
+      formatDistanceToNow(typeof date === "string" ? new Date(date) : date, {
+        addSuffix,
+      }),
     );
   }, [date, addSuffix]);
 
