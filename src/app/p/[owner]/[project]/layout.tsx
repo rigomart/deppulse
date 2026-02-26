@@ -1,5 +1,6 @@
 import { fetchQuery } from "convex/nextjs";
 import type { Metadata, ResolvingMetadata } from "next";
+import { cacheLife } from "next/cache";
 import { computeScoreFromMetrics } from "@/core/maintenance";
 import type { AnalysisRun, MetricsSnapshot } from "@/lib/domain/assessment";
 import { api } from "../../../../../convex/_generated/api";
@@ -20,16 +21,19 @@ function hasScoreInputs(metrics: unknown): metrics is MetricsSnapshot {
   );
 }
 
+async function cachedMetadata(owner: string, project: string) {
+  "use cache";
+  cacheLife("days");
+  return fetchQuery(api.analysisRuns.getByRepositorySlug, { owner, project });
+}
+
 export async function generateMetadata(
   { params }: Props,
   _parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const { owner, project } = await params;
 
-  const run = (await fetchQuery(api.analysisRuns.getByRepositorySlug, {
-    owner,
-    project,
-  })) as AnalysisRun | null;
+  const run = (await cachedMetadata(owner, project)) as AnalysisRun | null;
 
   const metrics = run?.metrics;
   if (!run || !hasScoreInputs(metrics)) {
