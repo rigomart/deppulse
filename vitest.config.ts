@@ -9,14 +9,32 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
-    exclude: ["node_modules", ".next"],
-    environment: "node",
     globals: true,
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
       exclude: ["**/*.test.ts", "**/*.spec.ts", "node_modules"],
     },
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "unit",
+          include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
+          exclude: ["node_modules", ".next"],
+          environment: "node",
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "convex",
+          include: ["convex/**/*.test.ts"],
+          exclude: ["node_modules"],
+          environment: "edge-runtime",
+          server: { deps: { inline: ["convex-test"] } },
+        },
+      },
+    ],
   },
 });

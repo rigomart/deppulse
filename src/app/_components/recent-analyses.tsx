@@ -39,6 +39,7 @@ export async function RecentAnalyses() {
               <Link
                 key={run.id}
                 href={`/p/${run.repository.owner}/${run.repository.name}`}
+                prefetch
               >
                 <Card className="h-full transition-all hover:bg-surface-3">
                   <CardContent className="space-y-2">
