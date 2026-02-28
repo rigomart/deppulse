@@ -157,4 +157,18 @@ describe("computeScoreFromMetrics", () => {
     expect(result.breakdown.expectedActivityTier).toBe("medium");
   });
 
+  it("handles missing activity dates and empty releases", () => {
+    const result = computeScoreFromMetrics(
+      makeSnapshot({
+        lastCommitAt: null,
+        lastMergedPrAt: null,
+        lastReleaseAt: null,
+        repositoryCreatedAt: null,
+        releases: [],
+      }),
+    );
+
+    expect(result.score).toBeGreaterThanOrEqual(0);
+    expect(result.category).toBeDefined();
+  });
 });

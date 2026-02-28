@@ -55,7 +55,9 @@ export interface MaintenanceResult {
 }
 
 function parseDate(value: string | null): Date | null {
-  return value ? new Date(value) : null;
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function deriveCommitsLast30Days(
