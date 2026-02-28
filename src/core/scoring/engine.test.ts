@@ -1,8 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { calculateScore } from "./engine";
 import type { ScoringInput } from "./types";
 
 const NOW = new Date("2026-02-13T00:00:00.000Z");
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(NOW);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 function daysAgo(days: number): Date {
   return new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000);
@@ -28,14 +37,13 @@ function makeInput(overrides: Partial<ScoringInput> = {}): ScoringInput {
 }
 
 describe("scoring engine", () => {
-  it("severely penalizes high-expected repos stale for more than 180 days", () => {
+  it("severely penalizes high-activity repos inactive over 6 months", () => {
     const result = calculateScore(
       makeInput({
         lastCommitAt: daysAgo(220),
         lastMergedPrAt: daysAgo(250),
         lastReleaseAt: daysAgo(260),
       }),
-      { now: NOW },
     );
 
     expect(result.breakdown.expectedActivityTier).toBe("high");
@@ -44,14 +52,13 @@ describe("scoring engine", () => {
     expect(result.score).toBeLessThanOrEqual(35);
   });
 
-  it("severely penalizes high-expected repos stale for more than 365 days", () => {
+  it("severely penalizes high-activity repos inactive over a year", () => {
     const result = calculateScore(
       makeInput({
         lastCommitAt: daysAgo(420),
         lastMergedPrAt: daysAgo(460),
         lastReleaseAt: daysAgo(500),
       }),
-      { now: NOW },
     );
 
     expect(result.breakdown.expectedActivityTier).toBe("high");
@@ -60,7 +67,7 @@ describe("scoring engine", () => {
     expect(result.score).toBeLessThanOrEqual(20);
   });
 
-  it("uses low-tier interpolated multiplier for popular but stale repositories", () => {
+  it("penalizes low-activity repos less than high-activity ones at the same inactivity", () => {
     const lowExpected = calculateScore(
       makeInput({
         lastCommitAt: daysAgo(420),
@@ -72,7 +79,6 @@ describe("scoring engine", () => {
         issuesCreatedLastYear: 0,
         openPrsCount: 0,
       }),
-      { now: NOW },
     );
 
     const highExpected = calculateScore(
@@ -86,7 +92,6 @@ describe("scoring engine", () => {
         issuesCreatedLastYear: 50,
         openPrsCount: 15,
       }),
-      { now: NOW },
     );
 
     expect(lowExpected.breakdown.expectedActivityTier).toBe("low");
@@ -96,7 +101,7 @@ describe("scoring engine", () => {
     expect(lowExpected.score).toBeGreaterThan(highExpected.score);
   });
 
-  it("keeps low-expected utilities less penalized at similar inactivity", () => {
+  it("treats small utilities more leniently than large projects at similar inactivity", () => {
     const lowExpected = calculateScore(
       makeInput({
         lastCommitAt: daysAgo(300),
@@ -108,7 +113,6 @@ describe("scoring engine", () => {
         issuesCreatedLastYear: 2,
         openPrsCount: 1,
       }),
-      { now: NOW },
     );
 
     const highExpected = calculateScore(
@@ -117,31 +121,28 @@ describe("scoring engine", () => {
         lastMergedPrAt: daysAgo(320),
         lastReleaseAt: daysAgo(340),
       }),
-      { now: NOW },
     );
 
     expect(lowExpected.breakdown.expectedActivityTier).toBe("low");
     expect(lowExpected.score).toBeGreaterThan(highExpected.score);
   });
 
-  it("returns zero for archived repositories", () => {
-    const result = calculateScore(makeInput({ isArchived: true }), {
-      now: NOW,
-    });
+  it("scores archived repositories as inactive", () => {
+    const result = calculateScore(makeInput({ isArchived: true }));
 
     expect(result.score).toBe(0);
     expect(result.category).toBe("inactive");
   });
 
-  it("is deterministic when now is injected", () => {
+  it("produces consistent results for the same input", () => {
     const input = makeInput({
       lastCommitAt: new Date("2025-06-01T00:00:00.000Z"),
       lastMergedPrAt: new Date("2025-06-02T00:00:00.000Z"),
       lastReleaseAt: new Date("2025-06-03T00:00:00.000Z"),
     });
 
-    const first = calculateScore(input, { now: NOW });
-    const second = calculateScore(input, { now: NOW });
+    const first = calculateScore(input);
+    const second = calculateScore(input);
 
     expect(first).toEqual(second);
   });

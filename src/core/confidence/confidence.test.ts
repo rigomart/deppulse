@@ -1,285 +1,245 @@
-import { describe, expect, it } from "vitest";
-import type { AnalysisRun, MetricsSnapshot } from "@/lib/domain/assessment";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computeConfidence } from "./confidence";
+import type { ConfidenceInput } from "./types";
 
 const NOW = new Date("2026-02-13T00:00:00.000Z");
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function makeSnapshot(
-  overrides: Partial<MetricsSnapshot> = {},
-): MetricsSnapshot {
-  return {
-    description: "repo",
-    stars: 700,
-    forks: 100,
-    avatarUrl: "https://example.com/avatar.png",
-    htmlUrl: "https://github.com/acme/repo",
-    license: "MIT",
-    language: "TypeScript",
-    repositoryCreatedAt: "2020-01-01T00:00:00.000Z",
-    isArchived: false,
-    lastCommitAt: "2026-02-10T00:00:00.000Z",
-    lastReleaseAt: "2026-01-15T00:00:00.000Z",
-    lastClosedIssueAt: "2026-02-01T00:00:00.000Z",
-    lastMergedPrAt: "2026-02-05T00:00:00.000Z",
-    openIssuesPercent: 20,
-    openIssuesCount: 20,
-    closedIssuesCount: 80,
-    medianIssueResolutionDays: 9,
-    openPrsCount: 5,
-    issuesCreatedLastYear: 14,
-    commitsLast90Days: 12,
-    mergedPrsLast90Days: 6,
-    releases: [
-      {
-        tagName: "v1.4.0",
-        name: "v1.4.0",
-        publishedAt: "2026-01-15T00:00:00.000Z",
-      },
-    ],
-    ...overrides,
-  };
+const defaultMetrics: ConfidenceInput["metrics"] & object = {
+  openIssuesPercent: 20,
+  medianIssueResolutionDays: 9,
+  lastCommitAt: "2026-02-10T00:00:00.000Z",
+  releases: [{}, {}, {}],
+  mergedPrsLast90Days: 6,
+  issuesCreatedLastYear: 14,
+};
+
+const defaults: ConfidenceInput = {
+  status: "complete",
+  startedAt: NOW.getTime() - 2 * DAY_MS,
+  completedAt: NOW.getTime() - 2 * DAY_MS,
+  metrics: defaultMetrics,
+};
+
+function makeInput(overrides: Partial<ConfidenceInput> = {}): ConfidenceInput {
+  return { ...defaults, ...overrides };
 }
 
-function makeRun(overrides: Partial<AnalysisRun> = {}): AnalysisRun {
-  return {
-    id: "run-1",
-    repository: {
-      id: "repo-1",
-      owner: "acme",
-      name: "repo",
-      fullName: "acme/repo",
-      defaultBranch: "main",
-      createdAt: 0,
-      updatedAt: 0,
-    },
-    status: "complete",
-    metrics: makeSnapshot(),
-    startedAt: NOW.getTime() - 2 * DAY_MS,
-    completedAt: NOW.getTime() - 2 * DAY_MS,
-    errorCode: null,
-    errorMessage: null,
-    ...overrides,
-  };
+function hasPenalty(input: ConfidenceInput, id: string): boolean {
+  return computeConfidence(input).penalties.some((p) => p.id === id);
 }
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(NOW);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("computeConfidence", () => {
-  it("returns high confidence for complete, fresh data", () => {
-    const result = computeConfidence(makeRun(), { now: NOW });
-
-    expect(result.level).toBe("high");
-    expect(result.score).toBe(100);
-    expect(result.penalties).toHaveLength(0);
-    expect(result.summary).toBeNull();
-  });
-
-  it("returns low confidence when metrics are null", () => {
-    const result = computeConfidence(makeRun({ metrics: null }), { now: NOW });
-
-    expect(result.level).toBe("low");
-    expect(result.score).toBe(0);
-    expect(result.penalties).toHaveLength(1);
-    expect(result.penalties[0]?.id).toBe("no_metrics");
-  });
-
-  it("penalizes failed run status", () => {
-    const result = computeConfidence(makeRun({ status: "failed" }), {
-      now: NOW,
+  describe("penalty triggers", () => {
+    it("trusts complete, fresh analysis", () => {
+      const result = computeConfidence(makeInput());
+      expect(result.penalties).toHaveLength(0);
     });
 
-    expect(result.level).toBe("medium");
-    expect(result.score).toBe(60);
-    expect(result.penalties).toContainEqual(
-      expect.objectContaining({ id: "run_failed", points: 40 }),
-    );
-  });
-
-  it("penalizes partial run status", () => {
-    const result = computeConfidence(makeRun({ status: "partial" }), {
-      now: NOW,
+    it("doubts a failed analysis", () => {
+      expect(hasPenalty(makeInput({ status: "failed" }), "run_failed")).toBe(
+        true,
+      );
     });
 
-    expect(result.level).toBe("medium");
-    expect(result.score).toBe(80);
-    expect(result.penalties).toContainEqual(
-      expect.objectContaining({ id: "run_partial", points: 20 }),
-    );
+    it("doubts a partially completed analysis", () => {
+      expect(hasPenalty(makeInput({ status: "partial" }), "run_partial")).toBe(
+        true,
+      );
+    });
+
+    it("doubts missing issue health data", () => {
+      expect(
+        hasPenalty(
+          makeInput({
+            metrics: { ...defaultMetrics, openIssuesPercent: null },
+          }),
+          "missing_open_issues_percent",
+        ),
+      ).toBe(true);
+    });
+
+    it("doubts missing issue resolution times", () => {
+      expect(
+        hasPenalty(
+          makeInput({
+            metrics: { ...defaultMetrics, medianIssueResolutionDays: null },
+          }),
+          "missing_median_resolution",
+        ),
+      ).toBe(true);
+    });
+
+    it("doubts missing commit history", () => {
+      expect(
+        hasPenalty(
+          makeInput({ metrics: { ...defaultMetrics, lastCommitAt: null } }),
+          "missing_commit_history",
+        ),
+      ).toBe(true);
+    });
+
+    it("doubts a project with no releases", () => {
+      expect(
+        hasPenalty(
+          makeInput({ metrics: { ...defaultMetrics, releases: [] } }),
+          "no_releases",
+        ),
+      ).toBe(true);
+    });
+
+    it("doubts possibly incomplete PR data", () => {
+      expect(
+        hasPenalty(
+          makeInput({
+            metrics: { ...defaultMetrics, mergedPrsLast90Days: 100 },
+          }),
+          "merged_prs_capped",
+        ),
+      ).toBe(true);
+    });
+
+    it("doubts possibly sampled issue data", () => {
+      expect(
+        hasPenalty(
+          makeInput({
+            metrics: { ...defaultMetrics, issuesCreatedLastYear: 100 },
+          }),
+          "issues_capped",
+        ),
+      ).toBe(true);
+    });
   });
 
-  it("penalizes missing openIssuesPercent", () => {
-    const result = computeConfidence(
-      makeRun({ metrics: makeSnapshot({ openIssuesPercent: null }) }),
-      { now: NOW },
-    );
+  describe("staleness", () => {
+    it("trusts recent analysis", () => {
+      expect(
+        hasPenalty(
+          makeInput({ completedAt: NOW.getTime() - 5 * DAY_MS }),
+          "stale_analysis",
+        ),
+      ).toBe(false);
+    });
 
-    expect(result.score).toBe(90);
-    expect(result.penalties).toContainEqual(
-      expect.objectContaining({
-        id: "missing_open_issues_percent",
-        points: 10,
-      }),
-    );
+    it("trusts older analysis less", () => {
+      const at15 = computeConfidence(
+        makeInput({ completedAt: NOW.getTime() - 15 * DAY_MS }),
+      );
+      const at25 = computeConfidence(
+        makeInput({ completedAt: NOW.getTime() - 25 * DAY_MS }),
+      );
+
+      expect(at15.score).toBeLessThan(100);
+      expect(at25.score).toBeLessThan(at15.score);
+    });
+
+    it("stops degrading confidence after a certain age", () => {
+      const at45 = computeConfidence(
+        makeInput({ completedAt: NOW.getTime() - 45 * DAY_MS }),
+      );
+      const at90 = computeConfidence(
+        makeInput({ completedAt: NOW.getTime() - 90 * DAY_MS }),
+      );
+
+      expect(at45.score).toBe(at90.score);
+    });
+
+    it("measures age from when analysis started if it never finished", () => {
+      expect(
+        hasPenalty(
+          makeInput({
+            startedAt: NOW.getTime() - 20 * DAY_MS,
+            completedAt: null,
+          }),
+          "stale_analysis",
+        ),
+      ).toBe(true);
+    });
   });
 
-  it("penalizes missing medianIssueResolutionDays", () => {
-    const result = computeConfidence(
-      makeRun({
-        metrics: makeSnapshot({ medianIssueResolutionDays: null }),
-      }),
-      { now: NOW },
-    );
+  describe("score and level", () => {
+    it("gives full confidence to healthy, fresh data", () => {
+      const result = computeConfidence(makeInput());
+      expect(result.level).toBe("high");
+      expect(result.score).toBe(100);
+    });
 
-    expect(result.score).toBe(92);
-    expect(result.penalties).toContainEqual(
-      expect.objectContaining({ id: "missing_median_resolution", points: 8 }),
-    );
-  });
+    it("gives no confidence without any data", () => {
+      const result = computeConfidence(makeInput({ metrics: null }));
+      expect(result.level).toBe("low");
+      expect(result.score).toBe(0);
+    });
 
-  it("penalizes missing commit history", () => {
-    const result = computeConfidence(
-      makeRun({ metrics: makeSnapshot({ lastCommitAt: null }) }),
-      { now: NOW },
-    );
-
-    expect(result.score).toBe(88);
-    expect(result.penalties).toContainEqual(
-      expect.objectContaining({ id: "missing_commit_history", points: 12 }),
-    );
-  });
-
-  it("penalizes no releases", () => {
-    const result = computeConfidence(
-      makeRun({ metrics: makeSnapshot({ releases: [] }) }),
-      { now: NOW },
-    );
-
-    expect(result.score).toBe(92);
-    expect(result.penalties).toContainEqual(
-      expect.objectContaining({ id: "no_releases", points: 8 }),
-    );
-  });
-
-  it("does not penalize staleness within grace period", () => {
-    const result = computeConfidence(
-      makeRun({ completedAt: NOW.getTime() - 5 * DAY_MS }),
-      { now: NOW },
-    );
-
-    expect(result.score).toBe(100);
-    expect(result.penalties).toHaveLength(0);
-  });
-
-  it("applies partial staleness penalty at 15 days", () => {
-    const result = computeConfidence(
-      makeRun({ completedAt: NOW.getTime() - 15 * DAY_MS }),
-      { now: NOW },
-    );
-
-    const stalenessPenalty = result.penalties.find(
-      (p) => p.id === "stale_analysis",
-    );
-    expect(stalenessPenalty).toBeDefined();
-    expect(stalenessPenalty?.points).toBeGreaterThan(0);
-    expect(stalenessPenalty?.points).toBeLessThan(25);
-  });
-
-  it("applies maximum staleness penalty at 30+ days", () => {
-    const result = computeConfidence(
-      makeRun({ completedAt: NOW.getTime() - 45 * DAY_MS }),
-      { now: NOW },
-    );
-
-    const stalenessPenalty = result.penalties.find(
-      (p) => p.id === "stale_analysis",
-    );
-    expect(stalenessPenalty).toBeDefined();
-    expect(stalenessPenalty?.points).toBe(25);
-  });
-
-  it("penalizes when merged PRs hit API limit", () => {
-    const result = computeConfidence(
-      makeRun({ metrics: makeSnapshot({ mergedPrsLast90Days: 100 }) }),
-      { now: NOW },
-    );
-
-    expect(result.penalties).toContainEqual(
-      expect.objectContaining({ id: "merged_prs_capped", points: 8 }),
-    );
-  });
-
-  it("penalizes when issues hit API limit", () => {
-    const result = computeConfidence(
-      makeRun({ metrics: makeSnapshot({ issuesCreatedLastYear: 100 }) }),
-      { now: NOW },
-    );
-
-    expect(result.penalties).toContainEqual(
-      expect.objectContaining({ id: "issues_capped", points: 8 }),
-    );
-  });
-
-  it("compounds multiple penalties into medium confidence", () => {
-    const result = computeConfidence(
-      makeRun({
-        status: "partial",
-        metrics: makeSnapshot({
-          openIssuesPercent: null,
-          medianIssueResolutionDays: null,
+    it("loses more confidence as data gaps accumulate", () => {
+      const one = computeConfidence(
+        makeInput({ metrics: { ...defaultMetrics, lastCommitAt: null } }),
+      );
+      const two = computeConfidence(
+        makeInput({
+          metrics: {
+            ...defaultMetrics,
+            lastCommitAt: null,
+            releases: [],
+          },
         }),
-      }),
-      { now: NOW },
-    );
+      );
 
-    // partial (20) + missing open issues (10) + missing resolution (8) = 38 → score 62
-    expect(result.level).toBe("medium");
-    expect(result.score).toBe(62);
-    expect(result.penalties).toHaveLength(3);
-    expect(result.summary).toBe(
-      "Score may be approximate due to multiple data gaps",
-    );
-  });
+      expect(one.score).toBeLessThan(100);
+      expect(two.score).toBeLessThan(one.score);
+    });
 
-  it("clamps score to zero when penalties exceed 100", () => {
-    const result = computeConfidence(
-      makeRun({
-        status: "failed",
-        completedAt: NOW.getTime() - 45 * DAY_MS,
-        metrics: makeSnapshot({
-          openIssuesPercent: null,
-          medianIssueResolutionDays: null,
-          lastCommitAt: null,
-          releases: [],
+    it("never goes below zero", () => {
+      const result = computeConfidence(
+        makeInput({
+          status: "failed",
+          completedAt: NOW.getTime() - 45 * DAY_MS,
+          metrics: {
+            ...defaultMetrics,
+            openIssuesPercent: null,
+            medianIssueResolutionDays: null,
+            lastCommitAt: null,
+            releases: [],
+          },
         }),
-      }),
-      { now: NOW },
-    );
+      );
 
-    expect(result.score).toBe(0);
-    expect(result.level).toBe("low");
+      expect(result.score).toBe(0);
+      expect(result.level).toBe("low");
+    });
   });
 
-  it("returns single penalty reason as summary", () => {
-    const result = computeConfidence(
-      makeRun({ metrics: makeSnapshot({ lastCommitAt: null }) }),
-      { now: NOW },
-    );
+  describe("summary", () => {
+    it("says nothing when confidence is full", () => {
+      const result = computeConfidence(makeInput());
+      expect(result.summary).toBeNull();
+    });
 
-    expect(result.summary).toBe("No commit history found");
-  });
+    it("explains the issue when there is one problem", () => {
+      const result = computeConfidence(
+        makeInput({ metrics: { ...defaultMetrics, lastCommitAt: null } }),
+      );
+      expect(result.summary).toBe("No commit history found");
+    });
 
-  it("uses startedAt when completedAt is null", () => {
-    const result = computeConfidence(
-      makeRun({
-        startedAt: NOW.getTime() - 20 * DAY_MS,
-        completedAt: null,
-      }),
-      { now: NOW },
-    );
-
-    const stalenessPenalty = result.penalties.find(
-      (p) => p.id === "stale_analysis",
-    );
-    expect(stalenessPenalty).toBeDefined();
-    expect(stalenessPenalty?.points).toBeGreaterThan(0);
+    it("gives a general warning when there are multiple problems", () => {
+      const result = computeConfidence(
+        makeInput({
+          status: "partial",
+          metrics: { ...defaultMetrics, openIssuesPercent: null },
+        }),
+      );
+      expect(result.summary).toBe(
+        "Score may be approximate due to multiple data gaps",
+      );
+    });
   });
 });

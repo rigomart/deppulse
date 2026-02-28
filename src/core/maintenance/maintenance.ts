@@ -54,6 +54,10 @@ export interface MaintenanceResult {
   breakdown: ScoreBreakdown;
 }
 
+function parseDate(value: string | null): Date | null {
+  return value ? new Date(value) : null;
+}
+
 function deriveCommitsLast30Days(
   commitsLast30Days: number | undefined,
   commitsLast90Days: number,
@@ -115,79 +119,43 @@ export function calculateMaintenanceScore(
 }
 
 /**
- * Computes a maintenance score from a stored MetricsSnapshot.
+ * Computes a maintenance score from a stored metrics snapshot.
+ *
+ * @param metrics - The full metrics snapshot from storage.
+ * @param options - Optional scoring profile override.
  */
 export function computeScoreFromMetrics(
   metrics: MetricsSnapshot,
   options?: ScoreOptions,
 ): MaintenanceResult {
-  const now = options?.now ?? new Date();
-
-  if (typeof metrics.commitsLast90Days !== "number") {
-    throw new Error(
-      "Metrics snapshot missing commitsLast90Days. Re-run analysis to compute score.",
-    );
-  }
-  if (typeof metrics.mergedPrsLast90Days !== "number") {
-    throw new Error(
-      "Metrics snapshot missing mergedPrsLast90Days. Re-run analysis to compute score.",
-    );
-  }
-  if (typeof metrics.issuesCreatedLastYear !== "number") {
-    throw new Error(
-      "Metrics snapshot missing issuesCreatedLastYear. Re-run analysis to compute score.",
-    );
-  }
-  if (typeof metrics.openPrsCount !== "number") {
-    throw new Error(
-      "Metrics snapshot missing openPrsCount. Re-run analysis to compute score.",
-    );
-  }
-
-  // Count releases in the last year
+  const now = new Date();
   const oneYearAgo = now.getTime() - 365 * 24 * 60 * 60 * 1000;
+
   const releaseTimesLastYear = metrics.releases
     .map((release) => new Date(release.publishedAt).getTime())
     .filter((publishedAtMs) => publishedAtMs > oneYearAgo)
     .sort((a, b) => a - b);
-  const releasesLastYear = releaseTimesLastYear.length;
-  const releaseRegularity = computeReleaseRegularity(releaseTimesLastYear);
-
-  const commitsLast30Days = deriveCommitsLast30Days(
-    typeof metrics.commitsLast30Days === "number"
-      ? metrics.commitsLast30Days
-      : undefined,
-    metrics.commitsLast90Days,
-  );
-  const commitsLast365Days = deriveCommitsLast365Days(
-    typeof metrics.commitsLast365Days === "number"
-      ? metrics.commitsLast365Days
-      : undefined,
-    metrics.commitsLast90Days,
-  );
 
   return calculateMaintenanceScore(
     {
-      lastCommitAt: metrics.lastCommitAt
-        ? new Date(metrics.lastCommitAt)
-        : null,
-      lastMergedPrAt: metrics.lastMergedPrAt
-        ? new Date(metrics.lastMergedPrAt)
-        : null,
-      lastReleaseAt: metrics.lastReleaseAt
-        ? new Date(metrics.lastReleaseAt)
-        : null,
+      lastCommitAt: parseDate(metrics.lastCommitAt),
+      lastMergedPrAt: parseDate(metrics.lastMergedPrAt),
+      lastReleaseAt: parseDate(metrics.lastReleaseAt),
       openIssuesPercent: metrics.openIssuesPercent,
       medianIssueResolutionDays: metrics.medianIssueResolutionDays,
       stars: metrics.stars,
-      repositoryCreatedAt: metrics.repositoryCreatedAt
-        ? new Date(metrics.repositoryCreatedAt)
-        : null,
-      releasesLastYear,
-      releaseRegularity,
-      commitsLast30Days,
+      repositoryCreatedAt: parseDate(metrics.repositoryCreatedAt),
+      releasesLastYear: releaseTimesLastYear.length,
+      releaseRegularity: computeReleaseRegularity(releaseTimesLastYear),
+      commitsLast30Days: deriveCommitsLast30Days(
+        metrics.commitsLast30Days,
+        metrics.commitsLast90Days,
+      ),
       commitsLast90Days: metrics.commitsLast90Days,
-      commitsLast365Days,
+      commitsLast365Days: deriveCommitsLast365Days(
+        metrics.commitsLast365Days,
+        metrics.commitsLast90Days,
+      ),
       mergedPrsLast90Days: metrics.mergedPrsLast90Days,
       issuesCreatedLastYear: metrics.issuesCreatedLastYear,
       openPrsCount: metrics.openPrsCount,

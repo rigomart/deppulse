@@ -119,7 +119,6 @@ export interface ScoringProfile {
 
 export interface ScoreOptions {
   profileId?: ScoringProfileId;
-  now?: Date;
 }
 
 export interface ScoreBreakdown {
