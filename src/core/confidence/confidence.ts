@@ -1,10 +1,10 @@
-import type { AnalysisRun } from "@/lib/domain/assessment";
 import {
   API_LIMITS,
   CONFIDENCE_THRESHOLDS,
   STALENESS,
 } from "./confidence-config";
 import type {
+  ConfidenceInput,
   ConfidenceLevel,
   ConfidencePenalty,
   ConfidenceResult,
@@ -20,19 +20,19 @@ function toLevel(score: number): ConfidenceLevel {
 
 function buildSummary(penalties: ConfidencePenalty[]): string | null {
   if (penalties.length === 0) return null;
-  if (penalties.length === 1) return penalties[0]?.reason ?? null;
+  if (penalties.length === 1) return penalties[0].reason;
   return "Score may be approximate due to multiple data gaps";
 }
 
-function checkRunFailed(run: AnalysisRun): ConfidencePenalty | null {
-  if (run.status === "failed") {
+function checkRunFailed(input: ConfidenceInput): ConfidencePenalty | null {
+  if (input.status === "failed") {
     return { id: "run_failed", points: 40, reason: "Analysis failed" };
   }
   return null;
 }
 
-function checkRunPartial(run: AnalysisRun): ConfidencePenalty | null {
-  if (run.status === "partial") {
+function checkRunPartial(input: ConfidenceInput): ConfidencePenalty | null {
+  if (input.status === "partial") {
     return {
       id: "run_partial",
       points: 20,
@@ -43,12 +43,9 @@ function checkRunPartial(run: AnalysisRun): ConfidencePenalty | null {
 }
 
 function checkMissingOpenIssuesPercent(
-  run: AnalysisRun,
+  input: ConfidenceInput,
 ): ConfidencePenalty | null {
-  if (
-    run.metrics?.openIssuesPercent === null ||
-    run.metrics?.openIssuesPercent === undefined
-  ) {
+  if (input.metrics?.openIssuesPercent == null) {
     return {
       id: "missing_open_issues_percent",
       points: 10,
@@ -59,12 +56,9 @@ function checkMissingOpenIssuesPercent(
 }
 
 function checkMissingMedianResolution(
-  run: AnalysisRun,
+  input: ConfidenceInput,
 ): ConfidencePenalty | null {
-  if (
-    run.metrics?.medianIssueResolutionDays === null ||
-    run.metrics?.medianIssueResolutionDays === undefined
-  ) {
+  if (input.metrics?.medianIssueResolutionDays == null) {
     return {
       id: "missing_median_resolution",
       points: 8,
@@ -74,11 +68,10 @@ function checkMissingMedianResolution(
   return null;
 }
 
-function checkMissingCommitHistory(run: AnalysisRun): ConfidencePenalty | null {
-  if (
-    run.metrics?.lastCommitAt === null ||
-    run.metrics?.lastCommitAt === undefined
-  ) {
+function checkMissingCommitHistory(
+  input: ConfidenceInput,
+): ConfidencePenalty | null {
+  if (input.metrics?.lastCommitAt == null) {
     return {
       id: "missing_commit_history",
       points: 12,
@@ -88,8 +81,8 @@ function checkMissingCommitHistory(run: AnalysisRun): ConfidencePenalty | null {
   return null;
 }
 
-function checkNoReleases(run: AnalysisRun): ConfidencePenalty | null {
-  if (run.metrics && run.metrics.releases.length === 0) {
+function checkNoReleases(input: ConfidenceInput): ConfidencePenalty | null {
+  if (input.metrics && input.metrics.releases.length === 0) {
     return {
       id: "no_releases",
       points: 8,
@@ -99,8 +92,11 @@ function checkNoReleases(run: AnalysisRun): ConfidencePenalty | null {
   return null;
 }
 
-function checkStaleness(run: AnalysisRun, now: Date): ConfidencePenalty | null {
-  const analyzedAt = run.completedAt ?? run.startedAt;
+function checkStaleness(
+  input: ConfidenceInput,
+  now: Date,
+): ConfidencePenalty | null {
+  const analyzedAt = input.completedAt ?? input.startedAt;
   const daysSince = (now.getTime() - analyzedAt) / DAY_MS;
 
   if (daysSince <= STALENESS.gracePeriodDays) return null;
@@ -119,8 +115,13 @@ function checkStaleness(run: AnalysisRun, now: Date): ConfidencePenalty | null {
   };
 }
 
-function checkMergedPrsCapped(run: AnalysisRun): ConfidencePenalty | null {
-  if (run.metrics && run.metrics.mergedPrsLast90Days >= API_LIMITS.mergedPrs) {
+function checkMergedPrsCapped(
+  input: ConfidenceInput,
+): ConfidencePenalty | null {
+  if (
+    input.metrics &&
+    input.metrics.mergedPrsLast90Days >= API_LIMITS.mergedPrs
+  ) {
     return {
       id: "merged_prs_capped",
       points: 8,
@@ -130,10 +131,10 @@ function checkMergedPrsCapped(run: AnalysisRun): ConfidencePenalty | null {
   return null;
 }
 
-function checkIssuesCapped(run: AnalysisRun): ConfidencePenalty | null {
+function checkIssuesCapped(input: ConfidenceInput): ConfidencePenalty | null {
   if (
-    run.metrics &&
-    run.metrics.issuesCreatedLastYear >= API_LIMITS.recentIssues
+    input.metrics &&
+    input.metrics.issuesCreatedLastYear >= API_LIMITS.recentIssues
   ) {
     return {
       id: "issues_capped",
@@ -155,13 +156,17 @@ const PENALTY_CHECKS = [
   checkIssuesCapped,
 ] as const;
 
-export function computeConfidence(
-  run: AnalysisRun,
-  options?: { now?: Date },
-): ConfidenceResult {
-  const now = options?.now ?? new Date();
+/**
+ * Rates how much we trust an analysis score, based on data completeness,
+ * freshness, and whether any API limits were hit. Returns a 0–100 score,
+ * a level (high / medium / low), and a human-readable summary of any issues.
+ *
+ * @param input - The analysis data to evaluate (status, timestamps, and metrics).
+ */
+export function computeConfidence(input: ConfidenceInput): ConfidenceResult {
+  const now = new Date();
 
-  if (!run.metrics) {
+  if (!input.metrics) {
     return {
       level: "low",
       score: 0,
@@ -175,12 +180,12 @@ export function computeConfidence(
   const penalties: ConfidencePenalty[] = [];
 
   for (const check of PENALTY_CHECKS) {
-    const penalty = check(run);
+    const penalty = check(input);
     if (penalty) penalties.push(penalty);
   }
 
   // Staleness needs the `now` param
-  const stalenessPenalty = checkStaleness(run, now);
+  const stalenessPenalty = checkStaleness(input, now);
   if (stalenessPenalty) penalties.push(stalenessPenalty);
 
   const totalDeduction = penalties.reduce((sum, p) => sum + p.points, 0);

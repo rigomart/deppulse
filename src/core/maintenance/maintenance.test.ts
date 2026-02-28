@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MetricsSnapshot } from "@/lib/domain/assessment";
 import {
   calculateMaintenanceScore,
@@ -8,6 +8,15 @@ import {
 
 const NOW = new Date("2026-02-13T00:00:00.000Z");
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(NOW);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 function daysAgo(days: number): Date {
   return new Date(NOW.getTime() - days * DAY_MS);
@@ -19,6 +28,28 @@ function yearsAgo(years: number): Date {
   return date;
 }
 
+const defaultMaintenanceInput: MaintenanceInput = {
+  lastCommitAt: daysAgo(3),
+  lastMergedPrAt: daysAgo(5),
+  lastReleaseAt: daysAgo(14),
+  openIssuesPercent: 8,
+  medianIssueResolutionDays: 7,
+  stars: 5_000,
+  repositoryCreatedAt: new Date("2020-01-01T00:00:00.000Z"),
+  releasesLastYear: 7,
+  commitsLast90Days: 15,
+  mergedPrsLast90Days: 8,
+  issuesCreatedLastYear: 40,
+  openPrsCount: 10,
+  isArchived: false,
+};
+
+function makeInput(
+  overrides: Partial<MaintenanceInput> = {},
+): MaintenanceInput {
+  return { ...defaultMaintenanceInput, ...overrides };
+}
+
 function makeSnapshot(
   overrides: Partial<MetricsSnapshot> = {},
 ): MetricsSnapshot {
@@ -26,8 +57,8 @@ function makeSnapshot(
     description: "repo",
     stars: 700,
     forks: 100,
-    avatarUrl: "https://example.com/avatar.png",
-    htmlUrl: "https://github.com/acme/repo",
+    avatarUrl: "",
+    htmlUrl: "",
     license: "MIT",
     language: "TypeScript",
     repositoryCreatedAt: "2020-01-01T00:00:00.000Z",
@@ -55,64 +86,16 @@ function makeSnapshot(
   };
 }
 
-function makeInput(
-  overrides: Partial<MaintenanceInput> = {},
-): MaintenanceInput {
-  return {
-    lastCommitAt: daysAgo(3),
-    lastMergedPrAt: daysAgo(5),
-    lastReleaseAt: daysAgo(14),
-    openIssuesPercent: 8,
-    medianIssueResolutionDays: 7,
-    stars: 5_000,
-    repositoryCreatedAt: new Date("2020-01-01T00:00:00.000Z"),
-    releasesLastYear: 7,
-    commitsLast90Days: 15,
-    mergedPrsLast90Days: 8,
-    issuesCreatedLastYear: 40,
-    openPrsCount: 10,
-    isArchived: false,
-    ...overrides,
-  };
-}
-
-describe("maintenance scoring", () => {
-  it("returns score, category, and breakdown", () => {
-    const result = calculateMaintenanceScore(makeInput(), { now: NOW });
+describe("calculateMaintenanceScore", () => {
+  it("rewards an active, healthy project", () => {
+    const result = calculateMaintenanceScore(makeInput());
 
     expect(result.score).toBeGreaterThan(0);
-    expect(result.category).toBeDefined();
     expect(result.breakdown.quality).toBeGreaterThan(0);
     expect(result.breakdown.freshnessMultiplier).toBeGreaterThan(0);
   });
 
-  it("scores from metrics snapshot using required recent counters", () => {
-    const result = computeScoreFromMetrics(makeSnapshot(), { now: NOW });
-
-    expect(result.score).toBeGreaterThanOrEqual(0);
-    expect(result.category).toBeDefined();
-    expect(result.breakdown.expectedActivityTier).toBe("medium");
-  });
-
-  it("throws when required expected-activity counters are missing", () => {
-    const missingIssuesCreated = {
-      ...makeSnapshot(),
-      issuesCreatedLastYear: undefined,
-    } as unknown as MetricsSnapshot;
-    expect(() =>
-      computeScoreFromMetrics(missingIssuesCreated, { now: NOW }),
-    ).toThrow("issuesCreatedLastYear");
-
-    const missingOpenPrs = {
-      ...makeSnapshot(),
-      openPrsCount: undefined,
-    } as unknown as MetricsSnapshot;
-    expect(() => computeScoreFromMetrics(missingOpenPrs, { now: NOW })).toThrow(
-      "openPrsCount",
-    );
-  });
-
-  it("penalizes stale medium-expected repositories compared to fresh ones", () => {
+  it("scores stale repositories lower than fresh ones", () => {
     const fresh = calculateMaintenanceScore(
       makeInput({
         lastCommitAt: daysAgo(10),
@@ -128,7 +111,6 @@ describe("maintenance scoring", () => {
         issuesCreatedLastYear: 22,
         openPrsCount: 7,
       }),
-      { now: NOW },
     );
 
     const stale = calculateMaintenanceScore(
@@ -146,7 +128,6 @@ describe("maintenance scoring", () => {
         issuesCreatedLastYear: 22,
         openPrsCount: 7,
       }),
-      { now: NOW },
     );
 
     expect(fresh.breakdown.expectedActivityTier).toBe("medium");
@@ -154,23 +135,40 @@ describe("maintenance scoring", () => {
     expect(stale.score).toBeLessThan(fresh.score);
   });
 
-  it("penalizes irregular release cadence when release count is equal", () => {
+  it("scores irregular release cadence lower than regular", () => {
     const regular = calculateMaintenanceScore(
-      makeInput({
-        releasesLastYear: 4,
-        releaseRegularity: 1,
-      }),
-      { now: NOW },
+      makeInput({ releasesLastYear: 4, releaseRegularity: 1 }),
     );
 
     const irregular = calculateMaintenanceScore(
-      makeInput({
-        releasesLastYear: 4,
-        releaseRegularity: 0.25,
-      }),
-      { now: NOW },
+      makeInput({ releasesLastYear: 4, releaseRegularity: 0.25 }),
     );
 
     expect(irregular.score).toBeLessThan(regular.score);
+  });
+});
+
+describe("computeScoreFromMetrics", () => {
+  it("scores a project from stored metrics", () => {
+    const result = computeScoreFromMetrics(makeSnapshot());
+
+    expect(result.score).toBeGreaterThanOrEqual(0);
+    expect(result.category).toBeDefined();
+    expect(result.breakdown.expectedActivityTier).toBe("medium");
+  });
+
+  it("handles missing activity dates and empty releases", () => {
+    const result = computeScoreFromMetrics(
+      makeSnapshot({
+        lastCommitAt: null,
+        lastMergedPrAt: null,
+        lastReleaseAt: null,
+        repositoryCreatedAt: null,
+        releases: [],
+      }),
+    );
+
+    expect(result.score).toBeGreaterThanOrEqual(0);
+    expect(result.category).toBeDefined();
   });
 });

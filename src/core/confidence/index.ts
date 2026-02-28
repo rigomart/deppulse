@@ -4,6 +4,7 @@ export {
   CONFIDENCE_THRESHOLDS,
 } from "./confidence-config";
 export type {
+  ConfidenceInput,
   ConfidenceLevel,
   ConfidencePenalty,
   ConfidenceResult,
