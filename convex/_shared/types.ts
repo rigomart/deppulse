@@ -23,4 +23,5 @@ export type AnalysisRunTriggerSource =
   | "homepage"
   | "direct_visit"
   | "manual_refresh"
+  | "page_visit"
   | "system";

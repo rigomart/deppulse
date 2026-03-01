@@ -5,6 +5,7 @@ import { ConvexClientProvider } from "@/components/convex-client-provider";
 import { DotBackground } from "@/components/dot-background";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { Toaster } from "@/components/ui/sonner";
 
 const ibmPlexSans = IBM_Plex_Sans({
   variable: "--font-ibm-plex-sans",
@@ -77,6 +78,7 @@ export default function RootLayout({
           <Header />
           <div className="flex-1">{children}</div>
           <Footer />
+          <Toaster position="bottom-right" />
         </ConvexClientProvider>
       </body>
     </html>

@@ -2,6 +2,7 @@ import { fetchQuery } from "convex/nextjs";
 import { cacheLife } from "next/cache";
 import type { AnalysisRun } from "@/lib/domain/assessment";
 import { api } from "../../../../../convex/_generated/api";
+import { AutoRefresh } from "./_components/auto-refresh";
 import { CommitActivityLive } from "./_components/commit-activity-live";
 import { MaintenanceHealth } from "./_components/maintenance-health";
 import { NotAnalyzedError } from "./_components/not-analyzed-error";
@@ -51,5 +52,10 @@ export default async function ProjectPage({
   params: Promise<{ owner: string; project: string }>;
 }) {
   const { owner, project } = await params;
-  return <CachedProjectPage owner={owner} project={project} />;
+  return (
+    <>
+      <AutoRefresh owner={owner} project={project} />
+      <CachedProjectPage owner={owner} project={project} />
+    </>
+  );
 }
