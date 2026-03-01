@@ -1,7 +1,17 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { internalMutation, internalQuery, query } from "./_generated/server";
-import { ANALYSIS_FRESHNESS_MS, isTerminalRunState } from "./_shared/constants";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server";
+import {
+  ANALYSIS_FRESHNESS_MS,
+  isTerminalRunState,
+  PAGE_VISIT_FRESHNESS_MS,
+} from "./_shared/constants";
 import { mapAnalysisRun } from "./_shared/mappers";
 import {
   analysisRunState,
@@ -92,6 +102,59 @@ export const listRecentCompleted = query({
     }
 
     return unique;
+  },
+});
+
+export const triggerRefreshIfStale = mutation({
+  args: { owner: v.string(), project: v.string() },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ refreshTriggered: boolean; runId: string | null }> => {
+    const fullName = `${args.owner.trim().toLowerCase()}/${args.project.trim().toLowerCase()}`;
+
+    const repository = await ctx.db
+      .query("repositories")
+      .withIndex("by_fullName", (q) => q.eq("fullName", fullName))
+      .unique();
+
+    if (!repository) return { refreshTriggered: false, runId: null };
+
+    const latestRun = await ctx.db
+      .query("analysisRuns")
+      .withIndex("by_repositoryId", (q) => q.eq("repositoryId", repository._id))
+      .order("desc")
+      .first();
+
+    // Active run already in progress
+    if (latestRun && !isTerminalRunState(latestRun.runState)) {
+      return { refreshTriggered: false, runId: null };
+    }
+
+    // Latest run is still fresh
+    if (latestRun) {
+      const age = Date.now() - (latestRun.completedAt ?? latestRun.startedAt);
+      if (age < PAGE_VISIT_FRESHNESS_MS)
+        return { refreshTriggered: false, runId: null };
+    }
+
+    const now = Date.now();
+    const runId = await ctx.db.insert("analysisRuns", {
+      repositoryId: repository._id,
+      status: "queued",
+      runState: "queued",
+      progressStep: "bootstrap",
+      attemptCount: 0,
+      triggerSource: "page_visit",
+      startedAt: now,
+      updatedAt: now,
+    });
+
+    await ctx.scheduler.runAfter(0, internal.analysis.executeAnalysis, {
+      runId,
+    });
+
+    return { refreshTriggered: true, runId };
   },
 });
 

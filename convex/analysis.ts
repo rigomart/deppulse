@@ -2,6 +2,7 @@ import { Octokit } from "@octokit/core";
 import { RequestError } from "@octokit/request-error";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
 import {
   COMMIT_ACTIVITY_DELAYED_RETRY_MS,
@@ -350,6 +351,82 @@ async function fetchCommitActivityRest(
   }
 }
 
+async function runAnalysisPipeline(
+  ctx: {
+    runMutation: typeof internalAction.prototype.ctx.runMutation;
+    scheduler: typeof internalAction.prototype.ctx.scheduler;
+  },
+  client: Octokit,
+  runId: Id<"analysisRuns">,
+  owner: string,
+  project: string,
+): Promise<void> {
+  await ctx.runMutation(internal.analysisRuns.updateRunState, {
+    runId,
+    status: "running",
+    runState: "running",
+    progressStep: "metrics",
+  });
+
+  const metricsSnapshot = await fetchGitHubGraphQL(client, owner, project);
+
+  await ctx.runMutation(internal.analysisRuns.updateRunState, {
+    runId,
+    status: "running",
+    runState: "running",
+    progressStep: "commit_activity",
+    metricsJson: metricsSnapshot,
+    attemptCount: 0,
+  });
+
+  await ctx.scheduler.runAfter(
+    0,
+    internal.analysis.fetchCommitActivityWithRetry,
+    { runId, attempt: 1 },
+  );
+}
+
+export const executeAnalysis = internalAction({
+  args: {
+    runId: v.id("analysisRuns"),
+  },
+  handler: async (ctx, { runId }) => {
+    const token = process.env.GITHUB_PAT;
+    if (!token) throw new Error("GITHUB_PAT env var is not set");
+    const client = new Octokit({ auth: token });
+
+    const run = await ctx.runQuery(internal.analysisRuns.internalGetById, {
+      runId,
+    });
+    if (!run) {
+      console.warn(`executeAnalysis: Run ${runId} not found, skipping`);
+      return;
+    }
+
+    const { owner, name: project } = run.repository;
+
+    try {
+      await runAnalysisPipeline(ctx, client, runId, owner, project);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      try {
+        await ctx.runMutation(internal.analysisRuns.finalizeRun, {
+          runId,
+          status: "failed",
+          runState: "failed",
+          errorCode: "metrics_fetch_failed",
+          errorMessage: message.slice(0, 500),
+        });
+      } catch (innerError) {
+        console.error(
+          `executeAnalysis: Could not finalize run ${runId} after error:`,
+          innerError,
+        );
+      }
+    }
+  },
+});
+
 export const analyzeProject = action({
   args: {
     owner: v.string(),
@@ -374,29 +451,7 @@ export const analyzeProject = action({
     const { runId, owner, project } = result;
 
     try {
-      await ctx.runMutation(internal.analysisRuns.updateRunState, {
-        runId,
-        status: "running",
-        runState: "running",
-        progressStep: "metrics",
-      });
-
-      const metricsSnapshot = await fetchGitHubGraphQL(client, owner, project);
-
-      await ctx.runMutation(internal.analysisRuns.updateRunState, {
-        runId,
-        status: "running",
-        runState: "running",
-        progressStep: "commit_activity",
-        metricsJson: metricsSnapshot,
-        attemptCount: 0,
-      });
-
-      await ctx.scheduler.runAfter(
-        0,
-        internal.analysis.fetchCommitActivityWithRetry,
-        { runId, attempt: 1 },
-      );
+      await runAnalysisPipeline(ctx, client, runId, owner, project);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await ctx.runMutation(internal.analysisRuns.finalizeRun, {

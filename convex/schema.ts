@@ -29,6 +29,7 @@ export const triggerSource = v.union(
   v.literal("homepage"),
   v.literal("direct_visit"),
   v.literal("manual_refresh"),
+  v.literal("page_visit"),
   v.literal("system"),
 );
 
