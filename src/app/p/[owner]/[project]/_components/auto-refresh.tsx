@@ -18,28 +18,33 @@ export function AutoRefresh({ owner, project }: AutoRefreshProps) {
     project,
   });
 
-  const didTriggerRef = useRef(false);
+  const lastTriggeredKeyRef = useRef<string | null>(null);
   const toastIdRef = useRef<string | number | null>(null);
   const runIdRef = useRef<string | null>(null);
 
-  // Trigger refresh on mount (ref guard for strict mode)
   useEffect(() => {
-    if (!didTriggerRef.current) {
-      didTriggerRef.current = true;
+    const projectKey = `${owner}/${project}`;
+    let cancelled = false;
 
-      triggerRefresh({ owner, project }).then(({ refreshTriggered, runId }) => {
-        if (refreshTriggered && runId) {
-          runIdRef.current = runId;
-          toastIdRef.current = toast.loading("Refreshing analysis data...");
-        }
-      });
+    if (lastTriggeredKeyRef.current !== projectKey) {
+      lastTriggeredKeyRef.current = projectKey;
+
+      triggerRefresh({ owner, project })
+        .then(({ refreshTriggered, runId }) => {
+          if (cancelled) return;
+          if (refreshTriggered && runId) {
+            runIdRef.current = runId;
+            toastIdRef.current = toast.loading("Refreshing analysis data...");
+          }
+        })
+        .catch(() => {});
     }
 
     return () => {
+      cancelled = true;
       if (toastIdRef.current) {
         toast.dismiss(toastIdRef.current);
       }
-      didTriggerRef.current = false;
       toastIdRef.current = null;
       runIdRef.current = null;
     };
