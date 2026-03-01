@@ -39,6 +39,9 @@ export function AutoRefresh({ owner, project }: AutoRefreshProps) {
       if (toastIdRef.current) {
         toast.dismiss(toastIdRef.current);
       }
+      didTriggerRef.current = false;
+      toastIdRef.current = null;
+      runIdRef.current = null;
     };
   }, [owner, project, triggerRefresh]);
 
