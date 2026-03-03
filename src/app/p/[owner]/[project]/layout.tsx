@@ -51,7 +51,7 @@ export async function generateMetadata(
   const activityParts = [lastCommitText, releaseText].filter(Boolean).join(" ");
 
   const description = metrics.description
-    ? `${metrics.description} ${activityParts}`
+    ? [metrics.description, activityParts].filter(Boolean).join(" ")
     : `${fullName}: ${activityParts || "Maintenance assessment in progress."}`;
 
   const title = fullName;

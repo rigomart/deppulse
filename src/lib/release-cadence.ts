@@ -37,7 +37,6 @@ export function computeReleaseCadence(
 }
 
 function formatDuration(days: number): string {
-  if (days < 1) return "daily";
   if (days < 2) return "daily";
   if (days < 7) return `every ${Math.round(days)} days`;
   if (days < 14) return "weekly";

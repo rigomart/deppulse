@@ -22,6 +22,7 @@ export function ActivitySummary({ run }: ActivitySummaryProps) {
           icon={Clock}
           label="Analyzed"
           value={format(new Date(analyzedAt), "MMM d, yyyy")}
+          sub={<RelativeTime date={analyzedAt} />}
         />
       </StatsBar>
     );
@@ -65,6 +66,7 @@ export function ActivitySummary({ run }: ActivitySummaryProps) {
         icon={Clock}
         label="Analyzed"
         value={format(new Date(analyzedAt), "MMM d, yyyy")}
+        sub={<RelativeTime date={analyzedAt} />}
       />
     </StatsBar>
   );
