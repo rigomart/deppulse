@@ -1,25 +1,14 @@
 import { fetchQuery } from "convex/nextjs";
+import { formatDistanceToNow } from "date-fns";
 import type { Metadata, ResolvingMetadata } from "next";
 import { cacheLife } from "next/cache";
-import { computeScoreFromMetrics } from "@/core/maintenance";
-import type { AnalysisRun, MetricsSnapshot } from "@/lib/domain/assessment";
+import type { AnalysisRun } from "@/lib/domain/assessment";
 import { api } from "../../../../../convex/_generated/api";
 
 type Props = {
   params: Promise<{ owner: string; project: string }>;
   children: React.ReactNode;
 };
-
-function hasScoreInputs(metrics: unknown): metrics is MetricsSnapshot {
-  if (!metrics || typeof metrics !== "object") return false;
-
-  return (
-    "commitsLast90Days" in metrics &&
-    typeof metrics.commitsLast90Days === "number" &&
-    "mergedPrsLast90Days" in metrics &&
-    typeof metrics.mergedPrsLast90Days === "number"
-  );
-}
 
 async function cachedMetadata(owner: string, project: string) {
   "use cache";
@@ -36,24 +25,36 @@ export async function generateMetadata(
   const run = (await cachedMetadata(owner, project)) as AnalysisRun | null;
 
   const metrics = run?.metrics;
-  if (!run || !hasScoreInputs(metrics)) {
+  if (!run || !metrics) {
     return {
       title: `${owner}/${project} - Analyzing...`,
       description: `Maintenance assessment for ${owner}/${project}. Analysis in progress.`,
     };
   }
 
-  const { score, category } = computeScoreFromMetrics(metrics);
   const fullName = run.repository.fullName;
-  const analyzedAt = run.completedAt ?? run.startedAt;
-  const analyzedAtText = analyzedAt
-    ? ` Last analyzed: ${new Date(analyzedAt).toLocaleDateString("en-US")}.`
-    : "";
-  const description = metrics.description
-    ? `${metrics.description} Maintenance score: ${score}/100.${analyzedAtText}`
-    : `Maintenance assessment for ${fullName}. Score: ${score}/100. Category: ${category}.${analyzedAtText}`;
 
-  const title = `${fullName} - ${category}`;
+  const lastCommitText = metrics.lastCommitAt
+    ? `Last commit ${formatDistanceToNow(new Date(metrics.lastCommitAt), { addSuffix: true })}.`
+    : "";
+
+  const releasesLastYear = metrics.releases.filter(
+    (r) =>
+      new Date(r.publishedAt).getTime() >
+      Date.now() - 365 * 24 * 60 * 60 * 1000,
+  ).length;
+  const releaseText =
+    releasesLastYear > 0
+      ? `${releasesLastYear} release${releasesLastYear === 1 ? "" : "s"} in the last year.`
+      : "";
+
+  const activityParts = [lastCommitText, releaseText].filter(Boolean).join(" ");
+
+  const description = metrics.description
+    ? `${metrics.description} ${activityParts}`
+    : `${fullName}: ${activityParts || "Maintenance assessment in progress."}`;
+
+  const title = fullName;
 
   return {
     title,
