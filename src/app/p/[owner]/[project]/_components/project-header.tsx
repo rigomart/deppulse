@@ -1,25 +1,26 @@
 import { Suspense } from "react";
 import { Container } from "@/components/container";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import type { AnalysisRun } from "@/lib/domain/assessment";
-import { ActivitySummary } from "./activity-summary";
 import { ProjectInfo } from "./project-info";
+import { Score } from "./score";
 
-const skeletonStat = (
-  <div className="px-5 py-4">
-    <div className="h-3 w-20 rounded bg-muted animate-pulse mb-2" />
-    <div className="h-5 w-28 rounded bg-muted animate-pulse mb-1.5" />
-    <div className="h-3 w-20 rounded bg-muted animate-pulse" />
-  </div>
-);
-
-function ActivitySummarySkeleton() {
+function ScoreSkeleton() {
   return (
-    <div className="rounded-xl border border-border bg-surface-3 grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border">
-      {skeletonStat}
-      {skeletonStat}
-      {skeletonStat}
-      {skeletonStat}
-    </div>
+    <Card className="bg-surface-3 w-full sm:w-auto min-w-64">
+      <CardContent className="space-y-3">
+        <div className="flex items-center justify-between gap-6">
+          <div className="space-y-1">
+            <div className="h-4 w-28 rounded bg-muted animate-pulse" />
+            <div className="h-6 w-16 rounded bg-muted animate-pulse" />
+          </div>
+          <div className="h-6 w-20 rounded bg-muted animate-pulse" />
+        </div>
+        <Separator />
+        <div className="h-3.5 w-36 rounded bg-muted animate-pulse" />
+      </CardContent>
+    </Card>
   );
 }
 
@@ -30,12 +31,16 @@ interface ProjectHeaderProps {
 export function ProjectHeader({ run }: ProjectHeaderProps) {
   return (
     <section className="bg-surface-2">
-      <Container className="py-6 space-y-5 animate-in fade-in slide-in-from-bottom-1 duration-300">
-        <ProjectInfo run={run} />
+      <Container className="py-6">
+        <div className="flex flex-col sm:flex-row gap-4 justify-between animate-in fade-in slide-in-from-bottom-1 duration-300">
+          <ProjectInfo run={run} />
 
-        <Suspense fallback={<ActivitySummarySkeleton />}>
-          <ActivitySummary run={run} />
-        </Suspense>
+          <div className="flex items-start">
+            <Suspense fallback={<ScoreSkeleton />}>
+              <Score run={run} />
+            </Suspense>
+          </div>
+        </div>
       </Container>
     </section>
   );
