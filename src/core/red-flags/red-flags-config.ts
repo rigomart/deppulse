@@ -16,4 +16,7 @@ export const RED_FLAGS_THRESHOLDS = {
 
   /** Minimum commits in last 365 days for "no releases ever" */
   noReleasesEverMinCommits: 10,
+
+  /** Days within which a closed issue counts as "recent" activity */
+  recentIssueActivityDays: 365,
 } as const;

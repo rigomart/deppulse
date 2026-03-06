@@ -13,7 +13,8 @@ interface ProjectInfoProps {
 
 export function ProjectInfo({ run }: ProjectInfoProps) {
   const metrics = run.metrics;
-  const flags = metrics ? detectRedFlags(metrics) : [];
+  const analysisTime = new Date(run.completedAt ?? run.startedAt);
+  const flags = metrics ? detectRedFlags(metrics, analysisTime) : [];
 
   return (
     <div className="space-y-3">

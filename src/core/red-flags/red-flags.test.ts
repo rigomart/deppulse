@@ -247,6 +247,7 @@ describe("detectRedFlags", () => {
           makeSnapshot({
             issuesCreatedLastYear: 0,
             closedIssuesCount: 0,
+            lastClosedIssueAt: null,
             openIssuesCount: 0,
             commitsLast90Days: 10,
           }),
@@ -255,17 +256,32 @@ describe("detectRedFlags", () => {
       ).toBe(true);
     });
 
-    it("does not flag repos with any issue activity", () => {
+    it("does not flag repos with recent issue activity", () => {
       expect(
         hasFlag(
           makeSnapshot({
             issuesCreatedLastYear: 5,
-            closedIssuesCount: 3,
+            lastClosedIssueAt: daysAgo(30),
             openIssuesCount: 2,
           }),
           "no_issues_activity",
         ),
       ).toBe(false);
+    });
+
+    it("flags repos where last closed issue is older than the activity window", () => {
+      expect(
+        hasFlag(
+          makeSnapshot({
+            issuesCreatedLastYear: 0,
+            lastClosedIssueAt: daysAgo(400),
+            closedIssuesCount: 10,
+            openIssuesCount: 0,
+            commitsLast90Days: 10,
+          }),
+          "no_issues_activity",
+        ),
+      ).toBe(true);
     });
 
     it("does not flag inactive repos with no issues", () => {
@@ -427,6 +443,7 @@ describe("detectRedFlags", () => {
           commitsLast365Days: 50,
           issuesCreatedLastYear: 0,
           closedIssuesCount: 0,
+          lastClosedIssueAt: null,
           openIssuesCount: 0,
         }),
       );

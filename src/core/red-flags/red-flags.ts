@@ -84,10 +84,18 @@ function checkStalePullRequests(metrics: MetricsSnapshot): RedFlag | null {
   };
 }
 
-function checkNoIssuesActivity(metrics: MetricsSnapshot): RedFlag | null {
+function checkNoIssuesActivity(
+  metrics: MetricsSnapshot,
+  now: Date,
+): RedFlag | null {
+  const daysSinceLastClosed = daysSince(metrics.lastClosedIssueAt, now);
+  const hasRecentClose =
+    daysSinceLastClosed !== null &&
+    daysSinceLastClosed < RED_FLAGS_THRESHOLDS.recentIssueActivityDays;
+
   if (
     metrics.issuesCreatedLastYear > 0 ||
-    metrics.closedIssuesCount > 0 ||
+    hasRecentClose ||
     metrics.openIssuesCount > 0
   )
     return null;
@@ -130,15 +138,16 @@ function checkNoReleasesEver(
   };
 }
 
-export function detectRedFlags(metrics: MetricsSnapshot): RedFlag[] {
-  const now = new Date();
-
+export function detectRedFlags(
+  metrics: MetricsSnapshot,
+  now: Date = new Date(),
+): RedFlag[] {
   return [
     checkArchived(metrics),
     checkExtendedInactivity(metrics, now),
     checkNoReleaseDespiteCommits(metrics, now),
     checkStalePullRequests(metrics),
-    checkNoIssuesActivity(metrics),
+    checkNoIssuesActivity(metrics, now),
     checkNoReleasesEver(metrics, now),
   ].filter((flag): flag is RedFlag => flag !== null);
 }
