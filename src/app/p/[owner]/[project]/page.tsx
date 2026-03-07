@@ -3,12 +3,13 @@ import { cacheLife } from "next/cache";
 import type { AnalysisRun } from "@/lib/domain/assessment";
 import { api } from "../../../../../convex/_generated/api";
 import { AutoRefresh } from "./_components/auto-refresh";
-import { CommitActivityLive } from "./_components/commit-activity-live";
-import { MaintenanceHealth } from "./_components/maintenance-health";
+import { DevelopmentActivitySection } from "./_components/development-activity-section";
+import { IssueManagementSection } from "./_components/issue-management-section";
 import { NotAnalyzedError } from "./_components/not-analyzed-error";
 import { ProjectHeader } from "./_components/project-header";
 import { ReadmeSection } from "./_components/readme-section";
 import { RecentActivity } from "./_components/recent-activity";
+import { ReleaseCadenceSection } from "./_components/release-cadence-section";
 
 async function CachedProjectPage({
   owner,
@@ -35,12 +36,13 @@ async function CachedProjectPage({
     <>
       <ProjectHeader run={safeRun} />
       <RecentActivity run={safeRun} />
-      <CommitActivityLive
+      <DevelopmentActivitySection
+        run={safeRun}
         owner={owner}
         project={project}
-        initialRun={safeRun}
       />
-      <MaintenanceHealth run={safeRun} />
+      <IssueManagementSection run={safeRun} />
+      <ReleaseCadenceSection run={safeRun} />
       <ReadmeSection run={safeRun} />
     </>
   );
