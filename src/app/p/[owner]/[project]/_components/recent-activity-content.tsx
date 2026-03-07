@@ -12,7 +12,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   type ChartConfig,
   ChartContainer,
@@ -201,10 +200,45 @@ export function RecentActivityContent({ run }: RecentActivityContentProps) {
       : format(new Date(ts), "MMM ''yy");
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col lg:flex-row gap-4">
+      <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-col lg:justify-center lg:shrink-0">
+        {rawMetrics.map((m) => {
+          const d = m.date ? new Date(m.date) : null;
+          const recency = d ? getRecency(d) : null;
+          const color = recency
+            ? recencyColor[recency]
+            : "var(--muted-foreground)";
+          const relativeTime = d
+            ? formatDistanceToNow(d, { addSuffix: true })
+            : null;
+          return (
+            <div
+              key={m.label}
+              className="flex items-stretch gap-3 text-xs"
+            >
+              <div
+                className="w-0.5 shrink-0 rounded-full"
+                style={{ backgroundColor: color }}
+              />
+              <div className="py-0.5">
+                <span className="text-muted-foreground">{m.label}</span>
+                <p className="text-sm font-medium text-foreground">
+                  {d ? format(d, "MMM d, yyyy") : "N/A"}
+                  {relativeTime && (
+                    <span className="text-muted-foreground font-normal">
+                      {" "}· {relativeTime}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       <ChartContainer
         config={chartConfig}
-        className="aspect-auto h-[200px] w-full"
+        className="aspect-auto h-[200px] flex-1 min-w-0"
       >
         <ScatterChart margin={{ top: 30, right: 20, bottom: 0, left: 20 }}>
           <CartesianGrid
@@ -241,41 +275,6 @@ export function RecentActivityContent({ run }: RecentActivityContentProps) {
           </Scatter>
         </ScatterChart>
       </ChartContainer>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {rawMetrics.map((m) => {
-          const Icon = m.icon;
-          const d = m.date ? new Date(m.date) : null;
-          const recency = d ? getRecency(d) : null;
-          const color = recency
-            ? recencyColor[recency]
-            : "var(--muted-foreground)";
-          return (
-            <Card key={m.label} className="py-0 gap-0">
-              <CardContent className="py-2.5 px-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Icon className="size-3.5 shrink-0" style={{ color }} />
-                  <span className="text-xs font-medium text-foreground truncate">
-                    {m.label}
-                  </span>
-                </div>
-                {d ? (
-                  <>
-                    <p className="text-sm font-semibold text-foreground">
-                      {format(d, "MMM d, yyyy")}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(d, { addSuffix: true })}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">N/A</p>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
     </div>
   );
 }
