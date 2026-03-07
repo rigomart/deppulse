@@ -1,6 +1,6 @@
 "use client";
 
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistance } from "date-fns";
 import { rateReleaseCadence } from "@/core/dimensions";
 import {
   type AnalysisRun,
@@ -74,11 +74,10 @@ export function ReleaseCadenceSection({ run }: ReleaseCadenceSectionProps) {
   const analysisTime = getAnalysisTime(run);
   const dimension = metrics ? rateReleaseCadence(metrics, analysisTime) : null;
 
-  const level = dimension?.level ?? "inactive";
+  const level = dimension?.level ?? null;
   const releases = metrics?.releases ?? [];
   const inputs = dimension?.inputs;
-
-  const daysSince = inputs?.daysSinceLastRelease as number | null;
+  const daysSince = inputs?.daysSinceLastRelease;
 
   const stats = [
     {
@@ -92,9 +91,10 @@ export function ReleaseCadenceSection({ run }: ReleaseCadenceSectionProps) {
     {
       label: "Last Release",
       value:
-        daysSince !== null && daysSince !== undefined
-          ? formatDistanceToNow(
+        typeof daysSince === "number"
+          ? formatDistance(
               new Date(analysisTime.getTime() - daysSince * 86_400_000),
+              analysisTime,
               { addSuffix: true },
             )
           : "Never",

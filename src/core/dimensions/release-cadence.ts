@@ -48,7 +48,7 @@ export function rateReleaseCadence(
 
   // No releases on a mature repo, or last release over 2 years ago
   const isInactive =
-    (releases.length === 0 && (repoAgeYears === null || repoAgeYears >= 1)) ||
+    (releases.length === 0 && repoAgeYears !== null && repoAgeYears >= 1) ||
     (daysSinceLastRelease !== null && daysSinceLastRelease > 730);
 
   if (isInactive) {

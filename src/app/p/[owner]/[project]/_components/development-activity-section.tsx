@@ -1,6 +1,4 @@
-"use client";
-
-import { formatDistanceToNow } from "date-fns";
+import { formatDistance } from "date-fns";
 import { rateDevelopmentActivity } from "@/core/dimensions";
 import { type AnalysisRun, getAnalysisTime } from "@/lib/domain/assessment";
 import { CommitActivityLive } from "./commit-activity-live";
@@ -24,8 +22,6 @@ export function DevelopmentActivitySection({
     ? rateDevelopmentActivity(metrics, analysisTime)
     : null;
 
-  const level = dimension?.level ?? "inactive";
-
   const lastCommitDate = metrics?.lastCommitAt
     ? new Date(metrics.lastCommitAt)
     : null;
@@ -46,7 +42,7 @@ export function DevelopmentActivitySection({
     {
       label: "Last Commit",
       value: lastCommitDate
-        ? formatDistanceToNow(lastCommitDate, { addSuffix: true })
+        ? formatDistance(lastCommitDate, analysisTime, { addSuffix: true })
         : "N/A",
     },
   ];
@@ -54,7 +50,7 @@ export function DevelopmentActivitySection({
   return (
     <DimensionSection
       title="Development Activity"
-      level={level}
+      level={dimension?.level ?? null}
       delay="delay-100"
     >
       <StatGrid stats={stats} columns="grid-cols-2 sm:grid-cols-4" />

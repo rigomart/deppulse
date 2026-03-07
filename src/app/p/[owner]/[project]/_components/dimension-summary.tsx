@@ -1,5 +1,3 @@
-"use client";
-
 import { Clock } from "lucide-react";
 import { LocalDate } from "@/components/local-date";
 import { Separator } from "@/components/ui/separator";

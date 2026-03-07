@@ -19,7 +19,7 @@ export function IssueManagementSection({ run }: IssueManagementSectionProps) {
   const analysisTime = getAnalysisTime(run);
   const dimension = metrics ? rateIssueManagement(metrics, analysisTime) : null;
 
-  const level = dimension?.level ?? "inactive";
+  const level = dimension?.level ?? null;
 
   const stats = [
     {

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 interface DimensionSectionProps {
   title: string;
-  level: DimensionLevel;
+  level: DimensionLevel | null;
   delay?: string;
   children: React.ReactNode;
 }
@@ -29,14 +29,16 @@ export function DimensionSection({
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
             {title}
           </h2>
-          <Badge
-            className={cn(
-              "text-xs border capitalize",
-              dimensionLevelColors[level],
-            )}
-          >
-            {level}
-          </Badge>
+          {level && (
+            <Badge
+              className={cn(
+                "text-xs border capitalize",
+                dimensionLevelColors[level],
+              )}
+            >
+              {level}
+            </Badge>
+          )}
         </div>
         {children}
       </section>

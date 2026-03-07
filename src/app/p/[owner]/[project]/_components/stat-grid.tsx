@@ -15,13 +15,10 @@ export function StatGrid({
 }: StatGridProps) {
   return (
     <div
-      className={`grid ${columns} rounded-lg border border-border overflow-hidden`}
+      className={`grid ${columns} gap-px overflow-hidden rounded-lg border border-border bg-border`}
     >
       {stats.map((stat) => (
-        <div
-          key={stat.label}
-          className="px-4 py-3 border-b border-r border-border"
-        >
+        <div key={stat.label} className="bg-background px-4 py-3">
           <p className="text-xs text-muted-foreground">{stat.label}</p>
           <p className="text-lg font-semibold text-foreground mt-0.5">
             {stat.value}

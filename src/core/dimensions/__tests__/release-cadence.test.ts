@@ -153,6 +153,17 @@ describe("rateReleaseCadence", () => {
       expect(result.level).toBe("weak");
     });
 
+    it("mature repo boundary: inactive at exactly 365 days old with no releases", () => {
+      const result = rateReleaseCadence(
+        makeSnapshot({
+          releases: [],
+          repositoryCreatedAt: daysAgo(365),
+        }),
+        NOW,
+      );
+      expect(result.level).toBe("inactive");
+    });
+
     it("young repo boundary: adequate at 364 days old with no releases", () => {
       const result = rateReleaseCadence(
         makeSnapshot({
@@ -162,6 +173,17 @@ describe("rateReleaseCadence", () => {
         NOW,
       );
       expect(result.level).toBe("adequate");
+    });
+
+    it("weak when no releases and unknown repo age", () => {
+      const result = rateReleaseCadence(
+        makeSnapshot({
+          releases: [],
+          repositoryCreatedAt: null,
+        }),
+        NOW,
+      );
+      expect(result.level).toBe("weak");
     });
 
     it("mature repo boundary: inactive at 366 days old with no releases", () => {

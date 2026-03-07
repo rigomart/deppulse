@@ -16,7 +16,7 @@ function StripStatSkeleton({ width = "w-28" }: { width?: string }) {
 
 function BentoCellSkeleton({ width = "w-12" }: { width?: string }) {
   return (
-    <div className="px-4 py-3 border-b border-r border-border">
+    <div className="bg-background px-4 py-3">
       <div className="h-3 w-16 rounded bg-muted" />
       <div className={`h-5 ${width} rounded bg-muted mt-2`} />
     </div>
@@ -88,7 +88,7 @@ function DevelopmentActivitySkeleton() {
           <Skeleton className="h-4 w-40" />
           <Skeleton className="h-5 w-16 rounded-full" />
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 rounded-lg border border-border overflow-hidden animate-pulse">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px overflow-hidden rounded-lg border border-border bg-border animate-pulse">
           <BentoCellSkeleton />
           <BentoCellSkeleton width="w-10" />
           <BentoCellSkeleton width="w-10" />
@@ -108,7 +108,7 @@ function IssueManagementSkeleton() {
           <Skeleton className="h-4 w-36" />
           <Skeleton className="h-5 w-16 rounded-full" />
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 rounded-lg border border-border overflow-hidden animate-pulse">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-px overflow-hidden rounded-lg border border-border bg-border animate-pulse">
           <BentoCellSkeleton />
           <BentoCellSkeleton />
           <BentoCellSkeleton width="w-10" />
@@ -128,7 +128,7 @@ function ReleaseCadenceSkeleton() {
           <Skeleton className="h-4 w-32" />
           <Skeleton className="h-5 w-16 rounded-full" />
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 rounded-lg border border-border overflow-hidden animate-pulse">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-px overflow-hidden rounded-lg border border-border bg-border animate-pulse">
           <BentoCellSkeleton />
           <BentoCellSkeleton />
           <BentoCellSkeleton width="w-20" />
