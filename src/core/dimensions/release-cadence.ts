@@ -27,8 +27,7 @@ export function rateReleaseCadence(
     : null;
 
   // Count releases in the last 365 days
-  const cutoff = new Date(analysisTime);
-  cutoff.setFullYear(cutoff.getFullYear() - 1);
+  const cutoff = new Date(analysisTime.getTime() - 365 * 86_400_000);
   const releasesLastYear = releases.filter(
     (r) => new Date(r.publishedAt) >= cutoff,
   ).length;
