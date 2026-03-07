@@ -1,15 +1,14 @@
 import { rateIssueManagement } from "@/core/dimensions";
-import type { AnalysisRun } from "@/lib/domain/assessment";
+import { type AnalysisRun, getAnalysisTime } from "@/lib/domain/assessment";
+import { formatNumber } from "@/lib/utils";
 import { DimensionSection } from "./dimension-section";
+import { StatGrid } from "./stat-grid";
 
 const fmt = (val: number | null, suffix: string): string =>
   val !== null ? `${val}${suffix}` : "N/A";
 
-const fmtCount = (val: number | null): string => {
-  if (val === null) return "N/A";
-  if (val >= 1000) return `${(val / 1000).toFixed(1)}k`;
-  return val.toString();
-};
+const fmtCount = (val: number | null): string =>
+  val !== null ? formatNumber(val) : "N/A";
 
 interface IssueManagementSectionProps {
   run: AnalysisRun;
@@ -17,7 +16,7 @@ interface IssueManagementSectionProps {
 
 export function IssueManagementSection({ run }: IssueManagementSectionProps) {
   const metrics = run.metrics;
-  const analysisTime = new Date(run.completedAt ?? run.startedAt);
+  const analysisTime = getAnalysisTime(run);
   const dimension = metrics ? rateIssueManagement(metrics, analysisTime) : null;
 
   const level = dimension?.level ?? "inactive";
@@ -47,29 +46,11 @@ export function IssueManagementSection({ run }: IssueManagementSectionProps) {
   ];
 
   return (
-    <DimensionSection
-      title="Issue Management"
-      level={level}
-      delay="delay-150"
-    >
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 rounded-lg border border-border overflow-hidden">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="px-4 py-3 border-b border-r border-border"
-          >
-            <p className="text-xs text-muted-foreground">{stat.label}</p>
-            <p className="text-lg font-semibold text-foreground mt-0.5">
-              {stat.value}
-              {stat.description && (
-                <span className="text-xs text-muted-foreground font-normal ml-1">
-                  {stat.description}
-                </span>
-              )}
-            </p>
-          </div>
-        ))}
-      </div>
+    <DimensionSection title="Issue Management" level={level} delay="delay-150">
+      <StatGrid
+        stats={stats}
+        columns="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
+      />
     </DimensionSection>
   );
 }

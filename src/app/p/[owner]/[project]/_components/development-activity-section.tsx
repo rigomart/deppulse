@@ -2,9 +2,10 @@
 
 import { formatDistanceToNow } from "date-fns";
 import { rateDevelopmentActivity } from "@/core/dimensions";
-import type { AnalysisRun } from "@/lib/domain/assessment";
+import { type AnalysisRun, getAnalysisTime } from "@/lib/domain/assessment";
 import { CommitActivityLive } from "./commit-activity-live";
 import { DimensionSection } from "./dimension-section";
+import { StatGrid } from "./stat-grid";
 
 interface DevelopmentActivitySectionProps {
   run: AnalysisRun;
@@ -18,7 +19,7 @@ export function DevelopmentActivitySection({
   project,
 }: DevelopmentActivitySectionProps) {
   const metrics = run.metrics;
-  const analysisTime = new Date(run.completedAt ?? run.startedAt);
+  const analysisTime = getAnalysisTime(run);
   const dimension = metrics
     ? rateDevelopmentActivity(metrics, analysisTime)
     : null;
@@ -51,20 +52,12 @@ export function DevelopmentActivitySection({
   ];
 
   return (
-    <DimensionSection title="Development Activity" level={level} delay="delay-100">
-      <div className="grid grid-cols-2 sm:grid-cols-4 rounded-lg border border-border overflow-hidden">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="px-4 py-3 border-b border-r border-border last:border-r-0 [&:nth-child(2)]:border-r-0 sm:[&:nth-child(2)]:border-r"
-          >
-            <p className="text-xs text-muted-foreground">{stat.label}</p>
-            <p className="text-lg font-semibold text-foreground mt-0.5">
-              {stat.value}
-            </p>
-          </div>
-        ))}
-      </div>
+    <DimensionSection
+      title="Development Activity"
+      level={level}
+      delay="delay-100"
+    >
+      <StatGrid stats={stats} columns="grid-cols-2 sm:grid-cols-4" />
       <CommitActivityLive owner={owner} project={project} initialRun={run} />
     </DimensionSection>
   );

@@ -4,9 +4,13 @@ import { Clock } from "lucide-react";
 import { LocalDate } from "@/components/local-date";
 import { Separator } from "@/components/ui/separator";
 import { computeConfidence } from "@/core/confidence";
-import { computeDimensions, type DimensionLevel } from "@/core/dimensions";
+import {
+  computeDimensions,
+  type DimensionId,
+  type DimensionLevel,
+} from "@/core/dimensions";
 import { dimensionLevelFillColors } from "@/lib/category-styles";
-import type { AnalysisRun } from "@/lib/domain/assessment";
+import { type AnalysisRun, getAnalysisTime } from "@/lib/domain/assessment";
 import { cn } from "@/lib/utils";
 import { ConfidenceIndicator } from "./confidence-indicator";
 
@@ -42,7 +46,7 @@ function SegmentedBar({ level }: { level: DimensionLevel }) {
   );
 }
 
-const dimensionLabels: Record<string, string> = {
+const dimensionLabels: Record<DimensionId, string> = {
   "development-activity": "Development Activity",
   "issue-management": "Issue Management",
   "release-cadence": "Release Cadence",
@@ -62,7 +66,7 @@ export function DimensionSummary({ run }: DimensionSummaryProps) {
     );
   }
 
-  const analysisTime = new Date(run.completedAt ?? run.startedAt);
+  const analysisTime = getAnalysisTime(run);
   const dimensions = computeDimensions(run.metrics, analysisTime);
   const confidence = computeConfidence(run);
 
@@ -83,9 +87,7 @@ export function DimensionSummary({ run }: DimensionSummaryProps) {
             <span className="text-sm text-muted-foreground">
               {dimensionLabels[dim.dimension]}
             </span>
-            <div className="flex items-center gap-2">
-              <SegmentedBar level={dim.level} />
-            </div>
+            <SegmentedBar level={dim.level} />
           </div>
         ))}
       </div>

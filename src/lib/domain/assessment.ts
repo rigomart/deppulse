@@ -88,3 +88,7 @@ export interface AnalysisRun {
   errorCode: string | null;
   errorMessage: string | null;
 }
+
+export function getAnalysisTime(run: AnalysisRun): Date {
+  return new Date(run.completedAt ?? run.startedAt);
+}

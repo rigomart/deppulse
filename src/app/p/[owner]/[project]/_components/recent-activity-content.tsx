@@ -1,6 +1,6 @@
 "use client";
 
-import { differenceInDays, format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import type { LucideIcon } from "lucide-react";
 import { CheckCircle2, GitCommit, GitPullRequest, Tag } from "lucide-react";
 import {
@@ -18,8 +18,11 @@ import {
   ChartTooltip,
 } from "@/components/ui/chart";
 import type { AnalysisRun } from "@/lib/domain/assessment";
-
-type Recency = "recent" | "moderate" | "aging" | "stale";
+import {
+  getRecency,
+  type Recency,
+  recencyCssColor as recencyColor,
+} from "@/lib/recency";
 
 interface TimelinePoint {
   timestamp: number;
@@ -28,21 +31,6 @@ interface TimelinePoint {
   recency: Recency;
   icon: LucideIcon;
   date: Date;
-}
-
-const recencyColor: Record<Recency, string> = {
-  recent: "var(--status-healthy)",
-  moderate: "var(--status-moderate)",
-  aging: "var(--status-declining)",
-  stale: "var(--status-inactive)",
-};
-
-function getRecency(date: Date): Recency {
-  const days = differenceInDays(new Date(), date);
-  if (days <= 30) return "recent";
-  if (days <= 90) return "moderate";
-  if (days <= 180) return "aging";
-  return "stale";
 }
 
 const chartConfig: ChartConfig = {
@@ -212,10 +200,7 @@ export function RecentActivityContent({ run }: RecentActivityContentProps) {
             ? formatDistanceToNow(d, { addSuffix: true })
             : null;
           return (
-            <div
-              key={m.label}
-              className="flex items-stretch gap-3 text-xs"
-            >
+            <div key={m.label} className="flex items-stretch gap-3 text-xs">
               <div
                 className="w-0.5 shrink-0 rounded-full"
                 style={{ backgroundColor: color }}
@@ -226,7 +211,8 @@ export function RecentActivityContent({ run }: RecentActivityContentProps) {
                   {d ? format(d, "MMM d, yyyy") : "N/A"}
                   {relativeTime && (
                     <span className="text-muted-foreground font-normal">
-                      {" "}· {relativeTime}
+                      {" "}
+                      · {relativeTime}
                     </span>
                   )}
                 </p>
