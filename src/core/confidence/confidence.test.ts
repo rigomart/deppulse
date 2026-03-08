@@ -5,6 +5,15 @@ import type { ConfidenceInput } from "./types";
 const NOW = new Date("2026-02-13T00:00:00.000Z");
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(NOW);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 const defaultMetrics: ConfidenceInput["metrics"] & object = {
   openIssuesPercent: 20,
   medianIssueResolutionDays: 9,
@@ -28,15 +37,6 @@ function makeInput(overrides: Partial<ConfidenceInput> = {}): ConfidenceInput {
 function hasPenalty(input: ConfidenceInput, id: string): boolean {
   return computeConfidence(input).penalties.some((p) => p.id === id);
 }
-
-beforeEach(() => {
-  vi.useFakeTimers();
-  vi.setSystemTime(NOW);
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-});
 
 describe("computeConfidence", () => {
   describe("penalty triggers", () => {
