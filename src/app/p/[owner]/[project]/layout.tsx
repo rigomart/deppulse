@@ -56,11 +56,12 @@ async function cachedMetadata(owner: string, project: string) {
   };
 }
 
-export async function generateMetadata({
-  params,
-}: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { owner, project } = await params;
-  const { title, description, canonical } = await cachedMetadata(owner, project);
+  const { title, description, canonical } = await cachedMetadata(
+    owner,
+    project,
+  );
 
   return {
     title,

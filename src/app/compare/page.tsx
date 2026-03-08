@@ -22,10 +22,18 @@ function normalizeSlug(raw: string | undefined) {
   return { slug: `${owner}/${project}`, owner, project };
 }
 
-async function cachedCompareMetadata(owner: string, project: string) {
+async function cachedScoreLabel(slug: string, owner: string, project: string) {
   "use cache";
   cacheLife("hours");
-  return fetchQuery(api.analysisRuns.getByRepositorySlug, { owner, project });
+  const run = await fetchQuery(api.analysisRuns.getByRepositorySlug, {
+    owner,
+    project,
+  });
+  if (run?.metrics) {
+    const { score } = computeScoreFromMetrics(run.metrics);
+    return `${slug} (${score}/100)`;
+  }
+  return slug;
 }
 
 export async function generateMetadata({
@@ -46,38 +54,20 @@ export async function generateMetadata({
     };
   }
 
-  let runA = null;
-  let runB = null;
+  let labelA = normA.slug;
+  let labelB = normB.slug;
   try {
-    [runA, runB] = await Promise.all([
-      cachedCompareMetadata(normA.owner, normA.project),
-      cachedCompareMetadata(normB.owner, normB.project),
+    [labelA, labelB] = await Promise.all([
+      cachedScoreLabel(normA.slug, normA.owner, normA.project),
+      cachedScoreLabel(normB.slug, normB.owner, normB.project),
     ]);
   } catch {
-    return {
-      title: `Compare ${normA.slug} vs ${normB.slug}`,
-      description: `Side-by-side comparison of ${normA.slug} and ${normB.slug}.`,
-      alternates: { canonical: `/compare?a=${normA.slug}&b=${normB.slug}` },
-    };
-  }
-
-  const parts: string[] = [];
-  if (runA?.metrics) {
-    const { score } = computeScoreFromMetrics(runA.metrics);
-    parts.push(`${normA.slug} (${score}/100)`);
-  } else {
-    parts.push(normA.slug);
-  }
-  if (runB?.metrics) {
-    const { score } = computeScoreFromMetrics(runB.metrics);
-    parts.push(`${normB.slug} (${score}/100)`);
-  } else {
-    parts.push(normB.slug);
+    // fall through with plain slugs
   }
 
   return {
     title: `Compare ${normA.slug} vs ${normB.slug}`,
-    description: `Side-by-side comparison of ${parts.join(" and ")}.`,
+    description: `Side-by-side comparison of ${labelA} and ${labelB}.`,
     alternates: { canonical: `/compare?a=${normA.slug}&b=${normB.slug}` },
   };
 }
