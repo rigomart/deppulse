@@ -3,7 +3,7 @@
 @source "../../node_modules/streamdown/dist/*.js";
 
 :root {
-  --foreground: oklch(0.9023 0 0);
+  --foreground: oklch(0.854 0 0);
   --surface-1: oklch(0.1452 0 0);
   --surface-2: oklch(0.167 0 0);
   --surface-3: oklch(0.203 0 0);
