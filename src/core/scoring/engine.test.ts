@@ -1,20 +1,15 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { calculateScore } from "./engine";
 import type { ScoringInput } from "./types";
 
 const NOW = new Date("2026-02-13T00:00:00.000Z");
 
-beforeEach(() => {
-  vi.useFakeTimers();
-  vi.setSystemTime(NOW);
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-});
-
 function daysAgo(days: number): Date {
   return new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000);
+}
+
+function score(input: ScoringInput) {
+  return calculateScore(input, NOW);
 }
 
 function makeInput(overrides: Partial<ScoringInput> = {}): ScoringInput {
@@ -38,7 +33,7 @@ function makeInput(overrides: Partial<ScoringInput> = {}): ScoringInput {
 
 describe("scoring engine", () => {
   it("severely penalizes high-activity repos inactive over 6 months", () => {
-    const result = calculateScore(
+    const result = score(
       makeInput({
         lastCommitAt: daysAgo(220),
         lastMergedPrAt: daysAgo(250),
@@ -53,7 +48,7 @@ describe("scoring engine", () => {
   });
 
   it("severely penalizes high-activity repos inactive over a year", () => {
-    const result = calculateScore(
+    const result = score(
       makeInput({
         lastCommitAt: daysAgo(420),
         lastMergedPrAt: daysAgo(460),
@@ -68,7 +63,7 @@ describe("scoring engine", () => {
   });
 
   it("penalizes low-activity repos less than high-activity ones at the same inactivity", () => {
-    const lowExpected = calculateScore(
+    const lowExpected = score(
       makeInput({
         lastCommitAt: daysAgo(420),
         lastMergedPrAt: null,
@@ -81,7 +76,7 @@ describe("scoring engine", () => {
       }),
     );
 
-    const highExpected = calculateScore(
+    const highExpected = score(
       makeInput({
         lastCommitAt: daysAgo(420),
         lastMergedPrAt: null,
@@ -102,7 +97,7 @@ describe("scoring engine", () => {
   });
 
   it("treats small utilities more leniently than large projects at similar inactivity", () => {
-    const lowExpected = calculateScore(
+    const lowExpected = score(
       makeInput({
         lastCommitAt: daysAgo(300),
         lastMergedPrAt: daysAgo(320),
@@ -115,7 +110,7 @@ describe("scoring engine", () => {
       }),
     );
 
-    const highExpected = calculateScore(
+    const highExpected = score(
       makeInput({
         lastCommitAt: daysAgo(300),
         lastMergedPrAt: daysAgo(320),
@@ -128,7 +123,7 @@ describe("scoring engine", () => {
   });
 
   it("scores archived repositories as inactive", () => {
-    const result = calculateScore(makeInput({ isArchived: true }));
+    const result = score(makeInput({ isArchived: true }));
 
     expect(result.score).toBe(0);
     expect(result.category).toBe("inactive");
@@ -141,8 +136,8 @@ describe("scoring engine", () => {
       lastReleaseAt: new Date("2025-06-03T00:00:00.000Z"),
     });
 
-    const first = calculateScore(input);
-    const second = calculateScore(input);
+    const first = score(input);
+    const second = score(input);
 
     expect(first).toEqual(second);
   });
