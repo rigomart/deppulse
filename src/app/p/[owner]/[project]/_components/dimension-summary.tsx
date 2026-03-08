@@ -52,10 +52,9 @@ const dimensionLabels: Record<DimensionId, string> = {
 
 interface DimensionSummaryProps {
   run: AnalysisRun;
-  now: Date;
 }
 
-export function DimensionSummary({ run, now }: DimensionSummaryProps) {
+export function DimensionSummary({ run }: DimensionSummaryProps) {
   if (!run.metrics) {
     return (
       <div className="space-y-3">
@@ -67,7 +66,7 @@ export function DimensionSummary({ run, now }: DimensionSummaryProps) {
 
   const analysisTime = getAnalysisTime(run);
   const dimensions = computeDimensions(run.metrics, analysisTime);
-  const confidence = computeConfidence(run, now);
+  const confidence = computeConfidence(run);
 
   const rows = [
     dimensions.developmentActivity,

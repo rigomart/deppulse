@@ -15,7 +15,7 @@ interface CompareHeaderProps {
 
 function ProjectCard({ run }: { run: AnalysisRun }) {
   const metrics = run.metrics;
-  const result = metrics ? computeScoreFromMetrics(metrics, new Date()) : null;
+  const result = metrics ? computeScoreFromMetrics(metrics) : null;
 
   return (
     <Card className="flex-1 min-w-0">

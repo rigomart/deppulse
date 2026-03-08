@@ -34,9 +34,8 @@ export function Score({ run }: ScoreProps) {
     );
   }
 
-  const now = new Date();
-  const { score, category } = computeScoreFromMetrics(run.metrics, now);
-  const confidence = computeConfidence(run, now);
+  const { score, category } = computeScoreFromMetrics(run.metrics);
+  const confidence = computeConfidence(run);
   const analyzedAt = run.completedAt ?? run.startedAt;
 
   return (

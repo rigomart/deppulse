@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MetricsSnapshot } from "@/lib/domain/assessment";
 import {
   calculateMaintenanceScore,
@@ -8,6 +8,15 @@ import {
 
 const NOW = new Date("2026-02-13T00:00:00.000Z");
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(NOW);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 function daysAgo(days: number): Date {
   return new Date(NOW.getTime() - days * DAY_MS);
@@ -79,7 +88,7 @@ function makeSnapshot(
 
 describe("calculateMaintenanceScore", () => {
   it("rewards an active, healthy project", () => {
-    const result = calculateMaintenanceScore(makeInput(), NOW);
+    const result = calculateMaintenanceScore(makeInput());
 
     expect(result.score).toBeGreaterThan(0);
     expect(result.breakdown.quality).toBeGreaterThan(0);
@@ -102,7 +111,6 @@ describe("calculateMaintenanceScore", () => {
         issuesCreatedLastYear: 22,
         openPrsCount: 7,
       }),
-      NOW,
     );
 
     const stale = calculateMaintenanceScore(
@@ -120,7 +128,6 @@ describe("calculateMaintenanceScore", () => {
         issuesCreatedLastYear: 22,
         openPrsCount: 7,
       }),
-      NOW,
     );
 
     expect(fresh.breakdown.expectedActivityTier).toBe("medium");
@@ -131,12 +138,10 @@ describe("calculateMaintenanceScore", () => {
   it("scores irregular release cadence lower than regular", () => {
     const regular = calculateMaintenanceScore(
       makeInput({ releasesLastYear: 4, releaseRegularity: 1 }),
-      NOW,
     );
 
     const irregular = calculateMaintenanceScore(
       makeInput({ releasesLastYear: 4, releaseRegularity: 0.25 }),
-      NOW,
     );
 
     expect(irregular.score).toBeLessThan(regular.score);
@@ -145,7 +150,7 @@ describe("calculateMaintenanceScore", () => {
 
 describe("computeScoreFromMetrics", () => {
   it("scores a project from stored metrics", () => {
-    const result = computeScoreFromMetrics(makeSnapshot(), NOW);
+    const result = computeScoreFromMetrics(makeSnapshot());
 
     expect(result.score).toBeGreaterThanOrEqual(0);
     expect(result.category).toBeDefined();
@@ -161,7 +166,6 @@ describe("computeScoreFromMetrics", () => {
         repositoryCreatedAt: null,
         releases: [],
       }),
-      NOW,
     );
 
     expect(result.score).toBeGreaterThanOrEqual(0);

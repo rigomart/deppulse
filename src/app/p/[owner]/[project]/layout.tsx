@@ -39,7 +39,7 @@ async function cachedMetadata(owner: string, project: string) {
     };
   }
 
-  const { score, category } = computeScoreFromMetrics(metrics, new Date());
+  const { score, category } = computeScoreFromMetrics(metrics);
   const fullName = run.repository.fullName;
   const analyzedAt = run.completedAt ?? run.startedAt;
   const analyzedAtText = analyzedAt

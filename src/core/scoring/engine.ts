@@ -26,9 +26,9 @@ function resolveProfile(options?: ScoreOptions): ScoringProfile {
 
 export function calculateScore(
   input: ScoringInput,
-  now: Date,
   options?: ScoreOptions,
 ): ScoreResult {
+  const now = new Date();
   const profile = resolveProfile(options);
 
   const expectedActivityTier = determineExpectedActivityTier(input, profile);

@@ -109,10 +109,9 @@ function toScoringInput(input: MaintenanceInput): ScoringInput {
  */
 export function calculateMaintenanceScore(
   input: MaintenanceInput,
-  now: Date,
   options?: ScoreOptions,
 ): MaintenanceResult {
-  const result = calculateScore(toScoringInput(input), now, options);
+  const result = calculateScore(toScoringInput(input), options);
 
   return {
     score: result.score,
@@ -129,9 +128,9 @@ export function calculateMaintenanceScore(
  */
 export function computeScoreFromMetrics(
   metrics: MetricsSnapshot,
-  now: Date,
   options?: ScoreOptions,
 ): MaintenanceResult {
+  const now = new Date();
   const oneYearAgo = now.getTime() - 365 * 24 * 60 * 60 * 1000;
 
   const releaseTimesLastYear = metrics.releases
@@ -164,7 +163,6 @@ export function computeScoreFromMetrics(
       openPrsCount: metrics.openPrsCount,
       isArchived: metrics.isArchived,
     },
-    now,
     options,
   );
 }

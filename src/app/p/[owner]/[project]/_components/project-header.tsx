@@ -20,10 +20,9 @@ function DimensionSummarySkeleton() {
 
 interface ProjectHeaderProps {
   run: AnalysisRun;
-  now: Date;
 }
 
-export function ProjectHeader({ run, now }: ProjectHeaderProps) {
+export function ProjectHeader({ run }: ProjectHeaderProps) {
   return (
     <section className="bg-surface-1">
       <Container>
@@ -34,7 +33,7 @@ export function ProjectHeader({ run, now }: ProjectHeaderProps) {
 
           <div className="sm:min-w-64 h-full flex items-center py-6 px-6 bg-linear-0 from-surface-1 to-surface-3">
             <Suspense fallback={<DimensionSummarySkeleton />}>
-              <DimensionSummary run={run} now={now} />
+              <DimensionSummary run={run} />
             </Suspense>
           </div>
         </div>

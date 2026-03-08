@@ -61,16 +61,15 @@ export async function generateMetadata({
     };
   }
 
-  const now = new Date();
   const parts: string[] = [];
   if (runA?.metrics) {
-    const { score } = computeScoreFromMetrics(runA.metrics, now);
+    const { score } = computeScoreFromMetrics(runA.metrics);
     parts.push(`${normA.slug} (${score}/100)`);
   } else {
     parts.push(normA.slug);
   }
   if (runB?.metrics) {
-    const { score } = computeScoreFromMetrics(runB.metrics, now);
+    const { score } = computeScoreFromMetrics(runB.metrics);
     parts.push(`${normB.slug} (${score}/100)`);
   } else {
     parts.push(normB.slug);
