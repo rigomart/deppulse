@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { computeConfidence } from "./confidence";
 import type { ConfidenceInput } from "./types";
 
@@ -25,23 +25,18 @@ function makeInput(overrides: Partial<ConfidenceInput> = {}): ConfidenceInput {
   return { ...defaults, ...overrides };
 }
 
-function hasPenalty(input: ConfidenceInput, id: string): boolean {
-  return computeConfidence(input).penalties.some((p) => p.id === id);
+function getConfidence(input: ConfidenceInput) {
+  return computeConfidence(input, NOW);
 }
 
-beforeEach(() => {
-  vi.useFakeTimers();
-  vi.setSystemTime(NOW);
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-});
+function hasPenalty(input: ConfidenceInput, id: string): boolean {
+  return getConfidence(input).penalties.some((p) => p.id === id);
+}
 
 describe("computeConfidence", () => {
   describe("penalty triggers", () => {
     it("trusts complete, fresh analysis", () => {
-      const result = computeConfidence(makeInput());
+      const result = getConfidence(makeInput());
       expect(result.penalties).toHaveLength(0);
     });
 
@@ -131,10 +126,10 @@ describe("computeConfidence", () => {
     });
 
     it("trusts older analysis less", () => {
-      const at15 = computeConfidence(
+      const at15 = getConfidence(
         makeInput({ completedAt: NOW.getTime() - 15 * DAY_MS }),
       );
-      const at25 = computeConfidence(
+      const at25 = getConfidence(
         makeInput({ completedAt: NOW.getTime() - 25 * DAY_MS }),
       );
 
@@ -143,10 +138,10 @@ describe("computeConfidence", () => {
     });
 
     it("stops degrading confidence after a certain age", () => {
-      const at45 = computeConfidence(
+      const at45 = getConfidence(
         makeInput({ completedAt: NOW.getTime() - 45 * DAY_MS }),
       );
-      const at90 = computeConfidence(
+      const at90 = getConfidence(
         makeInput({ completedAt: NOW.getTime() - 90 * DAY_MS }),
       );
 
@@ -168,22 +163,22 @@ describe("computeConfidence", () => {
 
   describe("score and level", () => {
     it("gives full confidence to healthy, fresh data", () => {
-      const result = computeConfidence(makeInput());
+      const result = getConfidence(makeInput());
       expect(result.level).toBe("high");
       expect(result.score).toBe(100);
     });
 
     it("gives no confidence without any data", () => {
-      const result = computeConfidence(makeInput({ metrics: null }));
+      const result = getConfidence(makeInput({ metrics: null }));
       expect(result.level).toBe("low");
       expect(result.score).toBe(0);
     });
 
     it("loses more confidence as data gaps accumulate", () => {
-      const one = computeConfidence(
+      const one = getConfidence(
         makeInput({ metrics: { ...defaultMetrics, lastCommitAt: null } }),
       );
-      const two = computeConfidence(
+      const two = getConfidence(
         makeInput({
           metrics: {
             ...defaultMetrics,
@@ -198,7 +193,7 @@ describe("computeConfidence", () => {
     });
 
     it("never goes below zero", () => {
-      const result = computeConfidence(
+      const result = getConfidence(
         makeInput({
           status: "failed",
           completedAt: NOW.getTime() - 45 * DAY_MS,
@@ -219,19 +214,19 @@ describe("computeConfidence", () => {
 
   describe("summary", () => {
     it("says nothing when confidence is full", () => {
-      const result = computeConfidence(makeInput());
+      const result = getConfidence(makeInput());
       expect(result.summary).toBeNull();
     });
 
     it("explains the issue when there is one problem", () => {
-      const result = computeConfidence(
+      const result = getConfidence(
         makeInput({ metrics: { ...defaultMetrics, lastCommitAt: null } }),
       );
       expect(result.summary).toBe("No commit history found");
     });
 
     it("gives a general warning when there are multiple problems", () => {
-      const result = computeConfidence(
+      const result = getConfidence(
         makeInput({
           status: "partial",
           metrics: { ...defaultMetrics, openIssuesPercent: null },

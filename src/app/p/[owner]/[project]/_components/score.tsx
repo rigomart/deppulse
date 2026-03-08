@@ -35,7 +35,7 @@ export function Score({ run }: ScoreProps) {
   }
 
   const { score, category } = computeScoreFromMetrics(run.metrics);
-  const confidence = computeConfidence(run);
+  const confidence = computeConfidence(run, new Date());
   const analyzedAt = run.completedAt ?? run.startedAt;
 
   return (

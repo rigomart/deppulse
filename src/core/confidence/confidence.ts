@@ -163,8 +163,10 @@ const PENALTY_CHECKS = [
  *
  * @param input - The analysis data to evaluate (status, timestamps, and metrics).
  */
-export function computeConfidence(input: ConfidenceInput): ConfidenceResult {
-  const now = new Date();
+export function computeConfidence(
+  input: ConfidenceInput,
+  now: Date,
+): ConfidenceResult {
 
   if (!input.metrics) {
     return {

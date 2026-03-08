@@ -31,10 +31,11 @@ async function CachedProjectPage({
   }
 
   const safeRun = run as AnalysisRun;
+  const now = new Date();
 
   return (
     <>
-      <ProjectHeader run={safeRun} />
+      <ProjectHeader run={safeRun} now={now} />
       <RecentActivity run={safeRun} />
       <DevelopmentActivitySection
         run={safeRun}
