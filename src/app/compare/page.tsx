@@ -2,7 +2,6 @@ import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { cacheLife } from "next/cache";
 import { Container } from "@/components/container";
-import { computeScoreFromMetrics } from "@/core/maintenance";
 import type { AnalysisRun } from "@/lib/domain/assessment";
 import { parseProject } from "@/lib/parse-project";
 import { api } from "../../../convex/_generated/api";
@@ -22,20 +21,6 @@ function normalizeSlug(raw: string | undefined) {
   return { slug: `${owner}/${project}`, owner, project };
 }
 
-async function cachedScoreLabel(slug: string, owner: string, project: string) {
-  "use cache";
-  cacheLife("hours");
-  const run = await fetchQuery(api.analysisRuns.getByRepositorySlug, {
-    owner,
-    project,
-  });
-  if (run?.metrics) {
-    const { score } = computeScoreFromMetrics(run.metrics);
-    return `${slug} (${score}/100)`;
-  }
-  return slug;
-}
-
 export async function generateMetadata({
   searchParams,
 }: {
@@ -49,25 +34,14 @@ export async function generateMetadata({
     return {
       title: "Compare Projects",
       description:
-        "Compare two GitHub repositories side-by-side — scores, activity, engagement, and health metrics.",
+        "Compare two GitHub repositories side-by-side — activity, health dimensions, and metrics.",
       alternates: { canonical: "/compare" },
     };
   }
 
-  let labelA = normA.slug;
-  let labelB = normB.slug;
-  try {
-    [labelA, labelB] = await Promise.all([
-      cachedScoreLabel(normA.slug, normA.owner, normA.project),
-      cachedScoreLabel(normB.slug, normB.owner, normB.project),
-    ]);
-  } catch {
-    // fall through with plain slugs
-  }
-
   return {
     title: `Compare ${normA.slug} vs ${normB.slug}`,
-    description: `Side-by-side comparison of ${labelA} and ${labelB}.`,
+    description: `Side-by-side health comparison of ${normA.slug} and ${normB.slug}.`,
     alternates: { canonical: `/compare?a=${normA.slug}&b=${normB.slug}` },
   };
 }
@@ -126,7 +100,7 @@ async function CachedComparePage({
               Compare Projects
             </h1>
             <p className="text-sm text-muted-foreground">
-              Compare maintenance scores, activity, and health metrics for two
+              Compare health dimensions, activity, and metrics for two
               repositories.
             </p>
           </div>

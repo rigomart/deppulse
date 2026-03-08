@@ -15,7 +15,7 @@ export function StatGrid({
 }: StatGridProps) {
   return (
     <div
-      className={`grid ${columns} gap-px overflow-hidden rounded-lg border border-border bg-border`}
+      className={`grid ${columns} gap-px overflow-hidden rounded-lg border border-surface-3/80 bg-surface-2`}
     >
       {stats.map((stat) => (
         <div key={stat.label} className="bg-background px-4 py-3">
