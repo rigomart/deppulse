@@ -33,7 +33,9 @@ export function AutoRefresh({
           toastIdRef.current = toast.loading("Refreshing analysis data...");
         }
       })
-      .catch(() => {});
+      .catch((error) => {
+        console.error("AutoRefresh: triggerRefreshIfStale failed:", error);
+      });
 
     return () => {
       cancelled = true;

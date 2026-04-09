@@ -1,6 +1,5 @@
 import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
-import { cacheLife } from "next/cache";
 import { Container } from "@/components/container";
 import type { AnalysisRun } from "@/lib/domain/assessment";
 import { parseProject } from "@/lib/parse-project";
@@ -46,16 +45,13 @@ export async function generateMetadata({
   };
 }
 
-async function CachedComparePage({
+async function CompareContent({
   a,
   b,
 }: {
   a: string | undefined;
   b: string | undefined;
 }) {
-  "use cache";
-  cacheLife("hours");
-
   const parsedA = a ? parseProject(a) : null;
   const parsedB = b ? parseProject(b) : null;
 
@@ -150,5 +146,5 @@ export default async function ComparePage({
   const { a, b } = await searchParams;
   const normA = normalizeSlug(a);
   const normB = normalizeSlug(b);
-  return <CachedComparePage a={normA?.slug} b={normB?.slug} />;
+  return <CompareContent a={normA?.slug} b={normB?.slug} />;
 }

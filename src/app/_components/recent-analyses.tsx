@@ -1,6 +1,5 @@
 import { fetchQuery } from "convex/nextjs";
 import { Code2, Star } from "lucide-react";
-import { cacheLife } from "next/cache";
 import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@/components/container";
@@ -44,9 +43,6 @@ function MiniBar({ level, label }: { level: DimensionLevel; label: string }) {
 }
 
 export async function RecentAnalyses() {
-  "use cache";
-  cacheLife("minutes");
-
   const recentRuns = (await fetchQuery(api.analysisRuns.listRecentCompleted, {
     limit: 12,
   })) as AnalysisRun[];
