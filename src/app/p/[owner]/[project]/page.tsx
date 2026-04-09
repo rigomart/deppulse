@@ -1,5 +1,4 @@
 import { fetchQuery } from "convex/nextjs";
-import { cacheLife } from "next/cache";
 import type { AnalysisRun } from "@/lib/domain/assessment";
 import { api } from "../../../../../convex/_generated/api";
 import { AutoRefresh } from "./_components/auto-refresh";
@@ -11,16 +10,13 @@ import { ReadmeSection } from "./_components/readme-section";
 import { RecentActivity } from "./_components/recent-activity";
 import { ReleaseCadenceSection } from "./_components/release-cadence-section";
 
-async function CachedProjectPage({
+async function ProjectContent({
   owner,
   project,
 }: {
   owner: string;
   project: string;
 }) {
-  "use cache";
-  cacheLife("days");
-
   const run = await fetchQuery(api.analysisRuns.getByRepositorySlug, {
     owner,
     project,
@@ -57,7 +53,7 @@ export default async function ProjectPage({
   return (
     <>
       <AutoRefresh owner={owner} project={project} />
-      <CachedProjectPage owner={owner} project={project} />
+      <ProjectContent owner={owner} project={project} />
     </>
   );
 }

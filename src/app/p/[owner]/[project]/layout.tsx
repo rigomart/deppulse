@@ -1,6 +1,5 @@
 import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
-import { cacheLife } from "next/cache";
 import { computeDimensions, type DimensionLevel } from "@/core/dimensions";
 import type { AnalysisRun, MetricsSnapshot } from "@/lib/domain/assessment";
 import { getAnalysisTime } from "@/lib/domain/assessment";
@@ -29,10 +28,7 @@ function summarizeDimensions(levels: DimensionLevel[]): string {
   return "needs attention";
 }
 
-async function cachedMetadata(owner: string, project: string) {
-  "use cache";
-  cacheLife("days");
-
+async function getMetadata(owner: string, project: string) {
   const run = (await fetchQuery(api.analysisRuns.getByRepositorySlug, {
     owner,
     project,
@@ -76,10 +72,7 @@ async function cachedMetadata(owner: string, project: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { owner, project } = await params;
-  const { title, description, canonical } = await cachedMetadata(
-    owner,
-    project,
-  );
+  const { title, description, canonical } = await getMetadata(owner, project);
 
   return {
     title,
