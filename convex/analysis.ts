@@ -1,6 +1,7 @@
 import { Octokit } from "@octokit/core";
 import { RequestError } from "@octokit/request-error";
 import { v } from "convex/values";
+import type { MetricsSnapshot } from "../src/lib/domain/assessment";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
@@ -9,162 +10,17 @@ import {
   COMMIT_ACTIVITY_MAX_ATTEMPTS,
   COMMIT_ACTIVITY_RETRY_DELAYS_SECONDS,
 } from "./_shared/constants";
+import {
+  buildQueryVariables,
+  buildSnapshotFromGraphQL,
+  classifyCommitActivityHttpError,
+  mapWeeksToCommitActivity,
+  parseCommitActivityWeeks,
+  type RawCommitWeek,
+  REPO_METRICS_QUERY,
+  type RepoMetricsGraphQLResponse,
+} from "./_shared/github_snapshot";
 import { triggerSource } from "./schema";
-
-const MERGED_PRS_LIMIT = 100;
-
-const REPO_METRICS_QUERY = `
-  query RepoMetrics(
-    $owner: String!,
-    $repo: String!,
-    $commits30Since: GitTimestamp!,
-    $commits90Since: GitTimestamp!,
-    $commits365Since: GitTimestamp!
-  ) {
-    rateLimit { limit remaining cost resetAt }
-    repository(owner: $owner, name: $repo) {
-      nameWithOwner
-      description
-      stargazerCount
-      forkCount
-      url
-      isArchived
-      createdAt
-      licenseInfo { spdxId }
-      primaryLanguage { name }
-      owner { avatarUrl }
-      defaultBranchRef {
-        name
-        target {
-          ... on Commit {
-            latestCommit: history(first: 1) { nodes { committedDate } }
-            commitHistory30d: history(first: 1, since: $commits30Since) { totalCount }
-            commitHistory90d: history(first: 1, since: $commits90Since) { totalCount }
-            commitHistory365d: history(first: 1, since: $commits365Since) { totalCount }
-          }
-        }
-      }
-      latestRelease { publishedAt }
-      releases(first: 20, orderBy: {field: CREATED_AT, direction: DESC}) {
-        nodes { tagName name publishedAt }
-      }
-      openIssues: issues(states: OPEN) { totalCount }
-      closedIssues: issues(states: CLOSED) { totalCount }
-      openPRs: pullRequests(states: OPEN) { totalCount }
-      lastMergedPR: pullRequests(states: MERGED, first: 1, orderBy: {field: CREATED_AT, direction: DESC}) {
-        nodes { mergedAt }
-      }
-      mergedPRsRecent: pullRequests(states: MERGED, first: ${MERGED_PRS_LIMIT}, orderBy: {field: CREATED_AT, direction: DESC}) {
-        nodes { mergedAt }
-      }
-      recentIssues: issues(first: 100, orderBy: {field: CREATED_AT, direction: DESC}) {
-        nodes { createdAt closedAt state }
-      }
-      readmeMd: object(expression: "HEAD:README.md") { ... on Blob { text } }
-      readmeLower: object(expression: "HEAD:readme.md") { ... on Blob { text } }
-      readmeNoExt: object(expression: "HEAD:README") { ... on Blob { text } }
-    }
-  }
-`;
-
-function getMedian(numbers: number[]): number | null {
-  if (numbers.length === 0) return null;
-  const sorted = [...numbers].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 !== 0
-    ? sorted[mid]
-    : (sorted[mid - 1] + sorted[mid]) / 2;
-}
-
-interface MetricsSnapshot {
-  description: string | null;
-  stars: number;
-  forks: number;
-  avatarUrl: string;
-  htmlUrl: string;
-  license: string | null;
-  language: string | null;
-  repositoryCreatedAt: string | null;
-  isArchived: boolean;
-  lastCommitAt: string | null;
-  lastReleaseAt: string | null;
-  lastClosedIssueAt: string | null;
-  lastMergedPrAt: string | null;
-  openIssuesPercent: number | null;
-  openIssuesCount: number;
-  closedIssuesCount: number;
-  medianIssueResolutionDays: number | null;
-  openPrsCount: number;
-  issuesCreatedLastYear: number;
-  commitsLast30Days: number;
-  commitsLast90Days: number;
-  commitsLast365Days: number;
-  mergedPrsLast90Days: number;
-  releases: Array<{
-    tagName: string;
-    name: string | null;
-    publishedAt: string;
-  }>;
-  readmeContent?: string | null;
-  commitActivity?: {
-    state: "pending" | "ready" | "failed";
-    attempts: number;
-    lastAttemptedAt: string | null;
-    errorMessage: string | null;
-    weekly: Array<{
-      weekStart: string;
-      totalCommits: number;
-      dailyBreakdown: [number, number, number, number, number, number, number];
-    }>;
-  };
-}
-
-interface RepoMetricsGraphQLResponse {
-  repository: {
-    nameWithOwner: string;
-    description: string | null;
-    stargazerCount: number;
-    forkCount: number;
-    url: string;
-    isArchived: boolean;
-    createdAt: string;
-    licenseInfo: { spdxId: string } | null;
-    primaryLanguage: { name: string } | null;
-    owner: { avatarUrl: string };
-    defaultBranchRef: {
-      name: string;
-      target: {
-        latestCommit: { nodes: Array<{ committedDate: string }> };
-        commitHistory30d: { totalCount: number };
-        commitHistory90d: { totalCount: number };
-        commitHistory365d: { totalCount: number };
-      };
-    } | null;
-    latestRelease: { publishedAt: string } | null;
-    releases: {
-      nodes: Array<{
-        tagName: string;
-        name: string | null;
-        publishedAt: string;
-      }>;
-    };
-    openIssues: { totalCount: number };
-    closedIssues: { totalCount: number };
-    openPRs: { totalCount: number };
-    lastMergedPR: { nodes: Array<{ mergedAt: string }> };
-    mergedPRsRecent: { nodes: Array<{ mergedAt: string }> };
-    recentIssues: {
-      nodes: Array<{
-        createdAt: string;
-        closedAt: string | null;
-        state: "OPEN" | "CLOSED";
-      }>;
-    };
-    readmeMd: { text: string } | null;
-    readmeLower: { text: string } | null;
-    readmeNoExt: { text: string } | null;
-  } | null;
-}
 
 async function fetchGitHubGraphQL(
   client: Octokit,
@@ -172,132 +28,17 @@ async function fetchGitHubGraphQL(
   repo: string,
 ): Promise<MetricsSnapshot> {
   const now = Date.now();
-  const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const ninetyDaysAgo = new Date(now - 90 * 24 * 60 * 60 * 1000).toISOString();
-  const threeSixtyFiveDaysAgo = new Date(
-    now - 365 * 24 * 60 * 60 * 1000,
-  ).toISOString();
-
+  const variables = buildQueryVariables(owner, repo, now);
   const data = await client.graphql<RepoMetricsGraphQLResponse>(
     REPO_METRICS_QUERY,
-    {
-      owner,
-      repo,
-      commits30Since: thirtyDaysAgo,
-      commits90Since: ninetyDaysAgo,
-      commits365Since: threeSixtyFiveDaysAgo,
-    },
+    variables,
   );
-
-  const r = data.repository;
-  if (!r) {
-    throw new Error(`Repository ${owner}/${repo} not found`);
-  }
-
-  const latestCommitDate =
-    r.defaultBranchRef?.target?.latestCommit?.nodes?.[0]?.committedDate;
-  const commitsLast30Days =
-    r.defaultBranchRef?.target?.commitHistory30d?.totalCount ?? 0;
-  const commitsLast90Days =
-    r.defaultBranchRef?.target?.commitHistory90d?.totalCount ?? 0;
-  const commitsLast365Days =
-    r.defaultBranchRef?.target?.commitHistory365d?.totalCount ?? 0;
-
-  const releases = (r.releases?.nodes ?? []).map(
-    (rel: { tagName: string; name: string | null; publishedAt: string }) => ({
-      tagName: rel.tagName,
-      name: rel.name,
-      publishedAt: rel.publishedAt,
-    }),
-  );
-
-  const openIssuesCount = r.openIssues.totalCount;
-  const closedIssuesCount = r.closedIssues.totalCount;
-  const totalIssues = openIssuesCount + closedIssuesCount;
-  const openIssuesPercent =
-    totalIssues > 0
-      ? Math.round((openIssuesCount / totalIssues) * 100 * 10) / 10
-      : null;
-
-  const ninetyDaysAgoMs = now - 90 * 24 * 60 * 60 * 1000;
-  const mergedPrsLast90Days = (r.mergedPRsRecent?.nodes ?? []).filter(
-    (pr: { mergedAt: string }) =>
-      new Date(pr.mergedAt).getTime() >= ninetyDaysAgoMs,
-  ).length;
-
-  const oneYearAgoMs = now - 365 * 24 * 60 * 60 * 1000;
-  const closedIssueResolutionDays: number[] = [];
-  let issuesCreatedLastYear = 0;
-
-  for (const issue of r.recentIssues?.nodes ?? []) {
-    const createdAt = new Date(issue.createdAt).getTime();
-    if (createdAt >= oneYearAgoMs) issuesCreatedLastYear++;
-    if (issue.state === "CLOSED" && issue.closedAt) {
-      const closedAt = new Date(issue.closedAt).getTime();
-      if (closedAt >= oneYearAgoMs) {
-        closedIssueResolutionDays.push(
-          Math.floor((closedAt - createdAt) / (1000 * 60 * 60 * 24)),
-        );
-      }
-    }
-  }
-
-  const lastClosedIssueAt =
-    r.recentIssues.nodes
-      .filter(
-        (i): i is typeof i & { closedAt: string } =>
-          i.state === "CLOSED" && i.closedAt !== null,
-      )
-      .map((i) => i.closedAt)
-      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] ?? null;
-
-  return {
-    description: r.description,
-    stars: r.stargazerCount,
-    forks: r.forkCount,
-    avatarUrl: r.owner.avatarUrl,
-    htmlUrl: r.url,
-    license: r.licenseInfo?.spdxId ?? null,
-    language: r.primaryLanguage?.name ?? null,
-    repositoryCreatedAt: r.createdAt ?? null,
-    isArchived: r.isArchived,
-    lastCommitAt: latestCommitDate ?? null,
-    lastReleaseAt: r.latestRelease?.publishedAt ?? null,
-    lastClosedIssueAt,
-    lastMergedPrAt: r.lastMergedPR?.nodes?.[0]?.mergedAt ?? null,
-    openIssuesPercent,
-    openIssuesCount,
-    closedIssuesCount,
-    medianIssueResolutionDays: getMedian(closedIssueResolutionDays),
-    openPrsCount: r.openPRs.totalCount,
-    issuesCreatedLastYear,
-    commitsLast30Days,
-    commitsLast90Days,
-    commitsLast365Days,
-    mergedPrsLast90Days,
-    readmeContent:
-      (r.readmeMd?.text ?? r.readmeLower?.text ?? r.readmeNoExt?.text)?.slice(
-        0,
-        50_000,
-      ) ?? null,
-    releases,
-    commitActivity: {
-      state: "pending",
-      attempts: 0,
-      lastAttemptedAt: null,
-      errorMessage: null,
-      weekly: [],
-    },
-  };
+  return buildSnapshotFromGraphQL(data, owner, repo, now);
 }
 
 interface CommitActivityApiResult {
   status: 200 | 202 | 403 | 404 | 500;
-  weeks: Array<{
-    week: number;
-    total: number;
-    days: [number, number, number, number, number, number, number];
-  }>;
+  weeks: RawCommitWeek[];
 }
 
 async function fetchCommitActivityRest(
@@ -315,29 +56,14 @@ async function fetchCommitActivityRest(
       return { status: 202, weeks: [] };
     }
 
-    const weeks = Array.isArray(response.data)
-      ? response.data.filter(
-          (w): w is CommitActivityApiResult["weeks"][number] =>
-            !!w &&
-            typeof w === "object" &&
-            typeof w.week === "number" &&
-            typeof w.total === "number" &&
-            Array.isArray(w.days) &&
-            w.days.length === 7,
-        )
-      : [];
-
-    return { status: 200, weeks };
+    return { status: 200, weeks: parseCommitActivityWeeks(response.data) };
   } catch (error) {
     if (error instanceof RequestError) {
       console.warn(
         `fetchCommitActivityRest: ${owner}/${repo} returned HTTP ${error.status}`,
       );
       const status =
-        error.status === 401 ||
-        error.status === 403 ||
-        error.status === 404 ||
-        error.status === 422
+        classifyCommitActivityHttpError(error.status) === "unavailable"
           ? 403
           : 500;
       return { status, weeks: [] };
@@ -518,11 +244,7 @@ export const fetchCommitActivityWithRetry = internalAction({
             attempts: attempt,
             lastAttemptedAt: now,
             errorMessage: null,
-            weekly: result.weeks.map((w) => ({
-              weekStart: new Date(w.week * 1000).toISOString(),
-              totalCommits: w.total,
-              dailyBreakdown: w.days,
-            })),
+            weekly: mapWeeksToCommitActivity(result.weeks),
           },
         };
 
@@ -687,11 +409,7 @@ export const delayedCommitActivityRetry = internalAction({
                 COMMIT_ACTIVITY_MAX_ATTEMPTS) + 1,
             lastAttemptedAt: now,
             errorMessage: null,
-            weekly: result.weeks.map((w) => ({
-              weekStart: new Date(w.week * 1000).toISOString(),
-              totalCommits: w.total,
-              dailyBreakdown: w.days,
-            })),
+            weekly: mapWeeksToCommitActivity(result.weeks),
           },
         };
 
