@@ -1,6 +1,7 @@
 import { Octokit } from "@octokit/core";
 import { RequestError } from "@octokit/request-error";
 import { v } from "convex/values";
+import type { MetricsSnapshot } from "../src/lib/domain/assessment";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
@@ -74,49 +75,6 @@ function getMedian(numbers: number[]): number | null {
   return sorted.length % 2 !== 0
     ? sorted[mid]
     : (sorted[mid - 1] + sorted[mid]) / 2;
-}
-
-interface MetricsSnapshot {
-  description: string | null;
-  stars: number;
-  forks: number;
-  avatarUrl: string;
-  htmlUrl: string;
-  license: string | null;
-  language: string | null;
-  repositoryCreatedAt: string | null;
-  isArchived: boolean;
-  lastCommitAt: string | null;
-  lastReleaseAt: string | null;
-  lastClosedIssueAt: string | null;
-  lastMergedPrAt: string | null;
-  openIssuesPercent: number | null;
-  openIssuesCount: number;
-  closedIssuesCount: number;
-  medianIssueResolutionDays: number | null;
-  openPrsCount: number;
-  issuesCreatedLastYear: number;
-  commitsLast30Days: number;
-  commitsLast90Days: number;
-  commitsLast365Days: number;
-  mergedPrsLast90Days: number;
-  releases: Array<{
-    tagName: string;
-    name: string | null;
-    publishedAt: string;
-  }>;
-  readmeContent?: string | null;
-  commitActivity?: {
-    state: "pending" | "ready" | "failed";
-    attempts: number;
-    lastAttemptedAt: string | null;
-    errorMessage: string | null;
-    weekly: Array<{
-      weekStart: string;
-      totalCommits: number;
-      dailyBreakdown: [number, number, number, number, number, number, number];
-    }>;
-  };
 }
 
 interface RepoMetricsGraphQLResponse {
