@@ -19,7 +19,7 @@ import {
   type RawCommitWeek,
   REPO_METRICS_QUERY,
   type RepoMetricsGraphQLResponse,
-} from "./_shared/github-snapshot";
+} from "./_shared/github_snapshot";
 import { triggerSource } from "./schema";
 
 async function fetchGitHubGraphQL(

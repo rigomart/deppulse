@@ -6,7 +6,7 @@ import {
   mapWeeksToCommitActivity,
   parseCommitActivityWeeks,
   type RepoMetricsGraphQLResponse,
-} from "./github-snapshot";
+} from "./github_snapshot";
 
 const NOW = new Date("2026-05-01T00:00:00.000Z").getTime();
 const DAY_MS = 24 * 60 * 60 * 1000;

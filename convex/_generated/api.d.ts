@@ -9,6 +9,7 @@
  */
 
 import type * as _shared_constants from "../_shared/constants.js";
+import type * as _shared_github_snapshot from "../_shared/github_snapshot.js";
 import type * as _shared_mappers from "../_shared/mappers.js";
 import type * as _shared_types from "../_shared/types.js";
 import type * as analysis from "../analysis.js";
@@ -22,6 +23,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "_shared/constants": typeof _shared_constants;
+  "_shared/github_snapshot": typeof _shared_github_snapshot;
   "_shared/mappers": typeof _shared_mappers;
   "_shared/types": typeof _shared_types;
   analysis: typeof analysis;
