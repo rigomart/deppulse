@@ -22,3 +22,17 @@ bun run test -- src/lib/maintenance.test.ts  # Run a single test file
 - Test behavior, not implementation
 - Assume dev server is already running
 - Avoid `any` or explicit type assertions
+
+## Agent skills
+
+### Issue tracker
+
+GitHub issues at `rigomart/deppulse` via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical roles using default names; `wontfix` already exists in the repo. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root (created lazily by skills when needed). See `docs/agents/domain.md`.
